@@ -611,6 +611,7 @@ const SYNC={
   async pushAllTeams(teams){if(!this.sb)return;for(var t of teams){await this.pushTeam(t);}},
   async pushAllSubs(subs){if(!this.sb)return;for(var tid in subs){for(var s in subs[tid]){await this.sb.from('fa_subs').upsert({id:tid+'_'+s,team_id:tid,stage:parseInt(s),data:subs[tid][s].data,score:subs[tid][s].score,submitted_by:subs[tid][s].submittedBy,submitted_at:subs[tid][s].submittedAt},{onConflict:'id'});}}},
   async pushAllEvals(evs){if(!this.sb)return;for(var ev of evs){await this.pushEval(ev);}},
+  async pushTeacherEval(ev){if(!this.sb)return;await this.sb.from('fa_teacher_evals').upsert({id:ev.id,team_id:ev.teamId,stage:ev.stage,grade:ev.grade||0,scores:ev.scores||{},feedback:ev.feedback||'',created_at:ev.createdAt},{onConflict:'id'});},
   // Save config to localStorage
   saveConfig(url,key){
     localStorage.setItem('fa2_sb_url',url||'https://gfogifozhhbzxhcbecgf.supabase.co');
@@ -2674,7 +2675,7 @@ if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[te
   const score=calcScore(stage,team.id,A.inp);
   if(score<25){msg('Score de '+score+'%. Revisa tus cálculos (mínimo 25%).','warn');return;}
   const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
-  subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);
+  subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);SYNC.pushSub(team.id,stage,subs[team.id][stage]);
   if(stage<5)ss({view:'stages',stage:stage+1});else ss({view:'home'});
   msg('✅ Etapa '+stage+' entregada. Score: '+score+'%','ok');}
 
@@ -2688,14 +2689,14 @@ function doCreateTeam(){
   if(teams.find(t=>t.name.toLowerCase()===name.toLowerCase())){msg('Ya existe un equipo con ese nombre.','err');return;}
   if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
   const t={id:uid(),name,desc,leaderId:A.user.id,members:[A.user.id],requests:[],companyId:null,maxMembers:max,status:'open',createdAt:Date.now()};
-  teams.push(t);DB.saveTeams(teams);ss({screen:'lobby',inp:{},tsv:'members'});}
+  teams.push(t);DB.saveTeams(teams);SYNC.pushTeam(t);ss({screen:'lobby',inp:{},tsv:'members'});}
 
 
 function doSelectCo(teamId,coId){
   const teams=DB.getTeams();const taken=teams.some(t=>t.companyId===coId&&t.id!==teamId);
   if(taken){msg('Esa empresa ya fue elegida por otro equipo.','err');return;}
   const t=teams.find(t=>t.id===teamId);if(!t)return;
-  t.companyId=coId;t.status='active';DB.saveTeams(teams);ss({screen:'student',view:'home',stage:1});}
+  t.companyId=coId;t.status='active';DB.saveTeams(teams);SYNC.pushTeam(t);ss({screen:'student',view:'home',stage:1});}
 
 
 function doJoinRequest(teamId){
@@ -2894,7 +2895,7 @@ function doSaveTeacherEval(){
   var ev={id:uid(),teamId:teamId,stage:stage,scores:scores,grade:grade,
           feedback:document.getElementById('te_feedback')?.value||A.inp.te_feedback||'',createdAt:Date.now()};
   if(idx>=0)tEvs[idx]=ev;else tEvs.push(ev);
-  DB.saveTeacherEvals(tEvs);
+  DB.saveTeacherEvals(tEvs);SYNC.pushTeacherEval(ev);
   msg('Evaluacion docente guardada.','ok');ss({teacherTab:'evaluar'});}
 
 async function doAIEvaluate(teamId,stage){
@@ -3012,6 +3013,104 @@ async function doExcelExport(){
   window.XLSX.utils.book_append_sheet(WB,window.XLSX.utils.aoa_to_sheet(s5),'Instrucciones IA');
   window.XLSX.writeFile(WB,'FinAcademy_'+new Date().toLocaleDateString('es-MX').replace(/\//g,'-')+'.xlsx');
   msg('Excel descargado: '+teams.length+' equipos, '+(s2.length-1)+' respuestas.','ok');}
+
+
+function doDeleteTeam(tid){
+  if(!tid)return;
+  var teams=DB.getTeams().filter(function(t){return t.id!==tid;});DB.saveTeams(teams);
+  var subs=DB.getSubs();delete subs[tid];DB.saveSubs(subs);
+  var evs=DB.getEvals().filter(function(e){return e.teamId!==tid;});DB.saveEvals(evs);
+  SYNC.deleteTeam(tid);
+  msg('Equipo eliminado.','ok');ss({teacherTab:A.teacherTab||'equipos'});}
+
+function doDeleteUser(uid_){
+  if(!uid_||uid_==='teacher'||uid_==='demo')return;
+  var users=DB.getUsers().filter(function(u){return u.id!==uid_;});DB.saveUsers(users);
+  var teams=DB.getTeams();
+  teams.forEach(function(t){t.members=(t.members||[]).filter(function(id){return id!==uid_;});});
+  DB.saveTeams(teams);SYNC.deleteUser(uid_);
+  msg('Usuario eliminado.','ok');ss({teacherTab:'alumnos'});}
+
+function doResetTeam(tid){
+  if(!tid)return;
+  var subs=DB.getSubs();delete subs[tid];DB.saveSubs(subs);
+  SYNC.deleteTeamSubs(tid);
+  msg('Entregas reiniciadas.','ok');ss({teacherTab:A.teacherTab||'equipos'});}
+
+function doChangeCompany(tid){
+  var teams=DB.getTeams();var t=teams.find(function(t){return t.id===tid;});if(!t)return;
+  var options=COS.map(function(c,i){return (i+1)+'. '+c.e+' '+c.n;}).join('\n');
+  var idx=parseInt(prompt('Elige empresa (1-8):\n'+options))-1;
+  if(idx>=0&&idx<COS.length){
+    t.companyId=COS[idx].id;t.status='active';
+    DB.saveTeams(teams);SYNC.pushTeam(t);
+    msg('Empresa cambiada a '+COS[idx].n+'.','ok');ss({teacherTab:'equipos'});
+  }}
+
+function doEditScore(tid,stage){
+  var subs=DB.getSubs();
+  if(!subs[tid]||!subs[tid][stage]){msg('Sin entrega.','warn');return;}
+  var cur=subs[tid][stage].score||0;
+  var nuevo=parseInt(prompt('Puntaje actual: '+cur+'%\nNuevo (0-100):',cur));
+  if(!isNaN(nuevo)&&nuevo>=0&&nuevo<=100){
+    subs[tid][stage].score=nuevo;DB.saveSubs(subs);
+    SYNC.pushSub(tid,stage,subs[tid][stage]);
+    msg('Puntaje: '+nuevo+'%','ok');ss({teacherTab:'scores'});
+  }}
+
+function doUnlockCompany(tid){
+  var teams=DB.getTeams();var t=teams.find(function(t){return t.id===tid;});if(!t)return;
+  t.companyId=null;t.status='open';
+  DB.saveTeams(teams);SYNC.pushTeam(t);
+  msg('Empresa liberada.','ok');ss({teacherTab:'empresas'});}
+
+function doAssignCoToTeam(coId){
+  var teams=DB.getTeams();var available=teams.filter(function(t){return!t.companyId;});
+  if(!available.length){msg('Sin equipos en lobby.','warn');return;}
+  var options=available.map(function(t,i){return(i+1)+'. '+t.name;}).join('\n');
+  var idx=parseInt(prompt('Asignar a:\n'+options))-1;
+  if(idx>=0&&idx<available.length){
+    var t=available[idx];t.companyId=coId;t.status='active';
+    DB.saveTeams(teams);SYNC.pushTeam(t);
+    msg('Asignado a '+t.name,'ok');ss({teacherTab:'empresas'});
+  }}
+
+async function doReset(){
+  if(!confirm('Borrar TODOS los datos? No se puede deshacer.'))return;
+  if(SYNC.enabled&&SYNC.sb){
+    try{
+      await SYNC.sb.from('fa_teacher_evals').delete().neq('id','_');
+      await SYNC.sb.from('fa_evals').delete().neq('id','_');
+      await SYNC.sb.from('fa_subs').delete().neq('id','_');
+      await SYNC.sb.from('fa_teams').delete().neq('id','_');
+      await SYNC.sb.from('fa_users').delete().neq('id','_');
+    }catch(e){console.warn(e);}
+  }
+  localStorage.clear();location.reload();}
+
+function doMoveUser(){
+  var uid=A.inp.moveUser;var tid=A.inp.moveTeam;
+  if(!uid||!tid){msg('Selecciona alumno y equipo destino.','warn');return;}
+  var teams=DB.getTeams();
+  var oldTeam=teams.find(function(t){return(t.members||[]).includes(uid);});
+  if(oldTeam){
+    oldTeam.members=oldTeam.members.filter(function(id){return id!==uid;});
+    if(oldTeam.members.length<oldTeam.maxMembers)oldTeam.status='open';
+    SYNC.pushTeam(oldTeam);
+  }
+  var dest=teams.find(function(t){return t.id===tid;});
+  if(dest){
+    if(!(dest.members||[]).includes(uid)){
+      dest.members=(dest.members||[]).concat([uid]);
+      var u=DB.getUsers().find(function(u){return u.id===uid;});
+      if(u&&!(dest.memberNames||[]).includes(u.name))dest.memberNames=(dest.memberNames||[]).concat([u.name]);
+    }
+    SYNC.pushTeam(dest);
+  }
+  DB.saveTeams(teams);
+  msg('Alumno movido a '+(dest?dest.name:'?')+'.','ok');
+  ss({teacherTab:'mover'});}
+
 
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
