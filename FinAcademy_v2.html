@@ -825,6 +825,13 @@ function getMemberNames(team){
   if(team.memberNames&&team.memberNames.length)return team.memberNames;
   return teamMembers(team.id).map(function(u){return u.name;});}
 
+function doLogout(){
+  DB.clearSession();
+  A.user=null;A.screen='login';A.inp={};
+  A.pePhase=1;A.peErr={};A.evalStage=1;A.teacherTab='overview';
+  render();}
+
+
 function doLogin(){
   var mode=A.loginMode||'individual';
   // TEAM MODE
