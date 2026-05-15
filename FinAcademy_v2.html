@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- FinAcademy v2.4 | 2026-05-15 17:43.3 | Build: 2026-05-15 16:55 | EBC -->
+<!-- FinAcademy v2.5 | 2026-05-15 17:43.3 | Build: 2026-05-15 16:55 | EBC -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>FinAcademy v2.1 — Análisis Financiero Colaborativo</title>
+<title>FinAcademy v2.5 — Análisis Financiero Colaborativo</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -2489,6 +2489,83 @@ function generateCorteReport(corteNum,team,co){
   const ses=DB.getSession();
   if(ses){A.user=ses;if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);if(ses.role==='teacher')A.screen='teacher';else{const t=getUserTeam(ses.id);A.screen=t&&t.companyId?'student':'lobby';}}
   render();
+})();
+
+// ── EVENT HANDLER — at end of script for guaranteed registration ──────────
+(function registerHandlers(){
+  function handleClick(e){
+    var el=e.target;
+    var id=el.id||'';
+    if(!id&&el.closest){var p=el.closest('[id]');if(p)id=p.id;}
+    if(!id)id='';
+    if(id==='btnLogin'||el.closest&&el.closest('#btnLogin'))return doLogin();
+    if(id==='btnGoReg')return ss({screen:'register'});
+    if(id==='btnReg')return doRegister();
+    if(id==='btnGoLogin')return ss({screen:'login'});
+    if(id==='btnLogout'||el.closest&&el.closest('#btnLogout'))return doLogout();
+    if(id==='btnCreateTeam')return doCreateTeam();
+    if(id==='btnRefreshLobby'||id==='btnRefreshTeam')return ss({});
+    if(id==='btnAddMember'){var cur=Math.max(2,Math.min(5,parseInt(A.inp.memberCount||'2')));A.inp.memberCount=String(cur+1);render();return;}
+    var peprog=el.closest&&el.closest('[data-peprog]');if(peprog)return doPEProgress(parseInt(peprog.dataset.peprog));
+    var peforce=el.closest&&el.closest('[data-peforce]');if(peforce){ss({pePhase:parseInt(peforce.dataset.peforce),peErr:{}});return;}
+    var mode=el.closest&&el.closest('[data-mode]');if(mode)return ss({loginMode:mode.dataset.mode,inp:{}});
+    var rvEl=el.closest&&el.closest('[data-rv]');var rcidEl=el.closest&&el.closest('[data-rcid]');if(rvEl&&rcidEl){A.inp[rcidEl.dataset.rcid]=parseInt(rvEl.dataset.rv);render();return;}
+    var evalstage=el.closest&&el.closest('[data-evalstage]');if(evalstage)return ss({evalStage:parseInt(evalstage.dataset.evalstage)});
+    var cortereport=el.closest&&el.closest('[data-cortereport]');if(cortereport){var _t=getUserTeam(A.user.id);if(_t)generateCorteReport(parseInt(cortereport.dataset.cortereport),_t,getC(_t.companyId));return;}
+    var jt=el.closest&&el.closest('[data-jointeam]');if(jt)return doJoinRequest(jt.dataset.jointeam);
+    if(id==='btnCancelReq'){var tid=el.dataset.tid||el.closest&&el.closest('[data-tid]')?.dataset.tid;return doCancelReq(tid);}
+    var tsv=el.closest&&el.closest('[data-tsv]');if(tsv)return ss({tsv:tsv.dataset.tsv});
+    var approveEl=el.closest&&el.closest('[data-approve]');if(approveEl)return doApproveReq(approveEl.dataset.tid,approveEl.dataset.approve);
+    var rejectEl=el.closest&&el.closest('[data-reject]');if(rejectEl)return doRejectReq(rejectEl.dataset.tid,rejectEl.dataset.reject);
+    var kickEl=el.closest&&el.closest('[data-kick]');if(kickEl)return doKick(kickEl.dataset.tid,kickEl.dataset.kick);
+    if(id==='btnLeaveTeam'||el.closest&&el.closest('#btnLeaveTeam')){var tid2=el.dataset.tid||el.closest&&el.closest('[data-tid]')?.dataset.tid;return doLeaveTeam(tid2);}
+    var selco=el.closest&&el.closest('[data-selco]');if(selco)return doSelectCo(selco.dataset.tid,selco.dataset.selco);
+    var ns=el.closest&&el.closest('[data-ns]');if(ns){var n=parseInt(ns.dataset.ns);var team2=getUserTeam(A.user.id);if(team2&&!stageOk(n,team2.id)){msg('Completa las etapas anteriores primero.','warn');return;}return ss({view:'stages',stage:n});}
+    var nv=el.closest&&el.closest('[data-nv]');if(nv)return ss({view:nv.dataset.nv,tsv:'members'});
+    var tab=el.closest&&el.closest('[data-tab]');if(tab)return ss({tab:tab.dataset.tab});
+    var et=el.closest&&el.closest('[data-et]');if(et)return ss({evalTarget:et.dataset.et});
+    if(id==='btnS1')return doSubmit(1);if(id==='btnS2')return doSubmit(2);if(id==='btnS3')return doSubmit(3);if(id==='btnS4')return doSubmit(4);if(id==='btnS5')return doSubmit(5);
+    if(id==='btnEval'||el.closest&&el.closest('#btnEval'))return doEval();
+    var sv=el.closest&&el.closest('[data-sv]');if(sv){A.inp['ev_'+sv.dataset.sid]=parseInt(sv.dataset.sv);render();return;}
+    var rpt=el.closest&&el.closest('[data-rpt]');if(rpt){var team3=getUserTeam(A.user.id);if(team3)generateReport(parseInt(rpt.dataset.rpt),team3,getC(team3.companyId));return;}
+    if(id==='btnExport')return doExport();
+    if(id==='btnImport')return document.getElementById('importFile')?.click();
+    if(id==='btnSBConnect'||el.closest&&el.closest('#btnSBConnect'))return doSBConnect();
+    if(id==='btnSyncNow'||el.closest&&el.closest('#btnSyncNow')){SYNC.pull().then(function(){msg('Datos sincronizados.','ok');});return;}
+    if(id==='btnSBExportAll'||el.closest&&el.closest('#btnSBExportAll'))return doSBExportAll();
+    var democoid=el.closest&&el.closest('[data-democoid]');if(democoid!==undefined&&democoid!==null)return ss({demoCoId:democoid.dataset.democoid===''?null:democoid.dataset.democoid,demoStage:1});
+    var demostage=el.closest&&el.closest('[data-demostage]');if(demostage)return ss({demoStage:parseInt(demostage.dataset.demostage)});
+    if(el.closest&&el.closest('[data-toteacher]'))return ss({screen:'teacher'});
+    var tview=el.closest&&el.closest('[data-tview]');if(tview)return ss({teacherTeam:tview.dataset.tview});
+    if(id==='btnBackTeacher')return ss({teacherTeam:null});
+    var ttab=el.closest&&el.closest('[data-ttab]');if(ttab)return ss({teacherTab:ttab.dataset.ttab});
+    var delteam=el.closest&&el.closest('[data-delteam]');if(delteam){if(confirm('Borrar equipo y sus entregas?'))doDeleteTeam(delteam.dataset.delteam);return;}
+    var deluser=el.closest&&el.closest('[data-deluser]');if(deluser){if(confirm('Borrar usuario?'))doDeleteUser(deluser.dataset.deluser);return;}
+    var resetteam=el.closest&&el.closest('[data-resetteam]');if(resetteam){if(confirm('Reiniciar entregas?'))doResetTeam(resetteam.dataset.resetteam);return;}
+    var changeco=el.closest&&el.closest('[data-changeco]');if(changeco){doChangeCompany(changeco.dataset.changeco);return;}
+    var editscore=el.closest&&el.closest('[data-editscore]');if(editscore){doEditScore(editscore.dataset.editscore,parseInt(editscore.dataset.editstage));return;}
+    if(id==='btnReset'){if(confirm('Borrar TODOS los datos?'))doReset();return;}
+  }
+  window.fa_click=handleClick;
+  document.addEventListener('click',function(e){try{handleClick(e);}catch(err){console.error('Click error:',err);}},true);
+  console.log('[FA] Click handler registered ✅');
+})();
+
+(function registerInput(){
+  document.addEventListener('input',function(e){
+    var el=e.target;
+    if(!el.id)return;
+    A.inp[el.id]=el.value;
+    if(el.id==='lUser'){var v=el.value.trim().toLowerCase();if(v==='profe'||v==='profesor'||v==='')render();}
+    if(el.id==='memberCount')render();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){
+      var aid=document.activeElement&&document.activeElement.id;
+      if(aid==='lUser'||aid==='lPin'||aid==='m0')doLogin();
+    }
+  });
+  console.log('[FA] Input handler registered ✅');
 })();
 
 </script>
