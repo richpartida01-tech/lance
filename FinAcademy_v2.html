@@ -2852,6 +2852,42 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
   console.log('[FA] Input handler registered ✅');
 })();
 
+// ================================================================
+// INIT
+// ================================================================
+(function(){
+  // Restore session if exists
+  var ses=DB.getSession();
+  if(ses){
+    A.user=ses;
+    if(ses.role==='teacher'){A.screen='teacher';}
+    else if(ses.role==='admin'){A.screen='demo';}
+    else{
+      if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);
+      var t=getUserTeam(ses.id);
+      A.screen=t&&t.companyId?'student':'lobby';
+    }
+  }
+  // Connect Supabase only on real server (not file://)
+  if(location.protocol!=='file:'){
+    try{
+      var cfg=SYNC.loadConfig();
+      if(cfg.url&&cfg.key){
+        SYNC.init(cfg.url,cfg.key);
+        if(SYNC.enabled){
+          try{SYNC.subscribe();}catch(e){console.warn('[SYNC subscribe]',e);}
+          SYNC.pull().then(function(){
+            render();
+            console.log('[FA] Sincronizado con Supabase ✅');
+          }).catch(function(e){console.warn('[SYNC pull]',e);});
+        }
+      }
+    }catch(e){console.warn('[SYNC init error]',e);}
+  }
+  // Always render
+  render();
+})();
+
 </script>
 </body>
 </html>
