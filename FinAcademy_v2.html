@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- FinAcademy v2.3 | Build: 2026-05-15 16:55 | EBC -->
+<!-- FinAcademy v2.4 | 2026-05-15 17:43.3 | Build: 2026-05-15 16:55 | EBC -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -733,13 +733,13 @@ function rLogin(){
             '<input class="inp" id="m'+i+'" placeholder="'+(i===0?'Tu nombre (requerido)':'Nombre del integrante')+'"></div>';
         }).join('')+
         (mc<6?'<button class="btn btn-sm" id="btnAddMember" style="margin:4px 0 12px">+ Agregar integrante</button>':'<div style="margin-bottom:12px"></div>')+
-        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar al equipo &#x2192;</button>'
+        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px" onclick="doLogin()">Entrar al equipo &#x2192;</button>'
       :
         '<div class="lbl">&#x1F44B; Tu nombre o alias</div>'+
         '<input class="inp mb8" id="lUser" placeholder="Ej. Juan García" autocomplete="off" oninput="try{A.inp[this.id]=this.value}catch(e){}">'+
         (isSpecial?'<div class="lbl">PIN docente</div><input class="inp mb12" id="lPin" type="password" placeholder="PIN">':'<div style="margin-bottom:4px"></div>')+
         '<p class="t3 f11 mb12">Primera vez? Tu cuenta se crea al instante.</p>'+
-        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar &#x2192;</button>'
+        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px" onclick="doLogin()">Entrar &#x2192;</button>'
       )+
     '</div>'+
     '<p class="t3 f11" style="text-align:center;margin-top:10px">'+
@@ -786,7 +786,7 @@ function doLogin(){
     var t=getUserTeam(u.id);ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});return;
   }
   // INDIVIDUAL / SPECIAL MODE
-  var uname=(A.inp.lUser||A.inp.lU||document.getElementById('lUser')?.value||'').trim();
+  var luserEl=document.getElementById('lUser');var uname=(luserEl?luserEl.value:'') || A.inp.lUser || '';uname=uname.trim();
   if(!uname){msg('Escribe tu nombre.','warn');return;}
   var lname=uname.toLowerCase();
   // Teacher
