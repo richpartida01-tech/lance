@@ -722,7 +722,7 @@ function rDemo(){
   '</div>';}
 
 
-function render(){try{const app=document.getElementById('app');if(!app)return;const map={login:rLogin,register:rRegister,lobby:rLobby,student:rStudent,teacher:rTeacher,demo:rDemo};app.innerHTML=(map[A.screen]||rLogin)();postRender();}catch(e){app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#07080f;min-height:100vh"><h2>Error:</h2><pre>'+e.message+'</pre></div>';}}
+function render(){var app=document.getElementById('app');if(!app)return;console.log('[FA] render() → screen:',A.screen);try{const map={login:rLogin,register:rRegister,lobby:rLobby,student:rStudent,teacher:rTeacher,demo:rDemo};app.innerHTML=(map[A.screen]||rLogin)();postRender();}catch(e){console.error('[FA Render Error]',e);app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#07080f;min-height:100vh"><h2 style=color:#ef4444>Error en render:</h2><pre style=color:#f87171>'+e.message+'\n\n'+(e.stack||'')+'</pre></div>';}}
 function postRender(){document.querySelectorAll('.blank').forEach(el=>{if(A.inp[el.id]!=null&&A.inp[el.id]!==''){el.value=A.inp[el.id];const v=parseFloat(A.inp[el.id]),ans=parseFloat(el.dataset.a);el.classList.add(close(v,ans)?'ok':'err');}});document.querySelectorAll('textarea').forEach(el=>{if(el.id&&A.inp[el.id]!=null)el.value=A.inp[el.id];});const fi=document.getElementById('importFile');if(fi)fi.addEventListener('change',e=>{if(e.target.files[0])doImport(e.target.files[0]);});}
 
 // ================================================================
@@ -2267,6 +2267,467 @@ function rTLimpiar(teams,users,subs){
   '</div>';}
 
 
+
+
+
+function generateReport(stage,team,co){
+  var sub=getTeamSub(team.id,stage);if(!sub)return;
+  var a=co.ans;
+  var d=sub.data||{};
+  var members=getMemberNames(team).join(', ');
+  var corteNum=stage<=2?1:stage<=4?2:3;
+  var corte=CORTES[corteNum];
+  var snames=['','Empresa y Business Model Canvas','Estados Financieros','Razones de Liquidez y Operativas','Análisis Horizontal, Vertical y Flujo de Efectivo','Punto de Equilibrio Ponderado'];
+  var evs=DB.getEvals().filter(function(e){return e.teamId===team.id&&(e.stage===stage||(stage===1&&e.stage===undefined));});
+
+  // === CSS ===
+  var css=[
+    'body{font-family:Arial,sans-serif;max-width:850px;margin:0 auto;padding:20px;color:#1a1a2e;font-size:12px;line-height:1.6}',
+    '@page{margin:1.5cm}',
+    '.cover{background:linear-gradient(135deg,'+corte.color+',#252840);color:#fff;padding:32px;border-radius:10px;margin-bottom:24px;text-align:center}',
+    '.cover h1{font-size:22px;margin:0 0 6px}.cover h2{font-size:16px;margin:0 0 12px;opacity:.85}',
+    '.cover .meta{font-size:11px;opacity:.7;line-height:1.8}',
+    '.score-box{display:inline-block;background:#10b981;color:#fff;padding:6px 18px;border-radius:20px;font-weight:700;font-size:13px;margin:12px 0}',
+    '.section{margin-bottom:20px}',
+    '.section-title{background:'+corte.color+';color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;margin-bottom:10px;letter-spacing:.04em}',
+    '.answer-block{background:#f8f9ff;border-left:4px solid '+corte.color+';padding:9px 13px;margin-bottom:8px;border-radius:0 5px 5px 0}',
+    '.field-label{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}',
+    '.field-text{font-size:12px;color:#1a1a2e;line-height:1.7}',
+    'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px}',
+    'th{background:#f0f0f8;padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:10px;text-transform:uppercase;letter-spacing:.04em}',
+    'td{padding:5px 8px;border:1px solid #ddd}',
+    'td.r{text-align:right;font-family:monospace}',
+    'td.pos{color:#10b981;font-weight:600}td.neg{color:#ef4444;font-weight:600}',
+    'tr.subtotal td{font-weight:700;background:#eef0ff}',
+    'tr.total td{font-weight:700;background:#e8e8f8;font-size:12px}',
+    '.canvas-grid{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;gap:0;border:1px solid #ccc;border-radius:8px;overflow:hidden;margin-bottom:12px}',
+    '.canvas-cell{padding:10px;border:1px solid #ddd;font-size:11px;min-height:80px}',
+    '.canvas-cell.pv{grid-row:1/3;background:#f0eeff;border-color:'+corte.color+"}'",
+    '.canvas-cell.wide{grid-column:1/3;background:#fff0f0}',
+    '.canvas-cell.wide2{grid-column:3/6;background:#f0fff0}',
+    '.cell-title{font-size:10px;font-weight:700;text-transform:uppercase;color:'+corte.color+';margin-bottom:4px;letter-spacing:.05em}',
+    '.cell-text{font-size:11px;color:#333;line-height:1.6}',
+    '.coeval-card{background:#fff8e1;border:1px solid #ffc107;border-radius:7px;padding:10px 12px;margin-bottom:8px}',
+    '.coeval-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}',
+    '.coeval-name{font-weight:700;font-size:12px}',
+    '.rubric-table td{font-size:10px}.rubric-table th{font-size:10px}',
+    '.stars{color:#f59e0b;font-size:12px}',
+    '.footer{text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999}',
+    '.no-print{margin-bottom:20px}@media print{.no-print{display:none}}'
+  ].join('\n');
+
+  // === HELPERS ===
+  function sec(title){return '<div class="section-title">'+title+'</div>';}
+  function ans(label,text){if(!text||!text.trim())return'';return'<div class="answer-block"><div class="field-label">'+label+'</div><div class="field-text">'+text+'</div></div>';}
+  function fmtN(n,d){if(n==null||isNaN(n))return'—';return Number(n).toLocaleString('es-MX',{minimumFractionDigits:d||2,maximumFractionDigits:d||2});}
+
+  // === BODY ===
+  var body='';
+
+  // ── ETAPA 1 ──────────────────────────────────────────────────
+  if(stage===1){
+    body+='<div class="section">'+sec('PERFIL DE LA EMPRESA')+
+      '<table><tr><th>Empresa</th><th>Sector</th><th>Año</th><th>Lema estratégico</th></tr>'+
+      '<tr><td><strong>'+co.e+' '+co.n+'</strong></td><td>'+co.s+'</td><td>'+co.y[0]+' – '+co.y[1]+'</td><td><em>'+co.tag+'</em></td></tr></table>'+
+      '<table><tr><th>Misión</th><th>Visión</th></tr><tr><td>'+co.mis+'</td><td>'+co.vis+'</td></tr></table>'+
+      '</div>';
+
+    body+='<div class="section">'+sec('ANÁLISIS DEL EQUIPO')+
+      ans('¿Por qué eligieron esta empresa?',d.s1a)+
+      ans('Análisis del entorno externo (oportunidades y amenazas)',d.s1b)+
+      ans('Coherencia del modelo de negocio (Canvas → Finanzas)',d.s1c)+
+      '</div>';
+
+    // Canvas completo
+    var ckeys=[
+      {k:'socios',   t:'Socios Clave',          col:'s'},
+      {k:'actividades',t:'Actividades Clave',    col:'s'},
+      {k:'propuesta',t:'Propuesta de Valor',      col:'pv'},
+      {k:'relaciones',t:'Relaciones c/Clientes', col:'s'},
+      {k:'segmentos',t:'Segmentos de Clientes',   col:'s'},
+      {k:'recursos', t:'Recursos Clave',          col:'s'},
+      {k:'canales',  t:'Canales',                 col:'s'},
+      {k:'costos',   t:'Estructura de Costos',    col:'wide'},
+      {k:'ingresos', t:'Fuentes de Ingresos',     col:'wide2'},
+    ];
+    var hasCanvas=ckeys.some(function(c){return d['s1bmc_'+c.k];});
+    if(hasCanvas){
+      body+='<div class="section">'+sec('BUSINESS MODEL CANVAS — '+co.n.toUpperCase());
+      // Table layout for canvas
+      body+='<table style="table-layout:fixed"><tr>';
+      body+='<th style="width:12%">Socios Clave</th><th style="width:18%">Actividades Clave</th><th style="width:20%;background:#ede9ff">Propuesta de Valor</th><th style="width:18%">Relaciones</th><th style="width:18%">Segmentos</th></tr>';
+      body+='<tr style="vertical-align:top">';
+      body+='<td rowspan="2" style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Socios Clave</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_socios||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Actividades Clave</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_actividades||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td rowspan="2" style="background:#ede9ff;border-color:'+corte.color+'">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">★ PROPUESTA DE VALOR</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_propuesta||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Relaciones c/Clientes</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_relaciones||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td rowspan="2" style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Segmentos</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_segmentos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='</tr><tr style="vertical-align:top">';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Recursos Clave</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_recursos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Canales</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_canales||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='</tr><tr style="vertical-align:top">';
+      body+='<td colspan="2" style="background:#fff0f0">'+
+        '<div style="font-size:10px;color:#ef4444;font-weight:700;margin-bottom:4px">Estructura de Costos</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_costos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td colspan="3" style="background:#f0fff0">'+
+        '<div style="font-size:10px;color:#10b981;font-weight:700;margin-bottom:4px">Fuentes de Ingresos</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_ingresos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='</tr></table></div>';
+    }
+  }
+
+  // ── ETAPA 2 ──────────────────────────────────────────────────
+  else if(stage===2){
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — PREGUNTAS DE CONTEXTO');
+    var g2=['s2g1','s2g2','s2g3','s2g4'];
+    var g2labels=['Estructura de activos esperada','Costos y propuesta de valor','Estrategia de financiamiento','Margen de ganancia esperado'];
+    g2.forEach(function(k,i){body+=ans(g2labels[i],d[k]);});
+    body+='</div>';
+
+    ['y1','y2'].forEach(function(yr,yi){
+      var y=co.y[yi],bg=a[yr].bg,er=a[yr].er;
+      body+='<div class="section">'+sec('BALANCE GENERAL — '+y+' (Miles de Pesos MXN)')+
+        '<table><tr><th colspan="2">ACTIVO</th><th colspan="2">PASIVO Y CAPITAL</th></tr>'+
+        '<tr><td>Efectivo y equivalentes</td><td class="r">$'+fmtN(bg.ef)+'</td><td>Cuentas por pagar</td><td class="r">$'+fmtN(bg.cxp)+'</td></tr>'+
+        '<tr><td>Cuentas por cobrar</td><td class="r">$'+fmtN(bg.cxc)+'</td><td>Deuda a corto plazo</td><td class="r">$'+fmtN(bg.dcp)+'</td></tr>'+
+        '<tr><td>Inventarios</td><td class="r">$'+fmtN(bg.inv)+'</td><td>Impuestos por pagar</td><td class="r">$'+fmtN(bg.imp)+'</td></tr>'+
+        '<tr class="subtotal"><td>Total Activo Circulante</td><td class="r">$'+fmtN(bg.ac)+'</td><td>Total Pasivo Circ.</td><td class="r">$'+fmtN(bg.pc)+'</td></tr>'+
+        '<tr><td>Equipos brutos</td><td class="r">$'+fmtN(bg.eq)+'</td><td>Deuda a largo plazo</td><td class="r">$'+fmtN(bg.pnc)+'</td></tr>'+
+        '<tr><td>(-) Dep. acumulada</td><td class="r">('+fmtN(Math.abs(bg.dep))+')</td><td>Total Pasivo</td><td class="r">$'+fmtN(bg.tp)+'</td></tr>'+
+        '<tr><td>Otros activos NC</td><td class="r">$'+fmtN(bg.onc)+'</td><td>Capital social</td><td class="r">$'+fmtN(bg.cs)+'</td></tr>'+
+        '<tr class="subtotal"><td>Total Activo No Circ.</td><td class="r">$'+fmtN(bg.anc)+'</td><td>Utilidades retenidas</td><td class="r">$'+fmtN(bg.ur)+'</td></tr>'+
+        '<tr class="total"><td>TOTAL ACTIVO</td><td class="r">$'+fmtN(bg.ta)+'</td><td>TOTAL PASIVO + CAPITAL</td><td class="r">$'+fmtN(bg.ta)+'</td></tr>'+
+        '</table></div>';
+      body+='<div class="section">'+sec('ESTADO DE RESULTADOS — '+y+' (Miles de Pesos MXN)')+
+        '<table><tr><th>Concepto</th><th class="r">Importe</th><th class="r">% Ventas</th></tr>'+
+        '<tr><td>Ventas Netas</td><td class="r">$'+fmtN(er.v)+'</td><td class="r">100.0%</td></tr>'+
+        '<tr><td>(-) Costo de Ventas</td><td class="r">($'+fmtN(er.cv)+')</td><td class="r">'+(Math.round(er.cv/er.v*1000)/10)+'%</td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Bruta</td><td class="r">$'+fmtN(er.ub)+'</td><td class="r">'+(Math.round(er.ub/er.v*1000)/10)+'%</td></tr>'+
+        '<tr><td>(-) Gastos Administración</td><td class="r">($'+fmtN(er.ga)+')</td><td class="r"></td></tr>'+
+        '<tr><td>(-) Gastos Ventas</td><td class="r">($'+fmtN(er.gv)+')</td><td class="r"></td></tr>'+
+        '<tr><td>(-) Depreciación</td><td class="r">($'+fmtN(er.dep)+')</td><td class="r"></td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Operativa (UAFIR)</td><td class="r">$'+fmtN(er.uo)+'</td><td class="r">'+(Math.round(er.uo/er.v*1000)/10)+'%</td></tr>'+
+        '<tr><td>(+) Otros ingresos / (-) Gastos financieros</td><td class="r">$'+fmtN(er.oi-er.gf_)+'</td><td class="r"></td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Antes de Impuestos (UAI)</td><td class="r">$'+fmtN(er.uai)+'</td><td class="r">'+(Math.round(er.uai/er.v*1000)/10)+'%</td></tr>'+
+        '<tr><td>(-) ISR ('+er.t*100+'%)</td><td class="r">($'+fmtN(er.isr)+')</td><td class="r"></td></tr>'+
+        '<tr class="total"><td>UTILIDAD NETA</td><td class="r">$'+fmtN(er.un)+'</td><td class="r">'+(Math.round(er.un/er.v*1000)/10)+'%</td></tr>'+
+        '</table></div>';
+    });
+  }
+
+  // ── ETAPA 3 ──────────────────────────────────────────────────
+  else if(stage===3){
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — CONTEXTO DE LIQUIDEZ');
+    ['s3g1','s3g2','s3g3'].forEach(function(k,i){body+=ans(['Liquidez óptima del sector','Rol estratégico del inventario','Ciclo de cobro y pago'][i],d[k]);});
+    body+='</div>';
+
+    body+='<div class="section">'+sec('RAZONES DE LIQUIDEZ (ambos períodos)')+
+      '<table><tr><th>Razón Financiera</th><th>Fórmula</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th><th>Interpretación</th></tr>'+
+      '<tr><td>Capital de Trabajo Neto</td><td>AC − PC</td><td class="r">$'+fmtN(a.y1.rat.ctn)+'K</td><td class="r">$'+fmtN(a.y2.rat.ctn)+'K</td><td>'+( a.y2.rat.ctn>0?'Positivo: puede pagar deudas a CP':'Negativo: riesgo de iliquidez')+'</td></tr>'+
+      '<tr><td>Razón Corriente</td><td>AC ÷ PC</td><td class="r">'+fmtN(a.y1.rat.rc,3)+'x</td><td class="r">'+fmtN(a.y2.rat.rc,3)+'x</td><td>'+( a.y2.rat.rc>=1.5?'Saludable':'Revisar liquidez')+'</td></tr>'+
+      '<tr><td>Prueba Ácida</td><td>(AC−Inv) ÷ PC</td><td class="r">'+fmtN(a.y1.rat.pa,3)+'x</td><td class="r">'+fmtN(a.y2.rat.pa,3)+'x</td><td></td></tr>'+
+      '<tr><td>Razón de Efectivo</td><td>Efvo ÷ PC</td><td class="r">'+fmtN(a.y1.rat.re,3)+'x</td><td class="r">'+fmtN(a.y2.rat.re,3)+'x</td><td></td></tr>'+
+      '<tr><td>Razón de Tesorería</td><td>(Efvo+CxC) ÷ PC</td><td class="r">'+fmtN(a.y1.rat.rte,3)+'x</td><td class="r">'+fmtN(a.y2.rat.rte,3)+'x</td><td></td></tr>'+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('RAZONES OPERATIVAS Y CICLOS')+
+      '<table><tr><th>Razón Operativa</th><th>Fórmula</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th></tr>'+
+      '<tr><td>Rotación de CxC</td><td>Ventas ÷ CxC</td><td class="r">'+fmtN(a.y1.op.rcxc,2)+'x</td><td class="r">'+fmtN(a.y2.op.rcxc,2)+'x</td></tr>'+
+      '<tr><td>Días de Cobro</td><td>365 ÷ Rot.CxC</td><td class="r">'+fmtN(a.y1.op.dc,0)+' días</td><td class="r">'+fmtN(a.y2.op.dc,0)+' días</td></tr>'+
+      '<tr><td>Rotación de CxP</td><td>CV ÷ CxP</td><td class="r">'+fmtN(a.y1.op.rcxp,2)+'x</td><td class="r">'+fmtN(a.y2.op.rcxp,2)+'x</td></tr>'+
+      '<tr><td>Días de Pago</td><td>365 ÷ Rot.CxP</td><td class="r">'+fmtN(a.y1.op.dp,0)+' días</td><td class="r">'+fmtN(a.y2.op.dp,0)+' días</td></tr>'+
+      (a.y1.op.hasInv?'<tr><td>Días de Inventario</td><td>365 ÷ Rot.Inv.</td><td class="r">'+fmtN(a.y1.op.di,0)+' días</td><td class="r">'+fmtN(a.y2.op.di,0)+' días</td></tr>':'')+
+      (a.y1.op.co?'<tr class="subtotal"><td>Ciclo Operativo</td><td>D.Inv+D.Cobro</td><td class="r">'+fmtN(a.y1.op.co,0)+' días</td><td class="r">'+fmtN(a.y2.op.co,0)+' días</td></tr>':'')+
+      (a.y1.op.ce?'<tr class="total"><td>Ciclo de Efectivo</td><td>C.Op−D.Pago</td><td class="r '+(a.y1.op.ce<0?'pos':'neg')+'">'+fmtN(a.y1.op.ce,0)+' días</td><td class="r '+(a.y2.op.ce<0?'pos':'neg')+'">'+fmtN(a.y2.op.ce,0)+' días</td></tr>':'')+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('INTERPRETACIONES DEL EQUIPO')+
+      ans('Interpretación integral de la liquidez de '+co.n,d.s3i)+
+      ans('Interpretación del ciclo operativo y de efectivo',d.s3opi)+
+      '</div>';
+  }
+
+  // ── ETAPA 4 ──────────────────────────────────────────────────
+  else if(stage===4){
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — CONTEXTO DEL ANÁLISIS');
+    ['s4g1','s4g2','s4g3'].forEach(function(k,i){body+=ans(['Factores de crecimiento del sector','Eficiencia operativa y apalancamiento','Evolución de la estructura de activos'][i],d[k]);});
+    body+='</div>';
+
+    var items=[
+      {k:'b_ef',l:'Efectivo'},{k:'b_ac',l:'Total Activo Circ.'},{k:'b_ta',l:'TOTAL ACTIVO'},
+      {k:'b_pc',l:'Total Pasivo Circ.'},{k:'b_tp',l:'TOTAL PASIVO'},{k:'b_cap',l:'TOTAL CAPITAL'},
+      {k:'e_v',l:'Ventas Netas'},{k:'e_cv',l:'Costo de Ventas'},{k:'e_ub',l:'Utilidad Bruta'},
+      {k:'e_uo',l:'Utilidad Operativa'},{k:'e_un',l:'UTILIDAD NETA'},
+    ];
+    function gv(k,yr){return a[yr][k.startsWith('b_')?'bg':'er'][k.slice(2)];}
+    body+='<div class="section">'+sec('ANÁLISIS HORIZONTAL Y VERTICAL COMPLETO')+
+      '<table><tr><th>Partida</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th><th class="r">Var. Absoluta $K</th><th class="r">Var. Relativa %</th><th class="r">Vert. '+co.y[0]+'%</th><th class="r">Vert. '+co.y[1]+'%</th></tr>'+
+      items.map(function(it){
+        var v1=gv(it.k,'y1'),v2=gv(it.k,'y2');
+        var abs=Math.round((v2-v1)*100)/100;
+        var isBold=it.k==='b_ta'||it.k==='b_tp'||it.k==='e_v'||it.k==='e_un';
+        return'<tr'+(isBold?' class="total"':'')+'>'+
+          '<td>'+(isBold?'<strong>':'')+it.l+(isBold?'</strong>':'')+'</td>'+
+          '<td class="r">$'+fmtN(v1)+'</td>'+
+          '<td class="r">$'+fmtN(v2)+'</td>'+
+          '<td class="r '+(abs>=0?'pos':'neg')+'">'+(abs>=0?'+':'')+fmtN(abs)+'</td>'+
+          '<td class="r '+(a.h[it.k]>=0?'pos':'neg')+'">'+(a.h[it.k]>=0?'+':'')+a.h[it.k]+'%</td>'+
+          '<td class="r">'+a.v.y1[it.k]+'%</td>'+
+          '<td class="r">'+a.v.y2[it.k]+'%</td>'+
+        '</tr>';
+      }).join('')+
+      '</table></div>';
+
+    var cf=a.cf;
+    if(cf){
+      body+='<div class="section">'+sec('ESTADO DE FLUJO DE EFECTIVO — MÉTODO INDIRECTO ('+co.y[0]+' → '+co.y[1]+')')+
+        '<table><tr><th colspan="2" style="background:#e0e8ff">I. ACTIVIDADES OPERATIVAS</th></tr>'+
+        '<tr><td>Utilidad Neta</td><td class="r">$'+fmtN(cf.un)+'</td></tr>'+
+        '<tr><td>+ Depreciación (no monetaria)</td><td class="r">$'+fmtN(cf.dep)+'</td></tr>'+
+        '<tr><td>± Δ Cuentas por Cobrar</td><td class="r '+(cf.dcxc>=0?'pos':'neg')+'">$'+fmtN(cf.dcxc)+'</td></tr>'+
+        '<tr><td>± Δ Inventarios</td><td class="r '+(cf.dinv>=0?'pos':'neg')+'">$'+fmtN(cf.dinv)+'</td></tr>'+
+        '<tr><td>± Δ Otros Activos Circ.</td><td class="r '+(cf.doc>=0?'pos':'neg')+'">$'+fmtN(cf.doc)+'</td></tr>'+
+        '<tr><td>± Δ Cuentas por Pagar</td><td class="r '+(cf.dcxp>=0?'pos':'neg')+'">$'+fmtN(cf.dcxp)+'</td></tr>'+
+        '<tr><td>± Δ Impuestos por Pagar</td><td class="r '+(cf.dimp>=0?'pos':'neg')+'">$'+fmtN(cf.dimp)+'</td></tr>'+
+        '<tr class="total"><td>= FLUJO NETO OPERATIVO</td><td class="r '+(cf.fo>=0?'pos':'neg')+'">$'+fmtN(cf.fo)+'</td></tr>'+
+        '<tr><th colspan="2" style="background:#e0ffe0">II. ACTIVIDADES DE INVERSIÓN</th></tr>'+
+        '<tr><td>Compra/Venta neta de Activos Fijos</td><td class="r '+(cf.deq>=0?'pos':'neg')+'">$'+fmtN(cf.deq)+'</td></tr>'+
+        '<tr class="total"><td>= FLUJO NETO DE INVERSIÓN</td><td class="r '+(cf.fi>=0?'pos':'neg')+'">$'+fmtN(cf.fi)+'</td></tr>'+
+        '<tr><th colspan="2" style="background:#fffde0">III. ACTIVIDADES DE FINANCIAMIENTO</th></tr>'+
+        '<tr><td>± Δ Deuda a Corto Plazo</td><td class="r '+(cf.ddcp>=0?'pos':'neg')+'">$'+fmtN(cf.ddcp)+'</td></tr>'+
+        '<tr><td>± Δ Deuda a Largo Plazo</td><td class="r '+(cf.ddlp>=0?'pos':'neg')+'">$'+fmtN(cf.ddlp)+'</td></tr>'+
+        '<tr class="total"><td>= FLUJO NETO DE FINANCIAMIENTO</td><td class="r '+(cf.ff>=0?'pos':'neg')+'">$'+fmtN(cf.ff)+'</td></tr>'+
+        '<tr class="total" style="font-size:13px"><td>VARIACIÓN NETA DE EFECTIVO</td><td class="r '+(cf.vnet>=0?'pos':'neg')+'">$'+fmtN(cf.vnet)+'</td></tr>'+
+        '<tr><td>+ Efectivo Inicial ('+co.y[0]+')</td><td class="r">$'+fmtN(cf.ef_ini)+'</td></tr>'+
+        '<tr class="total" style="background:#d0ffd0"><td>= EFECTIVO FINAL (verificar vs Balance '+co.y[1]+')</td><td class="r pos">$'+fmtN(cf.ef_fin)+'</td></tr>'+
+        '</table></div>';
+    }
+
+    body+='<div class="section">'+sec('INTERPRETACIONES DEL EQUIPO')+
+      ans('Diagnóstico integral H y V + EFE de '+co.n,d.s4i)+
+      ans('Interpretación del Estado de Flujo de Efectivo',d.s4efe)+
+      '</div>';
+  }
+
+  // ── ETAPA 5 ──────────────────────────────────────────────────
+  else if(stage===5){
+    var be=a.be;
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — COMPRENSIÓN DEL PUNTO DE EQUILIBRIO');
+    ['s5g1','s5g2','s5g3'].forEach(function(k,i){body+=ans(['Por qué usar PE ponderado','Análisis del portafolio de productos','Palancas para reducir el PE'][i],d[k]);});
+    body+='</div>';
+
+    body+='<div class="section">'+sec('DATOS DEL MODELO DE PUNTO DE EQUILIBRIO')+
+      '<table><tr><th>Concepto</th><th class="r">Valor</th><th>Explicación</th></tr>'+
+      '<tr><td>Gastos Operativos (GFO)</td><td class="r">$'+fmtN(be.gf.op)+'K</td><td>Renta, sueldos, servicios, depreciación</td></tr>'+
+      '<tr><td>Gastos No Operativos (GNO)</td><td class="r">$'+fmtN(be.gf.nop)+'K</td><td>Intereses bancarios, comisiones financieras</td></tr>'+
+      '<tr><td>Tasa ISR (T)</td><td class="r">'+be.t*100+'%</td><td>Impuesto Sobre la Renta aplicable</td></tr>'+
+      '<tr><td>Utilidad Esperada (UE)</td><td class="r">$'+fmtN(be.gf.ue)+'K</td><td>Ganancia mínima requerida por la empresa</td></tr>'+
+      '<tr class="subtotal"><td>Numerador = (GFO+GNO)×(1−T)+UE</td><td class="r">$'+fmtN(be.num/1000)+'K</td><td>Meta total a cubrir con las ventas</td></tr>'+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('MARGEN DE CONTRIBUCIÓN PONDERADO — PORTAFOLIO DE '+co.n.toUpperCase())+
+      '<table><tr><th>Producto / Servicio</th><th class="r">Precio Venta</th><th class="r">Costo Variable</th><th class="r">MC Unitario</th><th class="r">% Participación</th><th class="r">MC Ponderado</th></tr>'+
+      be.pr.map(function(p){
+        var mc=p.pv-p.cv;var mcp=Math.round(mc*p.p*100)/100;
+        return'<tr><td>'+p.n+'</td><td class="r">$'+fmtN(p.pv,0)+'</td><td class="r">$'+fmtN(p.cv,0)+'</td><td class="r">$'+fmtN(mc,0)+'</td><td class="r">'+(p.p*100).toFixed(0)+'%</td><td class="r">$'+fmtN(mcp)+'</td></tr>';
+      }).join('')+
+      '<tr class="total"><td colspan="5">MCP Total (denominador de la fórmula)</td><td class="r">$'+fmtN(be.mc)+'</td></tr>'+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('RESULTADO FINAL')+
+      '<table style="max-width:400px"><tr><th>Concepto</th><th class="r">Valor</th></tr>'+
+      '<tr><td>Numerador (meta total)</td><td class="r">$'+fmtN(be.num/1000)+'K</td></tr>'+
+      '<tr><td>MCP Total (denominador)</td><td class="r">$'+fmtN(be.mc)+'</td></tr>'+
+      '<tr class="total" style="font-size:14px"><td>PUNTO DE EQUILIBRIO PONDERADO</td><td class="r pos">'+Math.ceil(be.num/be.mc)+' unidades</td></tr>'+
+      '</table>'+
+      ans('Interpretación: ¿qué significa este PE para '+co.n+'?',d.s5i)+
+      '</div>';
+  }
+
+  // ── CO-EVALUACIONES RECIBIDAS ─────────────────────────────────
+  if(evs.length){
+    body+='<div class="section">'+sec('CO-EVALUACIONES RECIBIDAS DE PARES ('+evs.length+')')+
+      evs.map(function(ev){
+        var rubric=RUBRICS[stage];
+        var rubricRows='';
+        if(rubric&&ev.rubricScores){
+          var lNames={4:'Excelente',3:'Bueno',2:'Regular',1:'Insuficiente'};
+          rubricRows='<table class="rubric-table" style="margin-top:6px"><tr><th>Criterio</th><th class="r">Calificación</th><th>Nivel</th></tr>'+
+            rubric.criteria.map(function(c){
+              var v=parseInt(ev.rubricScores[c.id]||0);
+              return'<tr><td>'+c.name+'</td><td class="r"><strong>'+v+'/4</strong></td><td>'+(v>0?lNames[v]:'—')+'</td></tr>';
+            }).join('')+'</table>';
+        }
+        return'<div class="coeval-card">'+
+          '<div class="coeval-header">'+
+            '<span class="coeval-name">'+ev.evalName+'</span>'+
+            '<span style="font-size:11px;color:#666">'+new Date(ev.createdAt).toLocaleDateString('es-MX')+'</span>'+
+          '</div>'+
+          rubricRows+
+          (ev.comment?'<div style="margin-top:6px;font-size:11px;border-top:1px solid #ffc107;padding-top:6px"><strong>Comentario:</strong> '+ev.comment+'</div>':'')+
+        '</div>';
+      }).join('')+
+      '</div>';
+  }
+
+  // === RENDER WINDOW ===
+  var w=window.open('','_blank','width=980,height=800');
+  var dateStr=new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
+  w.document.write([
+    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">',
+    '<title>Reporte Etapa '+stage+' — '+snames[stage]+' — '+team.name+'</title>',
+    '<style>'+css+'</style></head><body>',
+    '<div class="no-print">',
+    '<button onclick="window.print()" style="padding:9px 22px;background:'+corte.color+';color:#fff;border:none;border-radius:7px;cursor:pointer;margin-right:8px;font-size:13px;font-weight:600">🖨️ Guardar como PDF</button>',
+    '<button onclick="window.close()" style="padding:9px 16px;border:1px solid #ccc;border-radius:7px;cursor:pointer;font-size:13px">✕ Cerrar</button>',
+    '<span style="margin-left:16px;font-size:11px;color:#666">Tip: En el diálogo de impresión selecciona "Guardar como PDF" como destino</span>',
+    '</div>',
+    '<div class="cover">',
+    '<h1>'+co.e+' '+co.n+'</h1>',
+    '<h2>Etapa '+stage+': '+snames[stage]+'</h2>',
+    '<div class="meta">',
+    '<strong>'+corte.name+'</strong> &nbsp;·&nbsp; Ponderación: '+WEIGHTS[stage]+'%<br>',
+    'Equipo: <strong>'+team.name+'</strong><br>',
+    'Integrantes: '+members+'<br>',
+    'Entregada: '+new Date(sub.submittedAt).toLocaleString('es-MX')+'<br>',
+    'Reporte generado: '+dateStr,
+    '</div>',
+    '</div>',
+    '<div class="score-box">Precisión numérica: '+sub.score+'% &nbsp;·&nbsp; Ponderación etapa: '+WEIGHTS[stage]+'% &nbsp;·&nbsp; Calificación ponderada aportada: '+Math.round(sub.score*WEIGHTS[stage]/100)+' pts</div>',
+    body,
+    '<div class="footer">FinAcademy — Escuela Bancaria y Comercial &nbsp;·&nbsp; '+co.e+' '+co.n+' &nbsp;·&nbsp; Equipo: '+team.name+'</div>',
+    '</body></html>'
+  ].join(''));
+  w.document.close();}
+
+
+
+
+function doSubmit(stage){
+  document.querySelectorAll('textarea,input[type=text],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
+  const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
+  if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
+  if(stage>=2&&(!A.user||A.user.role!=='admin')){var gqs=getGuide(stage,co);var gAnswered=gqs.filter(function(q){return(A.inp[q.id]||'').trim().length>=30;});if(gAnswered.length<2){msg('Responde al menos 2 preguntas del Análisis Guiado (30+ caracteres c/u) antes de entregar.','warn');return;}}
+if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[team.id][1]={data:{...A.inp},score:100,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);ss({view:'stages',stage:2});msg('✅ Etapa 1 entregada.','ok');return;}
+  const score=calcScore(stage,team.id,A.inp);
+  if(score<25){msg('Score de '+score+'%. Revisa tus cálculos (mínimo 25%).','warn');return;}
+  const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
+  subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);
+  if(stage<5)ss({view:'stages',stage:stage+1});else ss({view:'home'});
+  msg('✅ Etapa '+stage+' entregada. Score: '+score+'%','ok');}
+
+
+function doCreateTeam(){
+  const name=(A.inp.ct_name||document.getElementById('ct_name')?.value||'').trim();
+  const desc=(A.inp.ct_desc||document.getElementById('ct_desc')?.value||'').trim();
+  const max=parseInt(A.inp.ct_max||document.getElementById('ct_max')?.value||'4');
+  if(!name){msg('El nombre del equipo es obligatorio.','warn');return;}
+  const teams=DB.getTeams();
+  if(teams.find(t=>t.name.toLowerCase()===name.toLowerCase())){msg('Ya existe un equipo con ese nombre.','err');return;}
+  if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
+  const t={id:uid(),name,desc,leaderId:A.user.id,members:[A.user.id],requests:[],companyId:null,maxMembers:max,status:'open',createdAt:Date.now()};
+  teams.push(t);DB.saveTeams(teams);ss({screen:'lobby',inp:{},tsv:'members'});}
+
+
+function doSelectCo(teamId,coId){
+  const teams=DB.getTeams();const taken=teams.some(t=>t.companyId===coId&&t.id!==teamId);
+  if(taken){msg('Esa empresa ya fue elegida por otro equipo.','err');return;}
+  const t=teams.find(t=>t.id===teamId);if(!t)return;
+  t.companyId=coId;t.status='active';DB.saveTeams(teams);ss({screen:'student',view:'home',stage:1});}
+
+
+function doJoinRequest(teamId){
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);
+  if(!t){msg('Equipo no encontrado.','err');return;}
+  if(t.members.length>=t.maxMembers){msg('El equipo está lleno.','err');return;}
+  if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
+  const alreadyPending=teams.some(t=>t.requests&&t.requests.some(r=>r.userId===A.user.id&&r.status==='pending'));
+  if(alreadyPending){msg('Ya tienes una solicitud pendiente.','warn');return;}
+  if(!t.requests)t.requests=[];
+  t.requests.push({userId:A.user.id,requestedAt:Date.now(),status:'pending'});
+  DB.saveTeams(teams);ss({screen:'lobby'});}
+
+
+function doApproveReq(teamId,userId){
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
+  if(t.members.length>=t.maxMembers){msg('El equipo está lleno.','err');return;}
+  const req=t.requests.find(r=>r.userId===userId);if(req)req.status='accepted';
+  if(!t.members.includes(userId))t.members.push(userId);
+  if(t.members.length>=t.maxMembers)t.status='full';
+  DB.saveTeams(teams);ss({tsv:'requests'});msg('✓ Miembro aprobado.','ok');}
+
+
+function doRejectReq(teamId,userId){const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;const req=t.requests.find(r=>r.userId===userId);if(req)req.status='rejected';DB.saveTeams(teams);ss({tsv:'requests'});msg('Solicitud rechazada.','warn');}
+
+
+function doKick(teamId,userId){
+  if(!confirm('¿Expulsar a este miembro?'))return;
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
+  t.members=t.members.filter(id=>id!==userId);t.status='open';DB.saveTeams(teams);ss({tsv:'members'});}
+
+
+function doLeaveTeam(teamId){
+  if(!confirm('¿Salir del equipo?'))return;
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
+  if(t.leaderId===A.user.id){teams.splice(teams.findIndex(x=>x.id===teamId),1);msg('Equipo disuelto.','warn');}
+  else{t.members=t.members.filter(id=>id!==A.user.id);t.status='open';}
+  DB.saveTeams(teams);ss({screen:'lobby'});}
+
+function generateCorteReport(corteNum,team,co){
+  var corte=CORTES[corteNum];if(!corte)return;
+  var subs=DB.getSubs()[team.id]||{};var members=getMemberNames(team).join(', ');
+  var c=corte.color;
+  var css='body{font-family:Arial,sans-serif;max-width:820px;margin:30px auto;padding:20px;color:#222;font-size:12px;line-height:1.6}'+
+    '.cover{background:linear-gradient(135deg,'+c+',#252840);color:#fff;padding:30px;border-radius:10px;margin-bottom:20px;text-align:center}'+
+    '.cover h1{font-size:22px;margin:0 0 6px}.cover p{margin:4px 0;opacity:.85;font-size:13px}'+
+    '.sh{background:'+c+';color:#fff;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;margin:18px 0 10px}'+
+    '.score{display:inline-block;background:#10b981;color:#fff;padding:3px 12px;border-radius:12px;font-weight:700;font-size:11px}'+
+    '.ans{background:#f8f9ff;border-left:3px solid '+c+';padding:8px 12px;margin:5px 0;font-size:11px;line-height:1.6}'+
+    '.lbl{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px}'+
+    'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}'+
+    'th{background:#f0f0f0;padding:5px 8px;border:1px solid #ddd;text-align:left;font-size:10px}'+
+    'td{padding:5px 8px;border:1px solid #ddd}td.r{text-align:right;font-family:monospace}'+
+    '.row{display:flex;gap:10px;margin-bottom:14px}.cell{flex:1;background:#f5f5f5;border-radius:6px;padding:10px;text-align:center}'+
+    '.cell .v{font-size:20px;font-weight:700;color:'+c+'}.no-print{margin-bottom:20px}@media print{.no-print{display:none}}';
+  var snames=['','Empresa y Canvas','Estados Financieros','Razones de Liquidez','Analisis H+V+EFE','P. Equilibrio'];
+  var totalScore=0,stageCount=0;
+  corte.stages.forEach(function(s){var sub=subs[s];if(sub){totalScore+=sub.score||0;stageCount++;}});
+  var avgScore=stageCount?Math.round(totalScore/stageCount):0;
+  var body='<div class="row">';
+  corte.stages.forEach(function(s){var sub=subs[s];body+='<div class="cell"><div class="v">'+(sub?sub.score+'%':'—')+'</div><div style="font-size:10px;color:#666">Etapa '+s+'</div></div>';});
+  body+='<div class="cell" style="border:2px solid '+c+'"><div class="v">'+avgScore+'%</div><div style="font-size:10px;font-weight:700">Promedio</div></div></div>';
+  corte.stages.forEach(function(s){
+    var sub=subs[s];
+    body+='<div class="sh">Etapa '+s+': '+snames[s]+(sub?' <span class="score">'+sub.score+'%</span>':' (sin entregar)')+'</div>';
+    if(!sub){body+='<p style="color:#999">No entregada.</p>';return;}
+    var d=sub.data||{};
+    var labels={s1a:'Por que eligieron la empresa',s1b:'Entorno externo',s1c:'Coherencia del modelo',
+      s2g1:'Estructura de activos',s2g2:'Costos y PV',s2g3:'Financiamiento',s2g4:'Margen esperado',
+      s3i:'Interpretacion liquidez',s3opi:'Ciclos operativos',s4i:'Diagnostico H+V+EFE',
+      s4efe:'Flujo de efectivo',s5i:'Interpretacion PE',s5g2:'Portafolio'};
+    var openFields={1:['s1a','s1b','s1c'],2:['s2g1','s2g2','s2g3','s2g4'],
+      3:['s3i','s3opi'],4:['s4i','s4efe'],5:['s5i','s5g2']};
+    (openFields[s]||[]).forEach(function(k){if(d[k])body+='<div class="lbl">'+(labels[k]||k)+'</div><div class="ans">'+d[k]+'</div>';});
+  });
+  var w=window.open('','_blank','width=950,height=750');
+  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>'+corte.name+' — '+team.name+'</title><style>'+css+'</style></head><body>'+
+    '<div class="no-print"><button onclick="window.print()" style="padding:8px 20px;background:'+c+';color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px">Guardar PDF</button><button onclick="window.close()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer">Cerrar</button></div>'+
+    '<div class="cover"><h1>'+co.e+' '+co.n+'</h1><p><strong>'+corte.name+'</strong></p><p style="font-size:15px;font-weight:700;margin-top:8px">Equipo: '+team.name+'</p><p>'+members+'</p></div>'+
+    body+'</body></html>');w.document.close();}
 
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
