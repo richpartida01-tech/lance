@@ -1872,6 +1872,39 @@ function rCoeval(team,co){
   '</div>';}
 
 
+
+function calcParticipation(teamId){
+  var team=DB.getTeams().find(function(t){return t.id===teamId;});
+  if(!team)return 0;
+  var evaluable=DB.getTeams().filter(function(t){return t.companyId&&t.id!==teamId&&teamProg(t.id)>0;});
+  if(!evaluable.length)return 100;
+  var evs=DB.getEvals().filter(function(e){
+    return (team.members||[]).includes(e.evalId)||e.evalId===teamId;
+  });
+  var unique=new Set(evs.map(function(e){return e.teamId+'_'+(e.stage||1);})).size;
+  var total=evaluable.length*5;
+  return Math.min(100,Math.round(unique/total*100));}
+
+function calcEvalQuality(team){
+  var evs=DB.getEvals().filter(function(e){
+    return (team.members||[]).includes(e.evalId)||e.evalId===team.id;
+  });
+  if(!evs.length)return 0;
+  var acc=0,cnt=0;
+  evs.forEach(function(ev){
+    var rubric=RUBRICS[ev.stage||1];
+    if(!rubric||!ev.rubricScores)return;
+    var sum=0,n=0;
+    rubric.criteria.forEach(function(c){
+      var v=parseInt((ev.rubricScores||{})[c.id]||0);
+      if(v>0){sum+=v;n++;}
+    });
+    if(!n)return;
+    acc+=Math.round(sum/n/4*100);cnt++;
+  });
+  return cnt?Math.round(acc/cnt):0;}
+
+
 function rRanking(team,co){
   var allT=DB.getTeams().filter(function(t){return t.companyId;});
   var rows=allT.map(function(t){
