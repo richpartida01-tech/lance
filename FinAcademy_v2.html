@@ -673,7 +673,7 @@ function av(name,id,sz){
   const cls={sm:'avsm',md:'avmd',lg:'avlg',xl:'avxl'}[sz||'md'];
   return '<span class="av '+cls+'" style="background:'+c+'22;border-color:'+c+'55;color:'+c+'">'+initials(name)+'</span>';}
 function getUserTeam(uid){return DB.getTeams().find(t=>t.members&&t.members.includes(uid));}
-function getPendingReq(uid){return DB.getTeams().find(t=>t.requests&&t.requests.some(r=>r.userId===uid&&r.status==='pending'));}
+function getPendingReq(uid){return DB.getTeams().find(function(t){return(t.requests||[]).some(function(r){return(r.userId||r.uid)===uid&&r.status==='pending';});});}
 function getTeamSub(tid,s){const subs=DB.getSubs();return subs[tid]&&subs[tid][s];}
 function teamProg(tid){let d=0;for(let s=1;s<=5;s++)if(getTeamSub(tid,s))d++;return d;}
 function stageOk(s,tid){if(s===1)return true;return!!getTeamSub(tid,s-1);}
@@ -1067,10 +1067,11 @@ function rLobbyMain(){
 function doCancelJoinRequest(tid){
   var teams=DB.getTeams();
   var t=teams.find(function(t){return t.id===tid;});
-  if(!t)return;
-  t.requests=(t.requests||[]).filter(function(r){return (r.userId||r.uid)!==A.user.id;});
+  if(!t){render();return;}
+  t.requests=(t.requests||[]).filter(function(r){return(r.userId||r.uid)!==A.user.id;});
   DB.saveTeams(teams);SYNC.pushTeam(t);
-  ss({});}
+  msg('Solicitud cancelada. Ya puedes unirte a otro equipo.','ok');
+  A.screen='lobby';render();}
 
 
 function doCreateTeam(){
@@ -1081,7 +1082,7 @@ function doCreateTeam(){
   const teams=DB.getTeams();
   if(teams.find(t=>t.name.toLowerCase()===name.toLowerCase())){msg('Ya existe un equipo con ese nombre.','err');return;}
   if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
-  const t={id:uid(),name,desc,leaderId:A.user.id,members:[A.user.id],requests:[],companyId:null,maxMembers:max,status:'open',createdAt:Date.now()};
+  const t={id:uid(),name,desc,leaderId:A.user.id,members:[A.user.id],memberNames:[A.user.name||''],requests:[],companyId:null,maxMembers:max,status:'open',createdAt:Date.now()};
   teams.push(t);DB.saveTeams(teams);SYNC.pushTeam(t);ss({screen:'lobby',inp:{},tsv:'members'});}
 
 
@@ -1827,6 +1828,10 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     if(reject){doRejectReq(reject.dataset.reject,reject.dataset.rejectuid);return;}
     var canceljoin=el.closest&&el.closest('[data-canceljoin]');
     if(canceljoin){doCancelJoinRequest(canceljoin.dataset.canceljoin);return;}
+    if(id==='btnCancelReq'){
+      var tid=el.dataset.tid||el.closest('[data-tid]')?.dataset.tid;
+      if(tid)doCancelJoinRequest(tid);return;}
+    if(id==='btnRefreshLobby'){SYNC.pull().then(function(){render();});return;}
     var unlockco=el.closest&&el.closest('[data-unlockco]');if(unlockco){if(confirm('¿Liberar esta empresa? El equipo queda en lobby.'))doUnlockCompany(unlockco.dataset.unlockco);return;}
     var assignco=el.closest&&el.closest('[data-assignco]');if(assignco){doAssignCoToTeam(assignco.dataset.assignco);return;}
         var jointeam=el.closest&&el.closest('[data-jointeam]');
@@ -2621,7 +2626,7 @@ function rPendingWait(team){
   const allU=DB.getUsers();const ldr=allU.find(u=>u.id===team.leaderId);const mems=teamMembers(team.id);
   const req=team.requests&&team.requests.find(r=>r.userId===A.user.id);
   const rejected=req&&req.status==='rejected';
-  return '<div class="auth-bg"><div class="auth-box fadein" style="max-width:480px"><div style="text-align:center;margin-bottom:24px"><div class="flex" style="justify-content:center;margin-bottom:14px"><div class="pulse-ring" style="width:60px;height:60px;border-radius:50%;border:2px solid var(--p);display:flex;align-items:center;justify-content:center;font-size:28px">'+(rejected?'❌':'⏳')+'</div></div><h2 class="f18 mb4">'+(rejected?'Solicitud rechazada':'Esperando aprobación')+'</h2><p class="t2 f12">'+(rejected?'El capitán rechazó tu solicitud. Puedes unirte a otro equipo.':'El capitán de <strong>'+team.name+'</strong> revisará tu solicitud.')+'</p></div><div class="card mb12"><div class="flex g10 mb12">'+av(ldr?ldr.name:'?',team.leaderId,'md')+'<div><div class="fw6">'+team.name+'</div><div class="t2 f12">Capitán: '+(ldr?ldr.name:'?')+'</div></div></div><div class="lbl mb8">Miembros actuales ('+mems.length+'/'+team.maxMembers+')</div><div class="flex g6" style="flex-wrap:wrap">'+mems.map(m=>av(m.name,m.id,'sm')+' <span class="f12" style="margin-right:8px">'+m.name.split(' ')[0]+'</span>').join('')+'</div></div>'+(A.msg?rMsg():'')+'<button class="btn btn-danger btn-w mb12" id="btnCancelReq" data-tid="'+team.id+'">✕ Cancelar solicitud</button><button class="btn btn-sm" style="width:100%;justify-content:center" id="btnRefreshLobby">🔄 Actualizar estado</button></div></div>';}
+  return '<div class="auth-bg"><div class="auth-box fadein" style="max-width:480px"><div style="text-align:center;margin-bottom:24px"><div class="flex" style="justify-content:center;margin-bottom:14px"><div class="pulse-ring" style="width:60px;height:60px;border-radius:50%;border:2px solid var(--p);display:flex;align-items:center;justify-content:center;font-size:28px">'+(rejected?'❌':'⏳')+'</div></div><h2 class="f18 mb4">'+(rejected?'Solicitud rechazada':'Esperando aprobación')+'</h2><p class="t2 f12">'+(rejected?'El capitán rechazó tu solicitud. Puedes unirte a otro equipo.':'El capitán de <strong>'+team.name+'</strong> revisará tu solicitud.')+'</p></div><div class="card mb12"><div class="flex g10 mb12">'+av(ldr?ldr.name:'?',team.leaderId,'md')+'<div><div class="fw6">'+team.name+'</div><div class="t2 f12">Capitán: '+(ldr?ldr.name:'?')+'</div></div></div><div class="lbl mb8">Miembros actuales ('+mems.length+'/'+(team.maxMembers||4)+')</div><div class="flex g6" style="flex-wrap:wrap">'+mems.map(m=>av(m.name,m.id,'sm')+' <span class="f12" style="margin-right:8px">'+m.name.split(' ')[0]+'</span>').join('')+'</div></div>'+(A.msg?rMsg():'')+'<button class="btn btn-danger btn-w mb12" id="btnCancelReq" data-tid="'+team.id+'">✕ Cancelar solicitud</button><button class="btn btn-sm" style="width:100%;justify-content:center" id="btnRefreshLobby">🔄 Actualizar estado</button></div></div>';}
 
 
 function rProfile(team,co){
