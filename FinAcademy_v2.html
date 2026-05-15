@@ -518,6 +518,8 @@ const DB={
   getSubs:()=>JSON.parse(localStorage.getItem('fa2_subs')||'{}'),
   saveSubs:v=>localStorage.setItem('fa2_subs',JSON.stringify(v)),
   getEvals:()=>JSON.parse(localStorage.getItem('fa2_evals')||'[]'),
+  getTeacherEvals:()=>JSON.parse(localStorage.getItem('fa2_teacher_evals')||'[]'),
+  saveTeacherEvals:v=>localStorage.setItem('fa2_teacher_evals',JSON.stringify(v)),
   saveEvals:v=>localStorage.setItem('fa2_evals',JSON.stringify(v)),
   getSession:()=>JSON.parse(localStorage.getItem('fa2_session')||'null'),
   saveSession:v=>localStorage.setItem('fa2_session',JSON.stringify(v)),
@@ -624,7 +626,7 @@ const SYNC={
 // ================================================================
 // STATE + UTILS
 // ================================================================
-let A={screen:'login',user:null,view:'home',stage:1,tab:'y1',evalTarget:null,msg:null,inp:{},tsv:'members',teacherTeam:null,demoCoId:null,demoStage:1,loginMode:'individual',pePhase:1,peErr:{},evalStage:1,teacherTab:'overview'};
+let A={screen:'login',user:null,view:'home',stage:1,tab:'y1',evalTarget:null,msg:null,inp:{},tsv:'members',teacherTeam:null,demoCoId:null,demoStage:1,loginMode:'individual',pePhase:1,peErr:{},evalStage:1,teacherTab:'overview',aiEvalLoading:false,aiEvalResult:null,aiEvalTeam:null,aiEvalStage:null};
 function ss(u){Object.assign(A,u);render();}
 function msg(text,type='info',dur=4000){ss({msg:{text,type}});if(dur>0)setTimeout(()=>{A.msg=null;render();},dur);}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -2042,6 +2044,7 @@ function rTeacher(){
       '<div class="flex g8">'+
         '<button class="btn btn-sm" id="btnSyncNow">&#x1F504; Sync</button>'+
         '<button class="btn btn-sm" id="btnExport">&#x1F4E4; Export</button>'+
+      '<button class="btn btn-sm btn-p" id="btnExcelExport">&#x1F4CA; Excel</button>'+
         '<button class="btn btn-sm" id="btnImport">&#x1F4E5; Import</button>'+
         '<button class="btn btn-sm" id="btnLogout">&#x1F6AA; Salir</button>'+
       '</div>'+
@@ -2063,6 +2066,8 @@ function rTeacher(){
     (tab==='mover'?rTMover(users,teams):'')+
     (tab==='empresas'?rTEmpresas(teams):'')+
     (tab==='scores'?rTScores(teams):'')+
+    (tab==='evaluar'?rTeacherEvalPanel():'')+
+    (tab==='evaluar'?rTeacherEvalPanel():'')+
     (tab==='limpiar'?rTLimpiar(teams,users,subs):'')+
     (tab==='supabase'?rSupabasePanel():'')+
     '<input type="file" id="importFile" accept=".json" style="display:none">'+
@@ -2772,6 +2777,242 @@ function generateCorteReport(corteNum,team,co){
     '<div class="cover"><h1>'+co.e+' '+co.n+'</h1><p><strong>'+corte.name+'</strong></p><p style="font-size:15px;font-weight:700;margin-top:8px">Equipo: '+team.name+'</p><p>'+members+'</p></div>'+
     body+'</body></html>');w.document.close();}
 
+
+// ================================================================
+// TEACHER EVALUATION & AI EVAL
+// ================================================================
+const TEACHER_RUBRIC={
+  1:{name:'Empresa y Canvas',criteria:[
+    {id:'tc1_1',name:'Seleccion y justificacion de la empresa'},
+    {id:'tc1_2',name:'Calidad del Business Model Canvas'},
+    {id:'tc1_3',name:'Coherencia e integracion del modelo'},
+    {id:'tc1_4',name:'Vinculacion con el contexto sectorial'},
+  ]},
+  2:{name:'Estados Financieros',criteria:[
+    {id:'tc2_1',name:'Comprension de la estructura del Balance'},
+    {id:'tc2_2',name:'Analisis de rentabilidad y margenes'},
+    {id:'tc2_3',name:'Estrategia de financiamiento'},
+    {id:'tc2_4',name:'Vinculacion con Canvas'},
+  ]},
+  3:{name:'Razones de Liquidez',criteria:[
+    {id:'tc3_1',name:'Interpretacion de liquidez en contexto sectorial'},
+    {id:'tc3_2',name:'Analisis del ciclo de efectivo'},
+    {id:'tc3_3',name:'Tendencia y diagnostico entre periodos'},
+  ]},
+  4:{name:'Analisis H y V + EFE',criteria:[
+    {id:'tc4_1',name:'Identificacion de tendencias horizontales'},
+    {id:'tc4_2',name:'Interpretacion de la estructura vertical'},
+    {id:'tc4_3',name:'Comprension del Flujo de Efectivo'},
+    {id:'tc4_4',name:'Diagnostico financiero integral'},
+  ]},
+  5:{name:'Punto de Equilibrio',criteria:[
+    {id:'tc5_1',name:'Comprension del concepto y utilidad gerencial'},
+    {id:'tc5_2',name:'Analisis del portafolio de productos'},
+    {id:'tc5_3',name:'Estrategias para optimizar el PE'},
+  ]},
+};
+
+function rTeacherEvalPanel(){
+  var teams=DB.getTeams().filter(function(t){return t.companyId;});
+  var tEvs=DB.getTeacherEvals();
+  var selT=A.inp.te_team||'';
+  var selS=parseInt(A.inp.te_stage||1);
+  var team=selT?teams.find(function(t){return t.id===selT;}):null;
+  var co=team?getC(team.companyId):null;
+  var sub=team?getTeamSub(team.id,selS):null;
+  var existing=tEvs.find(function(e){return e.teamId===selT&&e.stage===selS;});
+  var rubric=TEACHER_RUBRIC[selS];
+  var snames=['','Empresa y Canvas','Estados Financieros','Razones Liq.','H y V + EFE','P. Equilibrio'];
+  var lNames={4:'Excelente',3:'Bueno',2:'Regular',1:'Insuf.'};
+
+  function gradeBtn(cid){
+    var cur=parseInt(A.inp['tg_'+cid]||(existing&&existing.scores&&existing.scores[cid])||0);
+    return[4,3,2,1].map(function(v){
+      var sel=cur===v;
+      return'<button onclick="A.inp[\'tg_'+cid+'\']='+v+';render()" style="padding:4px 10px;border-radius:6px;border:1px solid '+(sel?'var(--p)':'var(--border)')+';background:'+(sel?'var(--p)':'var(--s1)')+';color:'+(sel?'#fff':'var(--t2)')+';font-size:11px;cursor:pointer;margin:2px">'+v+' '+lNames[v]+'</button>';
+    }).join('');}
+
+  return'<div class="card">'+
+    '<div class="fw7 f13 mb4">Evaluacion Docente por Equipo</div>'+
+    '<p class="t2 f12 mb12">Califica directamente el trabajo. Esta evaluacion puede exportarse a Excel para evaluacion con IA.</p>'+
+    '<div class="g2 mb12">'+
+      '<div><div class="lbl">Equipo</div>'+
+      '<select class="inp" onchange="A.inp={...A.inp,te_team:this.value};render()">'+
+        '<option value="">-- Selecciona --</option>'+
+        teams.map(function(t){var c=getC(t.companyId);return'<option value="'+t.id+'"'+(selT===t.id?' selected':'')+'>'+(c?c.e+' ':'')+t.name+' ('+(c?c.n:'?')+')</option>';}).join('')+
+      '</select></div>'+
+      '<div><div class="lbl">Etapa</div>'+
+      '<select class="inp" onchange="A.inp={...A.inp,te_stage:this.value};render()">'+
+        [1,2,3,4,5].map(function(s){return'<option value="'+s+'"'+(selS===s?' selected':'')+'>Etapa '+s+': '+snames[s]+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
+    (!team?'<div class="alert ai f12">Selecciona un equipo para comenzar.</div>':
+     !sub?'<div class="alert aw f12">Este equipo no ha entregado la Etapa '+selS+' aun.</div>':
+     '<div>'+
+      (existing?'<div class="alert aok mb10 f12">Evaluacion guardada. Puedes actualizarla.</div>':'')+
+      '<div class="card-s mb12 flex g10">'+
+        '<span style="font-size:22px">'+co.e+'</span>'+
+        '<div><div class="fw7 f12">'+team.name+' — '+co.n+'</div>'+
+        '<div class="t2 f11">Precision: '+sub.score+'% · Ponderada: '+calcWeightedGrade(team.id)+'</div></div>'+
+      '</div>'+
+      rubric.criteria.map(function(c){return(
+        '<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">'+
+          '<div class="fw6 f12 mb6">'+c.name+'</div>'+
+          gradeBtn(c.id)+
+        '</div>'
+      );}).join('')+
+      '<div class="lbl mt10">Calificacion docente (0-100)</div>'+
+      '<input type="number" class="inp mb8" id="te_grade" min="0" max="100" '+
+        'value="'+(A.inp.te_grade||(existing&&existing.grade)||'')+'" '+
+        'oninput="A.inp.te_grade=this.value" placeholder="Ej. 85">'+
+      '<div class="lbl">Retroalimentacion general</div>'+
+      '<textarea class="inp mb10" id="te_feedback" rows="3" '+
+        'oninput="A.inp.te_feedback=this.value" placeholder="El equipo demostro fortaleza en... Sin embargo necesitan mejorar...">'+(A.inp.te_feedback||(existing&&existing.feedback)||'')+'</textarea>'+
+      '<div class="flex g8 mb10">'+
+        '<button class="btn btn-p" onclick="doSaveTeacherEval()">Guardar evaluacion</button>'+
+        '<button class="btn btn-ok" onclick="doAIEvaluate(\''+selT+'\','+selS+')">Evaluar con IA</button>'+
+      '</div>'+
+      (A.aiEvalLoading?'<div class="alert ai f12">Analizando trabajo con IA... espera...</div>':'')+
+      (A.aiEvalResult&&A.aiEvalTeam===selT&&A.aiEvalStage===selS?
+        '<div style="background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.3);border-radius:8px;padding:14px;margin-top:8px">'+
+          '<div class="fw7 f12 mb8">Evaluacion IA — Etapa '+selS+'</div>'+
+          '<div class="f11" style="white-space:pre-wrap;line-height:1.7">'+A.aiEvalResult+'</div>'+
+          '<button class="btn btn-xs btn-p mt8" onclick="A.aiEvalResult=null;render()">Cerrar</button>'+
+        '</div>':'')+
+     '</div>')+
+  '</div>';}
+
+function doSaveTeacherEval(){
+  var teamId=A.inp.te_team;var stage=parseInt(A.inp.te_stage||1);
+  if(!teamId){msg('Selecciona un equipo.','warn');return;}
+  var grade=parseInt(A.inp.te_grade||0);
+  if(isNaN(grade)||grade<0||grade>100){msg('Calificacion debe ser 0-100.','warn');return;}
+  var scores={};var rubric=TEACHER_RUBRIC[stage];
+  if(rubric)rubric.criteria.forEach(function(c){var v=parseInt(A.inp['tg_'+c.id]||0);if(v>0)scores[c.id]=v;});
+  var tEvs=DB.getTeacherEvals();
+  var idx=tEvs.findIndex(function(e){return e.teamId===teamId&&e.stage===stage;});
+  var ev={id:uid(),teamId:teamId,stage:stage,scores:scores,grade:grade,
+          feedback:document.getElementById('te_feedback')?.value||A.inp.te_feedback||'',createdAt:Date.now()};
+  if(idx>=0)tEvs[idx]=ev;else tEvs.push(ev);
+  DB.saveTeacherEvals(tEvs);
+  msg('Evaluacion docente guardada.','ok');ss({teacherTab:'evaluar'});}
+
+async function doAIEvaluate(teamId,stage){
+  var team=DB.getTeams().find(function(t){return t.id===teamId;});
+  if(!team){msg('Equipo no encontrado.','warn');return;}
+  var sub=getTeamSub(teamId,stage);
+  var co=getC(team.companyId);
+  if(!sub){msg('Sin entrega en esta etapa.','warn');return;}
+  A.aiEvalLoading=true;A.aiEvalTeam=teamId;A.aiEvalStage=stage;A.aiEvalResult=null;render();
+  var d=sub.data||{};
+  var snames=['','Empresa y Canvas','Estados Financieros','Razones de Liquidez','Analisis H y V y EFE','Punto de Equilibrio Ponderado'];
+  var fieldLabels={s1a:'Por que eligieron la empresa',s1b:'Entorno externo',s1c:'Coherencia del modelo',
+    s1bmc_propuesta:'Canvas PV',s1bmc_segmentos:'Canvas Segmentos',s1bmc_ingresos:'Canvas Ingresos',s1bmc_costos:'Canvas Costos',
+    s2g1:'Estructura activos',s2g2:'Costos y PV',s2g3:'Financiamiento',s2g4:'Margen esperado',
+    s3i:'Interpretacion liquidez',s3opi:'Ciclos operativos',s3g1:'Liquidez sectorial',
+    s4i:'Diagnostico H+V+EFE',s4efe:'Flujo efectivo',s4g1:'Factores crecimiento',
+    s5i:'Interpretacion PE',s5g1:'Por que PE ponderado',s5g2:'Portafolio',s5g3:'Palancas PE'};
+  var responses='';
+  Object.keys(fieldLabels).forEach(function(k){if(d[k]&&d[k].trim())responses+='['+fieldLabels[k]+']\n'+d[k]+'\n\n';});
+  var a=co.ans||{};
+  var financialCtx='';
+  if(a.y1&&a.y2){
+    financialCtx='Ventas '+co.y[0]+': $'+fmt(a.y1.er.v)+'K | '+co.y[1]+': $'+fmt(a.y2.er.v)+'K\n';
+    financialCtx+='Util.Neta '+co.y[0]+': $'+fmt(a.y1.er.un)+'K | '+co.y[1]+': $'+fmt(a.y2.er.un)+'K\n';
+    financialCtx+='Total Activo '+co.y[1]+': $'+fmt(a.y2.bg.ta)+'K | Capital: $'+fmt(a.y2.bg.cap)+'K\n';
+  }
+  var prompt='Eres evaluador academico de analisis financiero universitario (EBC Mexico).\n\n'+
+    'EMPRESA: '+co.e+' '+co.n+' — '+co.s+'\nMision: '+co.mis+'\nVision: '+co.vis+'\n'+
+    (financialCtx?'DATOS FINANCIEROS:\n'+financialCtx+'\n':'')+
+    'EQUIPO: '+team.name+' | '+getMemberNames(team).join(', ')+'\n'+
+    'ETAPA '+stage+': '+snames[stage]+'\n\n'+
+    'RESPUESTAS:\n'+responses+'\n'+
+    'Evalua con criterios (0-100 cada uno):\n'+
+    '1. Profundidad del analisis\n2. Coherencia con datos\n3. Dominio conceptual\n4. Calidad interpretaciones\n5. CALIFICACION FINAL SUGERIDA\n\n'+
+    'Da 3 FORTALEZAS especificas (cita sus palabras), 3 AREAS DE MEJORA con recomendaciones, y RETROALIMENTACION GENERAL.\nResponde en espanol.';
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+        messages:[{role:'user',content:prompt}]})});
+    var data=await resp.json();
+    var text=(data.content&&data.content[0]&&data.content[0].text)||'Sin respuesta';
+    A.aiEvalLoading=false;A.aiEvalResult=text;render();
+  }catch(e){A.aiEvalLoading=false;A.aiEvalResult='Error: '+e.message;render();}
+}
+
+async function doExcelExport(){
+  if(!window.XLSX){
+    await new Promise(function(resolve){
+      var s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload=resolve;document.head.appendChild(s);
+    });
+  }
+  var WB=window.XLSX.utils.book_new();
+  var teams=DB.getTeams().filter(function(t){return t.companyId;});
+  var subs=DB.getSubs();var evs=DB.getEvals();var tEvs=DB.getTeacherEvals();
+  var snames=['','Empresa y Canvas','Estados Financieros','Razones Liq.','H y V + EFE','P. Equilibrio'];
+  // Sheet 1: Calificaciones
+  var s1=[['Equipo','Empresa','Sector','Integrantes','E1(10%)','E2(25%)','E3(20%)','E4(30%)','E5(15%)','Ponderada','Coeval%','Eval.Docente']];
+  teams.forEach(function(t){
+    var co=getC(t.companyId);var ts=subs[t.id]||{};
+    var tev=tEvs.filter(function(e){return e.teamId===t.id;});
+    var tevAvg=tev.length?Math.round(tev.reduce(function(s,e){return s+(e.grade||0);},0)/tev.length):'-';
+    s1.push([t.name,co?co.n:'?',co?co.s:'',getMemberNames(t).join(', '),
+      ts[1]?ts[1].score:'—',ts[2]?ts[2].score:'—',ts[3]?ts[3].score:'—',ts[4]?ts[4].score:'—',ts[5]?ts[5].score:'—',
+      calcWeightedGrade(t.id),calcParticipation(t.id)+'%',tevAvg]);
+  });
+  window.XLSX.utils.book_append_sheet(WB,window.XLSX.utils.aoa_to_sheet(s1),'Calificaciones');
+  // Sheet 2: Respuestas abiertas
+  var fieldMap={s1a:[1,'Por que eligieron la empresa'],s1b:[1,'Entorno externo'],s1c:[1,'Coherencia modelo'],
+    s1bmc_propuesta:[1,'Canvas PV'],s1bmc_segmentos:[1,'Canvas Segmentos'],s1bmc_ingresos:[1,'Canvas Ingresos'],
+    s1bmc_costos:[1,'Canvas Costos'],s1bmc_socios:[1,'Canvas Socios'],s1bmc_actividades:[1,'Canvas Actividades'],
+    s1bmc_recursos:[1,'Canvas Recursos'],s1bmc_canales:[1,'Canvas Canales'],
+    s2g1:[2,'Estructura activos'],s2g2:[2,'Costos y PV'],s2g3:[2,'Financiamiento'],s2g4:[2,'Margen esperado'],
+    s3i:[3,'Interpretacion liquidez'],s3opi:[3,'Ciclos operativos'],s3g1:[3,'Liquidez sectorial'],
+    s4i:[4,'Diagnostico H+V+EFE'],s4efe:[4,'Flujo efectivo'],s4g1:[4,'Factores crecimiento'],
+    s5i:[5,'Interpretacion PE'],s5g1:[5,'Por que PE ponderado'],s5g2:[5,'Portafolio'],s5g3:[5,'Palancas PE']};
+  var s2=[['Equipo','Empresa','Etapa','Criterio','Respuesta del Equipo']];
+  teams.forEach(function(t){var co=getC(t.companyId);var ts=subs[t.id]||{};
+    Object.keys(fieldMap).forEach(function(k){var m=fieldMap[k];var sub=ts[m[0]];
+      if(sub&&sub.data&&sub.data[k]&&sub.data[k].trim())
+        s2.push([t.name,co?co.n:'?',m[0]+': '+snames[m[0]],m[1],sub.data[k]]);
+    });
+  });
+  window.XLSX.utils.book_append_sheet(WB,window.XLSX.utils.aoa_to_sheet(s2),'Respuestas Abiertas');
+  // Sheet 3: Coevaluaciones
+  var s3=[['Equipo Evaluado','Empresa','Evaluador','Etapa','Criterio','Calificacion','Comentario']];
+  evs.forEach(function(ev){var t=teams.find(function(t){return t.id===ev.teamId;});var co=t?getC(t.companyId):null;
+    var rubric=RUBRICS[ev.stage||1];
+    if(rubric&&ev.rubricScores){rubric.criteria.forEach(function(c){var v=ev.rubricScores[c.id];
+      if(v)s3.push([t?t.name:'?',co?co.n:'?',ev.evalName||'?',ev.stage||1,c.name,v,ev.comment||'']);});}
+    else{s3.push([t?t.name:'?',co?co.n:'?',ev.evalName||'?',ev.stage||1,'General','—',ev.comment||'']);}
+  });
+  window.XLSX.utils.book_append_sheet(WB,window.XLSX.utils.aoa_to_sheet(s3),'Coevaluaciones');
+  // Sheet 4: Eval Docente
+  var s4=[['Equipo','Empresa','Etapa','Calificacion','Retroalimentacion','Fecha']];
+  tEvs.forEach(function(ev){var t=teams.find(function(t){return t.id===ev.teamId;});var co=t?getC(t.companyId):null;
+    s4.push([t?t.name:'?',co?co.n:'?',ev.stage,ev.grade,ev.feedback||'',new Date(ev.createdAt).toLocaleDateString('es-MX')]);
+  });
+  window.XLSX.utils.book_append_sheet(WB,window.XLSX.utils.aoa_to_sheet(s4),'Eval Docente');
+  // Sheet 5: Instrucciones IA
+  var s5=[['INSTRUCCIONES PARA EVALUACION CON IA'],[''],
+    ['1. Abre una nueva conversacion en claude.ai'],
+    ['2. Adjunta este archivo Excel'],['3. Usa este prompt:'],[''],
+    ['--- PROMPT ---'],
+    ['Eres evaluador academico de analisis financiero (EBC Mexico).'],
+    ['Analiza la hoja "Respuestas Abiertas" y evalua cada equipo:'],
+    ['- Profundidad del analisis financiero'],['- Coherencia con los datos'],
+    ['- Dominio conceptual'],['- Calidad de interpretaciones'],[''],
+    ['Para cada equipo da: calificacion sugerida (0-100), 3 fortalezas con citas,'],
+    ['3 areas de mejora con recomendaciones, retroalimentacion general.'],
+    ['Al final genera tabla comparativa de todos los equipos.'],
+  ];
+  window.XLSX.utils.book_append_sheet(WB,window.XLSX.utils.aoa_to_sheet(s5),'Instrucciones IA');
+  window.XLSX.writeFile(WB,'FinAcademy_'+new Date().toLocaleDateString('es-MX').replace(/\//g,'-')+'.xlsx');
+  msg('Excel descargado: '+teams.length+' equipos, '+(s2.length-1)+' respuestas.','ok');}
+
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
   function handleClick(e){
@@ -2835,6 +3076,7 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     var assignco=el.closest&&el.closest('[data-assignco]');if(assignco){doAssignCoToTeam(assignco.dataset.assignco);return;}
     var ainp=el.closest&&el.closest('[data-ainp]');if(ainp){var parts=ainp.dataset.ainp.split('=');A.inp[parts[0]]=parts[1];render();return;}
     if(id==='btnMoveUser')return doMoveUser();
+    if(id==='btnExcelExport'||el.closest&&el.closest('#btnExcelExport')){doExcelExport();return;}
     if(id==='btnReset'){if(confirm('Borrar TODOS los datos?'))doReset();return;}
   }
   window.fa_click=handleClick;
