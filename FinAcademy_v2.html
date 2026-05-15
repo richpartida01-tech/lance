@@ -734,7 +734,43 @@ function postRender(){document.querySelectorAll('.blank').forEach(el=>{if(A.inp[
 // AUTH — Individual or Team
 // ================================================================
 
+
+function rLoginTeacher(){
+  return'<div class="auth-bg"><div class="auth-box fadein" style="max-width:400px">'+
+    '<div style="text-align:center;margin-bottom:20px">'+
+      '<div style="font-size:40px;margin-bottom:8px">&#x1F4CA;</div>'+
+      '<div class="auth-title">Panel Docente</div>'+
+      '<p class="t2 f12 mt4">FinAcademy — EBC</p>'+
+    '</div>'+
+    '<div class="card">'+
+      (A.msg?rMsg():'')+
+      '<div class="lbl">&#x1F511; PIN de acceso</div>'+
+      '<input class="inp mb4" id="lPin" type="password" placeholder="••••" autocomplete="off" '+
+        'oninput="try{A.inp[this.id]=this.value}catch(e){}" style="font-size:20px;letter-spacing:8px;text-align:center">'+
+      '<p class="t3 f11 mb12" style="text-align:center">Ingresa el PIN proporcionado por tu institución</p>'+
+      '<button class="btn btn-p btn-w" onclick="doLoginTeacher()" style="padding:10px">'+
+        '&#x1F4CA; Entrar al Panel &#x2192;'+
+      '</button>'+
+    '</div>'+
+    '<div style="text-align:center;margin-top:12px">'+
+      '<button class="btn btn-sm" style="background:transparent;border:none;color:var(--t3);font-size:12px" '+
+        'onclick="A.loginMode=\'individual\';A.inp={};render()">&#x2190; Volver al login de alumnos</button>'+
+    '</div>'+
+  '</div></div>';}
+
+function doLoginTeacher(){
+  var pin=A.inp.lPin||document.getElementById('lPin')?.value||'';
+  if(pin.toString()==='2024'){
+    var tu={id:'teacher',name:'Docente',email:'profe@ebc.mx',role:'teacher'};
+    DB.saveSession(tu);ss({user:tu,screen:'teacher'});
+  } else {
+    msg('PIN incorrecto. Verifica con tu institución.','err');
+  }
+}
+
+
 function rLogin(){
+  if(A.loginMode==='teacher')return rLoginTeacher();
   var isTeam=(A.loginMode||'individual')==='team';
   var mc=Math.max(2,Math.min(6,parseInt(A.inp.memberCount||'2')));
   var isSpecial=(A.inp.lUser||'').toLowerCase().trim()==='profesor'||(A.inp.lUser||'').toLowerCase().trim()==='profe';
@@ -769,9 +805,9 @@ function rLogin(){
         '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px" onclick="doLogin()">Entrar &#x2192;</button>'
       )+
     '</div>'+
-    '<p class="t3 f11" style="text-align:center;margin-top:10px">'+
-      'Docente: <strong>profe</strong> + PIN 2024 &nbsp;|&nbsp; Demo sin restricciones: <strong>demo</strong>'+
-    '</p>'+
+    '<div style="margin-top:14px;text-align:center">'+
+      '<button class="btn btn-sm" data-mode-teacher="1" style="background:transparent;border:1px solid rgba(108,99,255,.4);color:var(--p2);font-size:12px;padding:7px 18px;border-radius:8px;cursor:pointer" onclick="A.loginMode=\'teacher\';A.inp={};render()">&#x1F511; Acceso Docente / Admin</button>'+
+    '</div>'+
   '</div></div>';}
 
 function rRegister(){return rLogin();}
