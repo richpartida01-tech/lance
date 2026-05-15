@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- FinAcademy v2.2 | Build: 2026-05-15 16:55 | EBC -->
+<!-- FinAcademy v2.3 | Build: 2026-05-15 16:55 | EBC -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -695,7 +695,7 @@ function rDemo(){
   '</div>';}
 
 
-function render(){const app=document.getElementById('app');if(!app)return;const map={login:rLogin,register:rRegister,lobby:rLobby,student:rStudent,teacher:rTeacher,demo:rDemo};app.innerHTML=(map[A.screen]||rLogin)();postRender();}
+function render(){try{const app=document.getElementById('app');if(!app)return;const map={login:rLogin,register:rRegister,lobby:rLobby,student:rStudent,teacher:rTeacher,demo:rDemo};app.innerHTML=(map[A.screen]||rLogin)();postRender();}catch(e){app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#07080f;min-height:100vh"><h2>Error:</h2><pre>'+e.message+'</pre></div>';}}
 function postRender(){document.querySelectorAll('.blank').forEach(el=>{if(A.inp[el.id]!=null&&A.inp[el.id]!==''){el.value=A.inp[el.id];const v=parseFloat(A.inp[el.id]),ans=parseFloat(el.dataset.a);el.classList.add(close(v,ans)?'ok':'err');}});document.querySelectorAll('textarea').forEach(el=>{if(el.id&&A.inp[el.id]!=null)el.value=A.inp[el.id];});const fi=document.getElementById('importFile');if(fi)fi.addEventListener('change',e=>{if(e.target.files[0])doImport(e.target.files[0]);});}
 
 // ================================================================
@@ -725,7 +725,7 @@ function rLogin(){
       (A.msg?rMsg():'')+
       (isTeam?
         '<div class="lbl">Nombre del equipo</div>'+
-        '<input class="inp mb8" id="tName" placeholder="Equipo Alpha..." oninput="A.inp.tName=this.value">'+
+        '<input class="inp mb8" id="tName" placeholder="Equipo Alpha..." oninput="try{A.inp[this.id]=this.value}catch(e){}">'+
         '<div class="lbl">Integrantes (escribe los nombres)</div>'+
         [0,1,2,3,4,5].slice(0,mc).map(function(i){
           return'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'+
@@ -736,7 +736,7 @@ function rLogin(){
         '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar al equipo &#x2192;</button>'
       :
         '<div class="lbl">&#x1F44B; Tu nombre o alias</div>'+
-        '<input class="inp mb8" id="lUser" placeholder="Ej. Juan García" autocomplete="off" oninput="A.inp.lUser=this.value">'+
+        '<input class="inp mb8" id="lUser" placeholder="Ej. Juan García" autocomplete="off" oninput="try{A.inp[this.id]=this.value}catch(e){}">'+
         (isSpecial?'<div class="lbl">PIN docente</div><input class="inp mb12" id="lPin" type="password" placeholder="PIN">':'<div style="margin-bottom:4px"></div>')+
         '<p class="t3 f11 mb12">Primera vez? Tu cuenta se crea al instante.</p>'+
         '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar &#x2192;</button>'
