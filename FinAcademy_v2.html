@@ -572,8 +572,21 @@ const SYNC={
       .subscribe();
     console.log('[SYNC] Suscripción en tiempo real activa');
   },
-  async pushUser(u){if(!this.sb)return;await this.sb.from('fa_users').upsert(u,{onConflict:'id'});},
-  async pushTeam(t){if(!this.sb)return;var row=Object.assign({},t);if('desc' in row){row.description=row.desc;delete row.desc;}await this.sb.from('fa_teams').upsert(row,{onConflict:'id'});},
+  async pushUser(u){if(!this.sb)return;
+    await this.sb.from('fa_users').upsert({
+      id:u.id,name:u.name,email:u.email||u.id,password:u.password||'',
+      role:u.role||'student',team_name:u.teamName||'',
+      member_names:u.memberNames||[u.name],created_at:u.createdAt||Date.now()
+    },{onConflict:'id'});},
+  async pushTeam(t){if(!this.sb)return;
+    await this.sb.from('fa_teams').upsert({
+      id:t.id,name:t.name,description:t.desc||'',
+      leader_id:t.leaderId||null,members:t.members||[],
+      requests:t.requests||[],company_id:t.companyId||null,
+      max_members:t.maxMembers||4,status:t.status||'open',
+      member_names:t.memberNames||[],is_team_account:t.isTeamAccount||false,
+      created_at:t.createdAt||Date.now()
+    },{onConflict:'id'});},
   async pushSub(teamId,stage,sub){
     if(!this.sb)return;
     await this.sb.from('fa_subs').upsert({
@@ -581,7 +594,21 @@ const SYNC={
       data:sub.data,score:sub.score,submitted_by:sub.submittedBy,submitted_at:sub.submittedAt
     },{onConflict:'id'});
   },
-  async pushEval(ev){if(!this.sb)return;await this.sb.from('fa_evals').upsert(ev,{onConflict:'id'});},
+  async pushEval(ev){if(!this.sb)return;
+    await this.sb.from('fa_evals').upsert({
+      id:ev.id,eval_id:ev.evalId,eval_name:ev.evalName||'',
+      team_id:ev.teamId,stage:ev.stage||1,
+      rubric_scores:ev.rubricScores||{},
+      field_evals:ev.fieldEvals||{},scores:ev.scores||{},
+      comment:ev.comment||'',created_at:ev.createdAt||Date.now()
+    },{onConflict:'id'});},
+  async deleteTeam(tid){if(!this.sb)return;await this.sb.from('fa_teams').delete().eq('id',tid);await this.sb.from('fa_subs').delete().eq('team_id',tid);await this.sb.from('fa_evals').delete().eq('team_id',tid);},
+  async deleteUser(uid_){if(!this.sb)return;await this.sb.from('fa_users').delete().eq('id',uid_);},
+  async deleteTeamSubs(tid){if(!this.sb)return;await this.sb.from('fa_subs').delete().eq('team_id',tid);},
+  async pushAllUsers(users){if(!this.sb)return;for(var u of users){await this.pushUser(u);}},
+  async pushAllTeams(teams){if(!this.sb)return;for(var t of teams){await this.pushTeam(t);}},
+  async pushAllSubs(subs){if(!this.sb)return;for(var tid in subs){for(var s in subs[tid]){await this.sb.from('fa_subs').upsert({id:tid+'_'+s,team_id:tid,stage:parseInt(s),data:subs[tid][s].data,score:subs[tid][s].score,submitted_by:subs[tid][s].submittedBy,submitted_at:subs[tid][s].submittedAt},{onConflict:'id'});}}},
+  async pushAllEvals(evs){if(!this.sb)return;for(var ev of evs){await this.pushEval(ev);}},
   // Save config to localStorage
   saveConfig(url,key){
     localStorage.setItem('fa2_sb_url',url||'https://gfogifozhhbzxhcbecgf.supabase.co');
@@ -756,7 +783,7 @@ function ensureTeamForUser(u){
   var team={id:uid(),name:u.teamName||u.name,desc:'',leaderId:u.id,members:[u.id],
     requests:[],companyId:null,maxMembers:mnames.length||1,status:'open',
     memberNames:mnames,isTeamAccount:u.role==='team',createdAt:u.createdAt||Date.now()};
-  teams.push(team);DB.saveTeams(teams);}
+  teams.push(team);DB.saveTeams(teams);SYNC.pushTeam(team);}
 
 function getMemberNames(team){
   if(team.memberNames&&team.memberNames.length)return team.memberNames;
@@ -807,7 +834,7 @@ function doLogin(){
   if(!u){
     u={id:uid(),name:uname,email:uname.toLowerCase().replace(/\s+/g,'_'),role:'student',
        memberNames:[uname],createdAt:Date.now()};
-    users.push(u);DB.saveUsers(users);
+    users.push(u);DB.saveUsers(users);SYNC.pushUser(u);
   }
   ensureTeamForUser(u);DB.saveSession(u);
   var t=getUserTeam(u.id);
@@ -2095,17 +2122,18 @@ function doDeleteTeam(tid){
   var teams=DB.getTeams().filter(function(t){return t.id!==tid;});DB.saveTeams(teams);
   var subs=DB.getSubs();delete subs[tid];DB.saveSubs(subs);
   var evs=DB.getEvals().filter(function(e){return e.teamId!==tid;});DB.saveEvals(evs);
+  SYNC.deleteTeam(tid);
   msg('Equipo eliminado.','ok');ss({teacherTab:A.teacherTab||'teams'});}
 
 function doDeleteUser(uid_){
   if(uid_==='teacher'||uid_==='demo')return;
-  var users=DB.getUsers().filter(function(u){return u.id!==uid_;});DB.saveUsers(users);
+  var users=DB.getUsers().filter(function(u){return u.id!==uid_;});DB.saveUsers(users);SYNC.deleteUser(uid_);
   var teams=DB.getTeams();
   teams.forEach(function(t){t.members=(t.members||[]).filter(function(id){return id!==uid_;});});
   DB.saveTeams(teams);msg('Usuario eliminado.','ok');ss({teacherTab:'students'});}
 
 function doResetTeam(tid){
-  var subs=DB.getSubs();delete subs[tid];DB.saveSubs(subs);
+  var subs=DB.getSubs();delete subs[tid];DB.saveSubs(subs);SYNC.deleteTeamSubs(tid);
   msg('Entregas reiniciadas.','ok');ss({teacherTab:'teams'});}
 
 function doChangeCompany(tid){
@@ -2142,7 +2170,7 @@ function doCreateTeam(){
   if(teams.find(t=>t.name.toLowerCase()===name.toLowerCase())){msg('Ya existe un equipo con ese nombre.','err');return;}
   if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
   const t={id:uid(),name,desc,leaderId:A.user.id,members:[A.user.id],requests:[],companyId:null,maxMembers:max,status:'open',createdAt:Date.now()};
-  teams.push(t);DB.saveTeams(teams);ss({screen:'lobby',inp:{},tsv:'members'});}
+  teams.push(t);DB.saveTeams(teams);SYNC.pushTeam(t);ss({screen:'lobby',inp:{},tsv:'members'});}
 
 function doJoinRequest(teamId){
   const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);
@@ -2163,38 +2191,38 @@ function doApproveReq(teamId,userId){
   const req=t.requests.find(r=>r.userId===userId);if(req)req.status='accepted';
   if(!t.members.includes(userId))t.members.push(userId);
   if(t.members.length>=t.maxMembers)t.status='full';
-  DB.saveTeams(teams);ss({tsv:'requests'});msg('✓ Miembro aprobado.','ok');}
+  DB.saveTeams(teams);SYNC.pushTeam(t);ss({tsv:'requests'});msg('✓ Miembro aprobado.','ok');}
 
-function doRejectReq(teamId,userId){const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;const req=t.requests.find(r=>r.userId===userId);if(req)req.status='rejected';DB.saveTeams(teams);ss({tsv:'requests'});msg('Solicitud rechazada.','warn');}
+function doRejectReq(teamId,userId){const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;const req=t.requests.find(r=>r.userId===userId);if(req)req.status='rejected';DB.saveTeams(teams);SYNC.pushTeam(t);ss({tsv:'requests'});msg('Solicitud rechazada.','warn');}
 
 function doKick(teamId,userId){
   if(!confirm('¿Expulsar a este miembro?'))return;
   const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
-  t.members=t.members.filter(id=>id!==userId);t.status='open';DB.saveTeams(teams);ss({tsv:'members'});}
+  t.members=t.members.filter(id=>id!==userId);t.status='open';DB.saveTeams(teams);SYNC.pushTeam(t);ss({tsv:'members'});}
 
 function doLeaveTeam(teamId){
   if(!confirm('¿Salir del equipo?'))return;
   const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
   if(t.leaderId===A.user.id){teams.splice(teams.findIndex(x=>x.id===teamId),1);msg('Equipo disuelto.','warn');}
   else{t.members=t.members.filter(id=>id!==A.user.id);t.status='open';}
-  DB.saveTeams(teams);ss({screen:'lobby'});}
+  DB.saveTeams(teams);var lt=DB.getTeams().find(function(x){return x.id===tid;});if(lt)SYNC.pushTeam(lt);ss({screen:'lobby'});}
 
 function doSelectCo(teamId,coId){
   const teams=DB.getTeams();const taken=teams.some(t=>t.companyId===coId&&t.id!==teamId);
   if(taken){msg('Esa empresa ya fue elegida por otro equipo.','err');return;}
   const t=teams.find(t=>t.id===teamId);if(!t)return;
-  t.companyId=coId;t.status='active';DB.saveTeams(teams);ss({screen:'student',view:'home',stage:1});}
+  t.companyId=coId;t.status='active';DB.saveTeams(teams);SYNC.pushTeam(t);ss({screen:'student',view:'home',stage:1});}
 
 function doSubmit(stage){
   document.querySelectorAll('textarea,input[type=text],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
   const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
   if(stage>=2&&(!A.user||A.user.role!=='admin')){var gqs=getGuide(stage,co);var gAnswered=gqs.filter(function(q){return(A.inp[q.id]||'').trim().length>=30;});if(gAnswered.length<2){msg('Responde al menos 2 preguntas del Análisis Guiado (30+ caracteres c/u) antes de entregar.','warn');return;}}
-if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[team.id][1]={data:{...A.inp},score:100,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);ss({view:'stages',stage:2});msg('✅ Etapa 1 entregada.','ok');return;}
+if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[team.id][1]={data:{...A.inp},score:100,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);SYNC.pushSub(team.id,1,subs[team.id][1]);ss({view:'stages',stage:2});msg('✅ Etapa 1 entregada.','ok');return;}
   const score=calcScore(stage,team.id,A.inp);
   if(score<25){msg('Score de '+score+'%. Revisa tus cálculos (mínimo 25%).','warn');return;}
   const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
-  subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);
+  subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);SYNC.pushSub(team.id,stage,subs[team.id][stage]);
   if(stage<5)ss({view:'stages',stage:stage+1});else ss({view:'home'});
   msg('✅ Etapa '+stage+' entregada. Score: '+score+'%','ok');}
 
@@ -2207,11 +2235,16 @@ function doEval(){
   const evs=DB.getEvals();const idx=evs.findIndex(e=>e.evalId===A.user.id&&e.teamId===tid);
   const ev={id:uid(),evalId:A.user.id,evalName:A.user.name,teamId:tid,scores,comment,createdAt:Date.now()};
   if(idx>=0)evs[idx]=ev;else evs.push(ev);
-  DB.saveEvals(evs);['rigor','comp','interp','pres'].forEach(k=>delete A.inp['ev_'+k]);
+  DB.saveEvals(evs);SYNC.pushEval(ev);['rigor','comp','interp','pres'].forEach(k=>delete A.inp['ev_'+k]);
   msg('✅ Evaluación enviada.','ok');ss({});}
 
 function doExport(){const d={users:DB.getUsers(),teams:DB.getTeams(),subs:DB.getSubs(),evals:DB.getEvals(),at:new Date().toISOString()};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download='finacademy_'+new Date().toLocaleDateString('es-MX').replace(/\//g,'-')+'.json';a.click();}
-function doImport(f){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.users)DB.saveUsers(d.users);if(d.teams)DB.saveTeams(d.teams);if(d.subs)DB.saveSubs(d.subs);if(d.evals)DB.saveEvals(d.evals);msg('✅ Datos importados.','ok');ss({});}catch{msg('Error al importar el archivo.','err');}};r.readAsText(f);}
+function doImport(f){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.users)DB.saveUsers(d.users);if(d.teams)DB.saveTeams(d.teams);if(d.subs)DB.saveSubs(d.subs);if(d.evals)DB.saveEvals(d.evals);
+        SYNC.pushAllUsers(d.users||[]);
+        SYNC.pushAllTeams(d.teams||[]);
+        SYNC.pushAllSubs(d.subs||{});
+        SYNC.pushAllEvals(d.evals||[]);
+        msg('✅ Datos importados.','ok');ss({});}catch{msg('Error al importar el archivo.','err');}};r.readAsText(f);}
 
 // ================================================================
 // INIT
