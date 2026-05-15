@@ -856,7 +856,7 @@ function doLogin(){
     // Update code if changed
     if(!u.studentCode){u.studentCode=studentCode;DB.saveUsers(users);SYNC.pushUser(u);}
   }
-  ensureTeamForUser(u);DB.saveSession(u);
+  DB.saveSession(u);
   var t=getUserTeam(u.id);
   ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});}
 
@@ -864,6 +864,7 @@ function doRegister(){doLogin();}
 
 
 function ensureTeamForUser(u){
+  if(u.role!=='team')return; // Only for team-mode accounts
   var teams=DB.getTeams();
   if(teams.find(function(t){return t.members&&t.members.includes(u.id);}))return;
   var mnames=u.memberNames&&u.memberNames.length?u.memberNames:[u.name];
@@ -888,11 +889,12 @@ function doRegister(){doLogin();}
 
 
 function rLobby(){
-  const myTeam=getUserTeam(A.user.id);
-  if(myTeam&&myTeam.companyId)return rStudent();
-  if(myTeam)return rTeamRoom(myTeam);
-  const pendingTeam=getPendingReq(A.user.id);
-  if(pendingTeam)return rPendingWait(pendingTeam);
+  var myTeam=getUserTeam(A.user.id);
+  if(!myTeam)return rLobbyMain();
+  if(myTeam.companyId)return rStudent();
+  // Team with company selection in progress → team room
+  if((myTeam.members||[]).length>1||myTeam.isTeamAccount)return rTeamRoom(myTeam);
+  // Solo auto-team with no company → show lobby to find a team
   return rLobbyMain();
 }
 
@@ -947,77 +949,53 @@ function rCoSelectFull(team){
 
 
 
+
 function rLobbyMain(){
   var myUid=A.user.id;
   var allTeams=DB.getTeams();
   var openTeams=allTeams.filter(function(t){return !t.companyId;});
-  var myTeam=allTeams.find(function(t){return(t.members||[]).includes(myUid);});
-  var myPendingTeam=allTeams.find(function(t){
-    return(t.requests||[]).some(function(r){return(r.userId||r.uid)===myUid&&r.status==='pending';});
-  });
 
-  // Already in a team → go to team panel
-  if(myTeam){return rCoSelectFull(myTeam);}
-
-  var isCapitan=openTeams.some(function(t){return t.leaderId===myUid;});
-  var myOwnTeam=openTeams.find(function(t){return t.leaderId===myUid;});
-
-  return'<div style="min-height:100vh;padding:28px 20px;background:radial-gradient(ellipse at 20% 10%,rgba(108,99,255,.1) 0%,transparent 50%)">'+
+  return'<div style="min-height:100vh;padding:32px 20px;background:radial-gradient(ellipse at 20% 10%,rgba(108,99,255,.12) 0%,transparent 55%)">'+
     '<div style="max-width:960px;margin:0 auto">'+
 
-    // Header
-    '<div class="fbet mb20">'+
+    '<div class="fbet mb24">'+
       '<div>'+
-        '<h1 style="font-size:22px;font-weight:700;margin:0 0 4px">FinAcademy</h1>'+
-        '<p class="t2 f12">Bienvenido, <strong>'+A.user.name+'</strong> · '+
-          '<span style="font-family:monospace;font-size:11px;color:var(--p2)">'+(A.user.studentCode||'')+'</span></p>'+
+        '<h1 style="font-size:24px;font-weight:700;margin:0 0 4px">Lobby</h1>'+
+        '<p class="t2 f12">Hola <strong>'+A.user.name+'</strong> &nbsp;·&nbsp; '+
+          '<span style="font-family:monospace;color:var(--p2);font-size:11px">'+(A.user.studentCode||'')+'</span>'+
+        '</p>'+
       '</div>'+
       '<button class="btn btn-sm" id="btnLogout">🚪 Salir</button>'+
     '</div>'+
 
     (A.msg?rMsg():'')+
 
-    // Pending request banner
-    (myPendingTeam?
-      '<div class="alert aw mb16" style="align-items:center">'+
-        '<span style="font-size:20px">⏳</span>'+
-        '<div style="flex:1">'+
-          '<div class="fw6 f12">Solicitud enviada a <strong>'+myPendingTeam.name+'</strong></div>'+
-          '<div class="t2 f11">Espera a que el capitán te acepte. Puedes cancelar y unirte a otro equipo.</div>'+
-        '</div>'+
-        '<button class="btn btn-xs btn-danger" data-canceljoin="'+myPendingTeam.id+'">Cancelar solicitud</button>'+
-      '</div>':'')+
-
     '<div class="g2">'+
 
-      // LEFT: Create team
-      '<div class="card">'+
-        '<div class="fw7 f14 mb6">👑 Crear mi equipo</div>'+
-        '<p class="t2 f12 mb14">Crea tu equipo y conviértete en capitán. Tus compañeros podrán enviarte solicitud para unirse.</p>'+
-        (myOwnTeam?
-          '<div class="alert aok mb10 f12">✅ Ya creaste el equipo <strong>'+myOwnTeam.name+'</strong>. '+
-          'Espera que se unan tus compañeros o ve a la pestaña de solicitudes.</div>'+
-          '<button class="btn btn-p btn-w" onclick="ss({screen:\'lobby\',tsv:\'requests\'})">Ver solicitudes pendientes →</button>'
-        :
-          '<div class="lbl">Nombre del equipo</div>'+
-          '<input class="inp mb8" id="ct_name" oninput="A.inp.ct_name=this.value" '+
-            'placeholder="Ej. Los Analistas del Mercado" value="'+(A.inp.ct_name||'')+'">'+
-          '<div class="lbl">Máximo de integrantes</div>'+
-          '<select class="inp mb12" id="ct_max" onchange="A.inp.ct_max=this.value">'+
-            [2,3,4,5].map(function(n){return'<option value="'+n+'"'+(parseInt(A.inp.ct_max||4)===n?' selected':'')+'>'+n+' personas</option>';}).join('')+
-          '</select>'+
-          '<button class="btn btn-p btn-w" id="btnCreateTeam">✨ Crear equipo →</button>'
-        )+
+      // ── CREAR EQUIPO ──────────────────────────────────────────
+      '<div class="card" style="align-self:start">'+
+        '<div class="fw7 f14 mb6">👑 Crear equipo</div>'+
+        '<p class="t2 f12 mb14">Crea tu equipo y conviértete en capitán. Tus compañeros podrán unirse directamente.</p>'+
+        '<div class="lbl">Nombre del equipo</div>'+
+        '<input class="inp mb8" id="ct_name" oninput="A.inp.ct_name=this.value" '+
+          'placeholder="Ej. Los Analistas del Mercado" value="'+(A.inp.ct_name||'')+'">'+
+        '<div class="lbl">Máximo de integrantes</div>'+
+        '<select class="inp mb12" id="ct_max" onchange="A.inp.ct_max=this.value">'+
+          [2,3,4,5].map(function(n){return'<option value="'+n+'"'+(parseInt(A.inp.ct_max||4)===n?' selected':'')+'>'+n+' personas</option>';}).join('')+
+        '</select>'+
+        '<button class="btn btn-p btn-w" id="btnCreateTeam">✨ Crear equipo →</button>'+
       '</div>'+
 
-      // RIGHT: Join team
+      // ── UNIRSE A EQUIPO ───────────────────────────────────────
       '<div>'+
-        '<div class="fw7 f14 mb10">🔍 Equipos disponibles</div>'+
-        (openTeams.filter(function(t){return t.status!=='full';}).length===0?
-          '<div class="card" style="text-align:center;padding:32px">'+
-            '<div style="font-size:36px;margin-bottom:10px">👥</div>'+
-            '<p class="t2 f12">Aún no hay equipos abiertos.</p>'+
-            '<p class="t3 f11">¡Crea el primero!</p>'+
+        '<div class="fw7 f14 mb10">🔍 Únete a un equipo</div>'+
+        '<p class="t2 f12 mb14">Haz clic en <strong>Unirme</strong> para entrar al instante. Sin esperas.</p>'+
+
+        (openTeams.length===0?
+          '<div class="card" style="text-align:center;padding:40px">'+
+            '<div style="font-size:40px;margin-bottom:12px">👥</div>'+
+            '<p class="fw6 f13">Aún no hay equipos</p>'+
+            '<p class="t2 f12 mt4">¡Crea el primero usando el panel de la izquierda!</p>'+
           '</div>'
         :
           openTeams.map(function(t){
@@ -1025,43 +1003,41 @@ function rLobbyMain(){
             var memberCount=(t.members||[]).length;
             var max=t.maxMembers||4;
             var isFull=memberCount>=max;
-            var hasPending=(t.requests||[]).some(function(r){return(r.userId||r.uid)===myUid&&r.status==='pending';});
+            var alreadyIn=(t.members||[]).includes(myUid);
             var pct=Math.round(memberCount/max*100);
-            return'<div class="card mb10" style="'+(hasPending?'border-color:var(--yellow)':'')+'">'+
-              '<div class="fbet mb8">'+
+            return'<div class="card mb10" style="border-color:'+(alreadyIn?'var(--acc)':isFull?'var(--border)':'var(--border)')+'">'+
+              '<div class="fbet mb10">'+
                 '<div>'+
-                  '<div class="fw7 f13">'+t.name+'</div>'+
+                  '<div class="fw7 f14">'+t.name+'</div>'+
                   '<div class="t2 f11">Capitán: '+(cap?cap.name:'?')+'</div>'+
                 '</div>'+
-                '<div class="flex g6" style="align-items:center">'+
-                  '<span class="t2 f11">'+memberCount+'/'+max+'</span>'+
-                  (!isFull&&!hasPending&&!myPendingTeam?
-                    '<button class="btn btn-p btn-sm" data-jointeam="'+t.id+'">✋ Unirme</button>':
-                  hasPending?'<span class="badge bwarn f11">Solicitud enviada</span>':
-                  isFull?'<span class="badge bmuted f11">Lleno</span>':
-                  '<span class="badge bmuted f11">Solicitud activa</span>')+
+                '<div class="flex g8 ai-center">'+
+                  '<span class="t2 f12">'+memberCount+'/'+max+'</span>'+
+                  (alreadyIn?
+                    '<span class="badge bok f11">✅ Ya estás aquí</span>'
+                  :isFull?
+                    '<span class="badge bmuted f11">🔒 Lleno</span>'
+                  :
+                    '<button class="btn btn-p" data-jointeam="'+t.id+'" style="padding:6px 16px">Unirme →</button>'
+                  )+
                 '</div>'+
               '</div>'+
-              // Progress bar
-              '<div style="height:4px;background:var(--s3);border-radius:2px;overflow:hidden">'+
-                '<div style="height:100%;width:'+pct+'%;background:var(--p);border-radius:2px;transition:width .3s"></div>'+
+              '<div style="height:5px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:10px">'+
+                '<div style="height:100%;width:'+pct+'%;background:'+(isFull?'var(--acc)':'var(--p)')+';border-radius:3px;transition:width .4s"></div>'+
               '</div>'+
-              // Members
-              ((t.members||[]).length>0?
-                '<div class="flex g4 mt8">'+
-                  (t.members||[]).map(function(mid){
-                    var mu=DB.getUsers().find(function(u){return u.id===mid;});
-                    var isLeader=t.leaderId===mid;
-                    return'<span class="badge '+(isLeader?'bp':'bblue')+' f11">'+(isLeader?'👑 ':'')+(mu?mu.name.split(' ')[0]:'?')+'</span>';
-                  }).join('')+
-                '</div>':'')+
+              '<div class="flex g6" style="flex-wrap:wrap">'+
+                (t.members||[]).map(function(mid){
+                  var mu=DB.getUsers().find(function(u){return u.id===mid;});
+                  var isLdr=t.leaderId===mid;
+                  return'<span class="badge '+(isLdr?'bp':'bblue')+' f11">'+(isLdr?'👑 ':'')+(mu?mu.name.split(' ')[0]:'?')+'</span>';
+                }).join('')+
+              '</div>'+
             '</div>';
           }).join('')
         )+
       '</div>'+
-
     '</div>'+
-    '</div></div>';}
+  '</div></div>';}
 
 
 function doCancelJoinRequest(tid){
@@ -1094,16 +1070,20 @@ function doSelectCo(teamId,coId){
 
 
 function doJoinRequest(teamId){
-  var teams=DB.getTeams();var t=teams.find(function(t){return t.id===teamId;});
+  var teams=DB.getTeams();
+  var t=teams.find(function(t){return t.id===teamId;});
   if(!t){msg('Equipo no encontrado.','err');return;}
-  if((t.members||[]).length>=(t.maxMembers||4)){msg('El equipo está lleno.','err');return;}
-  if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
-  var alreadyPending=teams.some(function(t){return(t.requests||[]).some(function(r){return(r.userId||r.uid)===A.user.id&&r.status==='pending';});});
-  if(alreadyPending){msg('Ya tienes una solicitud pendiente en otro equipo.','warn');return;}
-  if(!t.requests)t.requests=[];
-  t.requests.push({userId:A.user.id,requestedAt:Date.now(),status:'pending'});
-  DB.saveTeams(teams);ss({screen:'lobby'});}
-
+  var max=t.maxMembers||4;
+  if((t.members||[]).length>=max){msg('El equipo está lleno.','err');return;}
+  if((t.members||[]).includes(A.user.id)){msg('Ya eres parte de este equipo.','warn');return;}
+  // Direct join — no approval needed
+  t.members=(t.members||[]).concat([A.user.id]);
+  if(!(t.memberNames||[]).includes(A.user.name))
+    t.memberNames=(t.memberNames||[]).concat([A.user.name]);
+  if(t.members.length>=max)t.status='full';
+  DB.saveTeams(teams);SYNC.pushTeam(t);
+  msg('✅ Te uniste al equipo '+t.name,'ok');
+  ss({screen:'lobby'});}
 
 function doApproveReq(teamId,userId){
   const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
@@ -3618,7 +3598,7 @@ function rCoevalWork(sub,co,stage,evalStage){
     if(ses.role==='teacher'){A.screen='teacher';}
     else if(ses.role==='admin'){A.screen='demo';}
     else{
-      if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);
+      if(ses.role==='team')ensureTeamForUser(ses);
       var t=getUserTeam(ses.id);
       A.screen=t&&t.companyId?'student':'lobby';
     }
