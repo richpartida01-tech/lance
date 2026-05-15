@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+<!-- FinAcademy v2.1 | Build: 2026-05-15 16:55 | EBC -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>FinAcademy v2 — Análisis Financiero Colaborativo</title>
+<title>FinAcademy v2.1 — Análisis Financiero Colaborativo</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -191,12 +192,30 @@ select.inp{cursor:pointer}
 .pe-dot.locked{background:transparent;color:var(--t3)}
 .pe-line{flex:1;height:2px;background:var(--border);min-width:16px}
 .pe-line.done{background:var(--green)}
+
+.rb-wrap{margin-bottom:12px;background:var(--s3);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
+.rb-title{font-size:12px;font-weight:700;margin-bottom:3px}
+.rb-desc{font-size:11px;color:var(--t2);margin-bottom:8px;line-height:1.5}
+.rb-levels{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.rbl{padding:6px 4px;border-radius:7px;border:1px solid var(--border);text-align:center;cursor:pointer;transition:all .15s;background:var(--s1)}
+.rbl:hover{border-color:var(--p)}
+.rbl.sel{border-width:2px}
+.rbl .rv{font-size:15px;font-weight:700;display:block;margin-bottom:2px}
+.rbl .rl{font-size:10px;color:var(--t2)}
+.rbl.sel .rl{color:inherit}
+.rbl.s4.sel{border-color:#10b981;background:rgba(16,185,129,.12)}.rbl.s4.sel .rv{color:#10b981}
+.rbl.s3.sel{border-color:#3b82f6;background:rgba(59,130,246,.12)}.rbl.s3.sel .rv{color:#93c5fd}
+.rbl.s2.sel{border-color:#f59e0b;background:rgba(245,158,11,.12)}.rbl.s2.sel .rv{color:#f59e0b}
+.rbl.s1.sel{border-color:#ef4444;background:rgba(239,68,68,.12)}.rbl.s1.sel .rv{color:#ef4444}
+.rbl-hint{font-size:10px;line-height:1.4;color:var(--yellow);margin-top:4px;font-style:italic;padding:4px 8px;background:rgba(245,158,11,.07);border-radius:4px}
+.wbadge{display:inline-flex;align-items:center;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--yellow);border-radius:12px;padding:2px 7px;font-size:10px;font-weight:700}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app"></div>
 <script>
+
 
 // ================================================================
 // COMPANY DATA
@@ -313,6 +332,66 @@ function buildCo(r){
   return{...r,ans:a};
 }
 const COS=RAW.map(buildCo);
+
+
+const WEIGHTS={1:10,2:25,3:20,4:30,5:15};
+const RUBRICS={
+  1:{name:'Empresa & Canvas',weight:10,criteria:[
+    {id:'r1_1',name:'Justificacion de la seleccion',desc:'La justificacion es clara, argumentada y conecta con el sector?',
+     lvl:{4:'Solida con analisis sectorial y relevancia estrategica bien sustentada',3:'Clara pero superficial en algun aspecto del sector',2:'Basica o poco relacionada con el contexto del sector',1:'Ausente o completamente fuera del contexto empresarial'}},
+    {id:'r1_2',name:'Calidad de la Propuesta de Valor',desc:'La PV es clara, diferenciada y coherente con los segmentos?',
+     lvl:{4:'Muy clara, diferenciada y perfectamente alineada con sus segmentos',3:'Clara aunque con elementos genericos',2:'Vaga o poco diferenciada de la competencia',1:'No define PV o la confunde con atributos del producto'}},
+    {id:'r1_3',name:'Coherencia integral del Canvas',desc:'Los 9 bloques son consistentes entre si y cuentan una historia logica?',
+     lvl:{4:'Total coherencia: cada bloque refuerza los demas y el modelo tiene sentido completo',3:'Buena coherencia con desconexiones menores',2:'Inconsistencias notables entre bloques importantes',1:'Bloques incompletos o sin relacion entre si'}},
+    {id:'r1_4',name:'Fuentes de Ingreso y Segmentos',desc:'Los segmentos estan bien definidos y las fuentes de ingreso son realistas?',
+     lvl:{4:'Segmentos especificos con fuentes diversificadas, realistas y bien justificadas',3:'Correctos aunque podrian ser mas especificos para el sector',2:'Muy genericos para el tipo de negocio analizado',1:'Sin definir o incorrectos para el modelo de negocio'}},
+  ]},
+  2:{name:'Estados Financieros',weight:25,criteria:[
+    {id:'r2_1',name:'Comprension de la estructura del Balance',desc:'El analisis conecta la estructura activos/pasivos/capital con el negocio?',
+     lvl:{4:'Analisis profundo que explica por que la empresa tiene esa estructura dada su actividad',3:'Comprension correcta con algunas imprecisiones menores',2:'Comprension basica sin conexion con el modelo de negocio',1:'Confusion entre los conceptos fundamentales del Balance'}},
+    {id:'r2_2',name:'Analisis de margenes y rentabilidad',desc:'Se analiza la cadena desde Ventas hasta Utilidad Neta?',
+     lvl:{4:'Analisis completo: conecta margenes con costos del modelo y benchmarks del sector',3:'Correcto en los margenes sin comparacion sectorial',2:'Solo describe los montos sin analizar los margenes',1:'Sin analisis de rentabilidad o con errores conceptuales'}},
+    {id:'r2_3',name:'Estrategia de financiamiento',desc:'El analisis explica la proporcion deuda/capital y su coherencia sectorial?',
+     lvl:{4:'Completo: deuda vs capital con justificacion del ciclo de vida del negocio',3:'Correcto aunque basico en la justificacion',2:'Solo describe la estructura sin analizar la estrategia',1:'Sin analisis de la estructura de financiamiento'}},
+    {id:'r2_4',name:'Vinculacion con el Canvas',desc:'Se relacionan los estados financieros con el modelo de negocio del Canvas?',
+     lvl:{4:'Excelente conexion: los numeros reflejan y validan los bloques del Canvas',3:'Buena conexion con algunos vacios entre Canvas y numeros',2:'Conexion superficial o generica entre ambos analisis',1:'Sin ninguna conexion entre el Canvas y los estados financieros'}},
+  ]},
+  3:{name:'Razones de Liquidez y Operativas',weight:20,criteria:[
+    {id:'r3_1',name:'Interpretacion de la posicion de liquidez',desc:'La interpretacion considera el contexto del sector?',
+     lvl:{4:'Profunda: compara con el sector y evalua si la liquidez es optima o excesiva',3:'Correcta pero sin comparacion ni referencia sectorial',2:'Solo dice si es alta o baja sin interpretar que implica',1:'Sin interpretacion real o confusion en los conceptos'}},
+    {id:'r3_2',name:'Comprension del Ciclo de Efectivo',desc:'Se entiende la implicacion del ciclo operativo para el capital de trabajo?',
+     lvl:{4:'Completo: explica el gap de efectivo y sus implicaciones estrategicas',3:'Correcto aunque sin implicaciones estrategicas claras',2:'Solo describe los dias sin analizar el impacto operativo',1:'Sin comprension del ciclo de conversion de efectivo'}},
+    {id:'r3_3',name:'Analisis de tendencia entre periodos',desc:'Se identifica y explica la evolucion de los ratios entre los dos anos?',
+     lvl:{4:'Solido: tendencia con causas y consecuencias identificadas',3:'Tendencia identificada aunque sin profundizar en causas',2:'Solo menciona si subio o bajo sin explicar por que',1:'Sin analisis de tendencia entre los dos periodos'}},
+  ]},
+  4:{name:'Analisis H y V + Flujo de Efectivo',weight:30,criteria:[
+    {id:'r4_1',name:'Identificacion de tendencias — Horizontal',desc:'Se identifican y explican las variaciones mas relevantes entre periodos?',
+     lvl:{4:'Identifica variaciones clave con causas sustentadas en el contexto sectorial',3:'Identifica variaciones importantes aunque con poca sustentacion',2:'Solo describe variaciones numericas sin explicarlas',1:'Sin identificacion de variaciones relevantes o sin analisis'}},
+    {id:'r4_2',name:'Interpretacion de la estructura — Vertical',desc:'Se interpreta correctamente la estructura de activos y el P&L?',
+     lvl:{4:'Analisis profundo de estructura con comparacion sectorial y diagnostico',3:'Correcto en la estructura aunque sin comparacion sectorial',2:'Solo describe proporciones sin interpretar su significado',1:'Sin interpretacion de la estructura financiera'}},
+    {id:'r4_3',name:'Interpretacion del Estado de Flujo de Efectivo',desc:'Se comprende el origen del efectivo, su uso y lo que implica para el negocio?',
+     lvl:{4:'Analisis completo: origen, uso y diagnostico financiero integral con el EFE',3:'Buena comprension del EFE aunque sin diagnostico completo',2:'Solo describe las secciones sin integrar el analisis',1:'Sin comprension real del estado de flujo de efectivo'}},
+    {id:'r4_4',name:'Diagnostico financiero integral',desc:'El analisis conecta H, V y EFE para un diagnostico coherente?',
+     lvl:{4:'Diagnostico integral que conecta los tres analisis con recomendaciones estrategicas',3:'Correcto aunque sin integrar completamente los tres elementos',2:'Diagnostico parcial o superficial que no conecta los analisis',1:'Sin diagnostico integrado'}},
+  ]},
+  5:{name:'Punto de Equilibrio Ponderado',weight:15,criteria:[
+    {id:'r5_1',name:'Comprension del concepto y su utilidad',desc:'Se entiende que representa el PE y para que sirve en la gestion del negocio?',
+     lvl:{4:'Profunda: conecta el PE con decisiones gerenciales y estrategicas',3:'Buena aunque basica en la aplicacion gerencial',2:'Mecanica: solo calcula sin entender la utilidad',1:'Sin comprension del concepto o con errores fundamentales'}},
+    {id:'r5_2',name:'Analisis del portafolio de productos',desc:'Se analiza la mezcla de ventas y su impacto en el margen ponderado?',
+     lvl:{4:'Profundo: identifica producto estrella, analiza mezcla y propone optimizacion',3:'Correcto en el analisis de la mezcla aunque sin profundizar',2:'Solo calcula MCP sin analizar la composicion estrategica',1:'Sin analisis de la mezcla de productos o portafolio'}},
+    {id:'r5_3',name:'Estrategias para reducir el Punto de Equilibrio',desc:'Se identifican palancas concretas y viables para el sector especifico?',
+     lvl:{4:'Especificas, viables, con trade-offs identificados y sustentadas en el contexto',3:'Identificadas aunque genericas para cualquier empresa',2:'Solo menciona posibilidades sin evaluar factibilidad',1:'Sin identificacion de estrategias de optimizacion del PE'}},
+  ]},
+};
+function calcWeightedGrade(teamId){var subs=DB.getSubs()[teamId]||{};var total=0;[1,2,3,4,5].forEach(function(s){var sub=subs[s];var score=sub?(sub.score||0):0;total+=score*(WEIGHTS[s]/100);});return Math.round(total);}
+
+const CORTES={
+  1:{name:'Primer Corte',stages:[1,2],color:'#6c63ff',desc:'Empresa, Canvas y Estados Financieros'},
+  2:{name:'Segundo Corte',stages:[3,4],color:'#3b82f6',desc:'Razones de Liquidez, Análisis H y V y EFE'},
+  3:{name:'Tercer Corte',stages:[5],color:'#10b981',desc:'Punto de Equilibrio Ponderado'},
+};
+const SLABELS=['','Empresa & Canvas','Estados Financieros','Razones Liq.+Op.','An. H y V + EFE','P. Equilibrio'];
+
 const getC=id=>COS.find(c=>c.id===id);
 // === GUIDED QUESTIONS ===
 function getGuide(stage,co){
@@ -505,18 +584,20 @@ const SYNC={
   async pushEval(ev){if(!this.sb)return;await this.sb.from('fa_evals').upsert(ev,{onConflict:'id'});},
   // Save config to localStorage
   saveConfig(url,key){
-    localStorage.setItem('fa2_sb_url',url);
-    localStorage.setItem('fa2_sb_key',key);
+    localStorage.setItem('fa2_sb_url',url||'https://gfogifozhhbzxhcbecgf.supabase.co');
+    localStorage.setItem('fa2_sb_key',key||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8');
   },
   loadConfig(){
-    return{url:localStorage.getItem('fa2_sb_url')||'',key:localStorage.getItem('fa2_sb_key')||''};
+    var url=localStorage.getItem('fa2_sb_url')||'https://gfogifozhhbzxhcbecgf.supabase.co';
+    var key=localStorage.getItem('fa2_sb_key')||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdmb2dpZm96aGhienhoY2JlY2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDI3MjcsImV4cCI6MjA5NDQxODcyN30.wLJKC-uqaf3g_CY6589kEDfCDYAq3YjnbNewsbzgQc8';
+    return{url,key};
   }
 };
 
 // ================================================================
 // STATE + UTILS
 // ================================================================
-let A={screen:'login',user:null,view:'home',stage:1,tab:'y1',evalTarget:null,msg:null,inp:{},tsv:'members',teacherTeam:null,demoCoId:null,demoStage:1,loginMode:'individual',pePhase:1,peErr:{}};
+let A={screen:'login',user:null,view:'home',stage:1,tab:'y1',evalTarget:null,msg:null,inp:{},tsv:'members',teacherTeam:null,demoCoId:null,demoStage:1,loginMode:'individual',pePhase:1,peErr:{},evalStage:1,teacherTab:'overview'};
 function ss(u){Object.assign(A,u);render();}
 function msg(text,type='info',dur=4000){ss({msg:{text,type}});if(dur>0)setTimeout(()=>{A.msg=null;render();},dur);}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -625,69 +706,116 @@ function postRender(){document.querySelectorAll('.blank').forEach(el=>{if(A.inp[
 // ================================================================
 // AUTH — Individual or Team
 // ================================================================
+
 function rLogin(){
-  var mode=A.loginMode||'individual';
-  var isTeam=mode==='team';
+  var isTeam=(A.loginMode||'individual')==='team';
   var mc=Math.max(2,Math.min(6,parseInt(A.inp.memberCount||'2')));
-  return '<div class="auth-bg"><div class="auth-box fadein" style="max-width:500px">'+
-    '<div style="text-align:center;margin-bottom:20px">'+
+  var isSpecial=(A.inp.lUser||'').toLowerCase().trim()==='profesor'||(A.inp.lUser||'').toLowerCase().trim()==='profe';
+  return'<div class="auth-bg"><div class="auth-box fadein" style="max-width:480px">'+
+    '<div style="text-align:center;margin-bottom:22px">'+
       '<div class="auth-logo">&#x1F4CA;</div>'+
       '<div class="auth-title">FinAcademy</div>'+
       '<p class="t2" style="font-size:12px;margin-top:4px">Escuela Bancaria y Comercial</p>'+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-bottom:14px">'+
-      '<div class="mode-btn'+(isTeam?'':' active')+'" data-mode="individual">&#x1F464; Acceso Individual</div>'+
-      '<div class="mode-btn'+(isTeam?' active':'')+'" data-mode="team">&#x1F465; Acceso por Equipo</div>'+
+      '<div class="mode-btn'+(isTeam?'':' active')+'" data-mode="individual">&#x1F464; Individual</div>'+
+      '<div class="mode-btn'+(isTeam?' active':'')+'" data-mode="team">&#x1F465; En Equipo</div>'+
     '</div>'+
     '<div class="card">'+
       (A.msg?rMsg():'')+
       (isTeam?
         '<div class="lbl">Nombre del equipo</div>'+
-        '<input class="inp mb8" id="tName" placeholder="Equipo Alpha, Los An&aacute;listas...">'+
-        '<div class="lbl">Correo EBC del equipo (cuenta compartida)</div>'+
-        '<input class="inp mb8" id="lEmail" type="email" placeholder="equipo.alpha@alumno.ebc.mx">'+
-        '<div class="lbl">Contrase&ntilde;a del equipo</div>'+
-        '<input class="inp mb12" id="lPass" type="password" placeholder="M&iacute;nimo 4 caracteres">'+
-        '<div class="lbl">Integrantes del equipo</div>'+
+        '<input class="inp mb8" id="tName" placeholder="Equipo Alpha...">'+
+        '<div class="lbl">Integrantes (escribe los nombres)</div>'+
         [0,1,2,3,4,5].slice(0,mc).map(function(i){
-          return '<div class="member-row"><span class="member-num">'+(i+1)+'</span>'+
-            '<input class="inp" id="m'+i+'" placeholder="'+(i===0?'Nombre completo (requerido)':'Nombre completo (opcional)')+'"></div>';
+          return'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'+
+            '<span style="width:22px;height:22px;border-radius:50%;background:rgba(108,99,255,.2);color:var(--p2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">'+(i+1)+'</span>'+
+            '<input class="inp" id="m'+i+'" placeholder="'+(i===0?'Tu nombre (requerido)':'Nombre del integrante')+'"></div>';
         }).join('')+
-        (mc<6?'<button class="btn btn-sm" id="btnAddMember" style="margin:6px 0 14px">+ Agregar integrante</button>':'<div style="margin-bottom:14px"></div>')+
-        '<div class="alert ai" style="margin-bottom:12px"><span>&#x1F465;</span><span>Solo <strong>un miembro</strong> necesita registrarse. Los dem&aacute;s no necesitan cuenta &mdash; se agregan por nombre.</span></div>'+
-        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px 16px">Crear &frasl; Acceder al equipo &#x2192;</button>'
+        (mc<6?'<button class="btn btn-sm" id="btnAddMember" style="margin:4px 0 12px">+ Agregar integrante</button>':'<div style="margin-bottom:12px"></div>')+
+        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar al equipo &#x2192;</button>'
       :
-        '<div class="lbl">Correo institucional EBC</div>'+
-        '<input class="inp mb8" id="lEmail" type="email" placeholder="nombre@alumno.ebc.mx" autocomplete="email">'+
-        '<div class="lbl">Contrase&ntilde;a</div>'+
-        '<input class="inp mb12" id="lPass" type="password" placeholder="M&iacute;nimo 4 caracteres">'+
-        '<div class="alert ai" style="margin-bottom:12px"><span>&#x2139;&#xFE0F;</span><span>Primera vez aqu&iacute;? Tu cuenta se crea autom&aacute;ticamente.</span></div>'+
-        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px 16px">Entrar &#x2192;</button>'
+        '<div class="lbl">&#x1F44B; Tu nombre o alias</div>'+
+        '<input class="inp mb8" id="lUser" placeholder="Ej. Juan García" autocomplete="off">'+
+        (isSpecial?'<div class="lbl">PIN docente</div><input class="inp mb12" id="lPin" type="password" placeholder="PIN">':'<div style="margin-bottom:4px"></div>')+
+        '<p class="t3 f11 mb12">Primera vez? Tu cuenta se crea al instante.</p>'+
+        '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar &#x2192;</button>'
       )+
     '</div>'+
     '<p class="t3 f11" style="text-align:center;margin-top:10px">'+
-      'Docente: <strong>profe@ebc.mx</strong> / <strong>2024</strong> &nbsp;|&nbsp; Demo: <strong>demo@ebc.mx</strong> / <strong>demo2024</strong>'+
+      'Docente: <strong>profe</strong> + PIN 2024 &nbsp;|&nbsp; Demo sin restricciones: <strong>demo</strong>'+
     '</p>'+
   '</div></div>';}
 
 function rRegister(){return rLogin();}
 
-// ensures every user has a team in DB.getTeams()
 function ensureTeamForUser(u){
   var teams=DB.getTeams();
   if(teams.find(function(t){return t.members&&t.members.includes(u.id);}))return;
   var mnames=u.memberNames&&u.memberNames.length?u.memberNames:[u.name];
-  var team={
-    id:uid(),name:u.teamName||u.name,desc:'',leaderId:u.id,members:[u.id],
-    requests:[],companyId:null,maxMembers:mnames.length||1,
-    status:'open',memberNames:mnames,isTeamAccount:u.role==='team',createdAt:u.createdAt||Date.now()
-  };
+  var team={id:uid(),name:u.teamName||u.name,desc:'',leaderId:u.id,members:[u.id],
+    requests:[],companyId:null,maxMembers:mnames.length||1,status:'open',
+    memberNames:mnames,isTeamAccount:u.role==='team',createdAt:u.createdAt||Date.now()};
   teams.push(team);DB.saveTeams(teams);}
 
-// get member names to display (works for both old and new team types)
 function getMemberNames(team){
   if(team.memberNames&&team.memberNames.length)return team.memberNames;
   return teamMembers(team.id).map(function(u){return u.name;});}
+
+function doLogin(){
+  var mode=A.loginMode||'individual';
+  // TEAM MODE
+  if(mode==='team'){
+    var teamName=(document.getElementById('tName')?.value||'').trim();
+    var mc=Math.max(2,Math.min(6,parseInt(A.inp.memberCount||'2')));
+    var mnames=[];
+    for(var i=0;i<mc;i++){var mn=(document.getElementById('m'+i)?.value||'').trim();if(mn)mnames.push(mn);}
+    if(!teamName){msg('Escribe el nombre del equipo.','warn');return;}
+    if(mnames.length<1){msg('Agrega al menos un integrante.','warn');return;}
+    // Find or create team account by team name
+    var users=DB.getUsers();
+    var u=users.find(function(x){return x.role==='team'&&x.name.toLowerCase()===teamName.toLowerCase();});
+    if(!u){
+      u={id:uid(),name:teamName,teamName:teamName,email:teamName.toLowerCase().replace(/\s+/g,'_')+'@equipo',
+         role:'team',memberNames:mnames,createdAt:Date.now()};
+      users.push(u);DB.saveUsers(users);
+    } else {
+      if(mnames.length>0){u.memberNames=mnames;DB.saveUsers(users);}
+    }
+    ensureTeamForUser(u);DB.saveSession(u);
+    var t=getUserTeam(u.id);ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});return;
+  }
+  // INDIVIDUAL / SPECIAL MODE
+  var uname=(A.inp.lUser||document.getElementById('lUser')?.value||'').trim();
+  if(!uname){msg('Escribe tu nombre.','warn');return;}
+  var lname=uname.toLowerCase();
+  // Teacher
+  if(lname==='profe'||lname==='profesor'){
+    var pin=A.inp.lPin||document.getElementById('lPin')?.value||'';
+    if(pin!=='2024'){msg('PIN incorrecto.','err');return;}
+    var tu={id:'teacher',name:'Docente',email:'profe',role:'teacher'};
+    DB.saveSession(tu);ss({user:tu,screen:'teacher'});return;
+  }
+  // Demo admin
+  if(lname==='demo'){
+    var du={id:'demo',name:'Demo Admin',email:'demo',role:'admin'};
+    DB.saveSession(du);ss({user:du,screen:'demo'});return;
+  }
+  // Regular student - find or create by name
+  var users=DB.getUsers();
+  var u=users.find(function(x){return x.name.toLowerCase()===lname;});
+  if(!u){
+    u={id:uid(),name:uname,email:uname.toLowerCase().replace(/\s+/g,'_'),role:'student',
+       memberNames:[uname],createdAt:Date.now()};
+    users.push(u);DB.saveUsers(users);
+  }
+  ensureTeamForUser(u);DB.saveSession(u);
+  var t=getUserTeam(u.id);
+  ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});}
+
+function doRegister(){doLogin();}
+
+
 
 function rLobby(){
   const myTeam=getUserTeam(A.user.id);
@@ -787,7 +915,7 @@ function rStudent(){
   const co=getC(team.companyId);const prog=teamProg(team.id);
   const myPending=team.leaderId===A.user.id?pendingReqs(team.id).length:0;
   const view=A.view||'home';
-  const views={home:rHome,stages:rStageDispatch,team:rMyTeam,coeval:rCoeval,ranking:rRanking,profile:rProfile};
+  const views={home:rHome,stages:rStageDispatch,team:rMyTeam,coeval:rCoeval,ranking:rRanking,profile:rProfile,reports:rReports};
   const main=(views[view]||rHome)(team,co);
   const sLabels=['','Empresa','Est. Financieros','Razones Liq.','An. H y V','Pto. Equilibrio'];
   return '<div style="display:flex;min-height:100vh"><nav class="sidebar no-print"><div class="sbh"><div class="flex g10 mb8">'+av(A.user.name,A.user.id,'md')+'<div><div class="fw6 f12">'+A.user.name.split(' ')[0]+'</div><div class="t3 f11">'+team.name+'</div></div></div><div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--s3);border-radius:8px;border:1px solid var(--border)"><span style="font-size:15px">'+co.e+'</span><div class="fw6 f11" style="color:'+co.c+'">'+co.n+'</div></div><div class="prog mt8"><div class="prog-f" style="width:'+Math.round(prog/5*100)+'%"></div></div><div class="t3 f11 mt4">'+prog+'/5 etapas</div></div><div class="sbb">'+
@@ -795,7 +923,7 @@ function rStudent(){
   '<div class="t3 f11" style="padding:8px 10px 4px;text-transform:uppercase;letter-spacing:.06em;font-size:10px;font-weight:600">Análisis</div>'+
   [1,2,3,4,5].map(s=>{const done=!!getTeamSub(team.id,s);const locked=!stageOk(s,team.id);const active=view==='stages'&&A.stage===s;const cls=locked?'locked':done?'done':active?'active':'';return '<div class="ni '+cls+'" data-ns="'+s+'"><span class="ninum">'+(done?'✓':s)+'</span><span class="f12">'+sLabels[s]+'</span></div>';}).join('')+
   '<div class="t3 f11" style="padding:8px 10px 4px;text-transform:uppercase;letter-spacing:.06em;font-size:10px;font-weight:600">Social</div>'+
-  ni('team',view,'👥','Mi Equipo',myPending)+ni('coeval',view,'⭐','Coevaluación')+ni('ranking',view,'🏆','Ranking')+
+  ni('team',view,'👥','Mi Equipo',myPending)+ni('reports',view,'📄','Reportes')+ni('coeval',view,'⭐','Coevaluación')+ni('ranking',view,'🏆','Ranking')+
   '</div><div class="sbf">'+ni('profile',view,'👤','Mi Perfil')+'<div class="ni" id="btnLogout"><span>🚪</span><span class="f12">Salir</span></div></div></nav><main style="flex:1;padding:1.5rem;overflow-y:auto;max-width:920px">'+(A.msg?rMsg():'')+main+'</main></div>';}
 
 function ni(viewId,current,icon,label,badge){return '<div class="ni'+(current===viewId?' active':'')+'" data-nv="'+viewId+'"><span>'+icon+'</span><span class="f12">'+label+'</span>'+(badge>0?'<span class="notif">'+badge+'</span>':'')+'</div>';}
@@ -880,6 +1008,44 @@ function rEFE(co){
     '</table></div>'+
     '<div class="lbl mt10">Interpreta el EFE: ¿De dónde vino el efectivo de '+co.n+'? ¿Qué dice sobre la salud del negocio?</div>'+
     '<textarea class="inp" id="s4efe" rows="3" placeholder="El flujo operativo de '+co.n+' indica que... La empresa financia su crecimiento a través de... El flujo de inversión muestra..."></textarea>'+
+  '</div>';}
+
+
+function rReports(team,co){
+  var subs=DB.getSubs()[team.id]||{};
+  return'<div class="fadein">'+
+    '<h2 class="f20 mb4">Reportes por Corte</h2>'+
+    '<p class="t2 f12 mb16">Descarga el reporte de cada etapa o el reporte completo por corte en PDF.</p>'+
+    [1,2,3].map(function(cn){
+      var corte=CORTES[cn];
+      var stagesOk=corte.stages.filter(function(s){return subs[s];}).length;
+      var allOk=stagesOk===corte.stages.length;
+      return'<div class="card mb12" style="border-color:'+corte.color+'44">'+
+        '<div class="fbet mb12">'+
+          '<div class="flex g10">'+
+            '<div style="width:10px;height:40px;background:'+corte.color+';border-radius:4px"></div>'+
+            '<div><div class="fw7 f14">'+corte.name+'</div>'+
+            '<div class="t2 f12">'+corte.desc+'</div></div>'+
+          '</div>'+
+          (allOk?
+            '<button class="btn btn-p btn-sm" data-cortereport="'+cn+'">📄 Reporte del Corte</button>':
+            '<span class="badge bmuted">'+stagesOk+'/'+corte.stages.length+' etapas</span>')+
+        '</div>'+
+        '<div class="flex g8" style="flex-wrap:wrap">'+
+        corte.stages.map(function(s){
+          var sub=subs[s];
+          var snames=['','Empresa','Est. Financieros','Razones Liq.','H y V + EFE','P. Equilibrio'];
+          return'<div style="flex:1;min-width:140px;background:var(--s3);border-radius:8px;padding:10px 12px;border:1px solid '+(sub?corte.color+'44':'var(--border)')+'">'+
+            '<div class="f12 fw6 mb4">Etapa '+s+': '+snames[s]+'</div>'+
+            (sub?
+              '<div class="flex g8"><span class="badge bok">'+sub.score+'%</span>'+
+              '<button class="btn btn-xs btn-ok" data-rpt="'+s+'">📥 PDF</button></div>':
+              '<span class="badge bmuted">Pendiente</span>')+
+          '</div>';
+        }).join('')+
+        '</div>'+
+      '</div>';
+    }).join('')+
   '</div>';}
 
 function rStageDispatch(team,co){return([null,rS1,rS2,rS3,rS4,rS5][A.stage]||rS1)(team,co);}
@@ -1447,163 +1613,113 @@ function doPEProgress(nextPhase){
 
 
 
+
+
 function rCoeval(team,co){
-  // Open-ended fields per stage
-  var OPEN={
-    1:[
-      {id:'s1a',lbl:'¿Por qué eligieron esta empresa?'},
-      {id:'s1b',lbl:'Análisis del entorno externo'},
-      {id:'s1c',lbl:'Coherencia del modelo de negocio'},
-      {id:'s1bmc_propuesta',lbl:'Canvas: Propuesta de Valor'},
-      {id:'s1bmc_segmentos',lbl:'Canvas: Segmentos de Clientes'},
-      {id:'s1bmc_ingresos',lbl:'Canvas: Fuentes de Ingresos'},
-    ],
-    2:[{id:'s2g1',lbl:'Estructura de activos esperada'},{id:'s2g2',lbl:'Costos y propuesta de valor'},{id:'s2g3',lbl:'Estrategia de financiamiento'},{id:'s2g4',lbl:'Margen esperado'}],
-    3:[{id:'s3i',lbl:'Interpretación de liquidez'},{id:'s3opi',lbl:'Interpretación ciclos operativos'},{id:'s3g1',lbl:'Liquidez óptima del sector'},{id:'s3g2',lbl:'Rol del inventario'},{id:'s3g3',lbl:'Ciclo de cobro y pago'}],
-    4:[{id:'s4i',lbl:'Interpretación H y V + EFE'},{id:'s4efe',lbl:'Interpretación flujo de efectivo'},{id:'s4g1',lbl:'Factores de crecimiento'},{id:'s4g2',lbl:'Eficiencia operativa'},{id:'s4g3',lbl:'Evolución de activos'}],
-    5:[{id:'s5i',lbl:'Interpretación PE ponderado'},{id:'s5g1',lbl:'Por qué PE ponderado'},{id:'s5g2',lbl:'Análisis del portafolio'},{id:'s5g3',lbl:'Palancas para reducir el PE'}],
-  };
-  var sLabels=['','Empresa & Canvas','Estados Financieros','Razones Liq.+Op.','Análisis H y V + EFE','Punto de Equilibrio'];
   var others=DB.getTeams().filter(function(t){return t.companyId&&t.id!==team.id&&teamProg(t.id)>0;});
   var myEvals=DB.getEvals().filter(function(e){return e.evalId===A.user.id;});
   var tgt=A.evalTarget||(others[0]?others[0].id:null);
   var etm=tgt?DB.getTeams().find(function(t){return t.id===tgt;}):null;
   var eco=etm?getC(etm.companyId):null;
-  var existEval=tgt?myEvals.find(function(e){return e.teamId===tgt;}):null;
-
-  // Check how many others I've evaluated
-  var evDone=new Set(myEvals.map(function(e){return e.teamId;})).size;
-  var evTotal=others.length;
+  var evalStage=A.evalStage||1;
+  var existEval=tgt?myEvals.find(function(e){return e.teamId===tgt&&(e.stage===evalStage);}):null;
+  var sLabels=['','Empresa','Est.Fin.','Razones','H+V+EFE','PE'];
+  var evDone=new Set(myEvals.map(function(e){return e.teamId+'_'+(e.stage||1);})).size;
+  var evTotal=others.length*5;
   var partPct=evTotal?Math.round(evDone/evTotal*100):0;
 
-  function starRow(stageNum, fieldId, label){
-    var key='fev_'+stageNum+'_'+fieldId;
-    var cur=parseInt(A.inp[key]||existEval?(existEval.fieldEvals&&existEval.fieldEvals[key])||0:0);
-    return '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px">'+
-      '<div style="flex:1"><div class="fw6 f12">'+label+'</div></div>'+
-      '<div class="stars" data-sid="'+key+'" data-stagenum="'+stageNum+'">'+
-        [1,2,3,4,5].map(function(n){return'<span class="star" data-sv="'+n+'" data-sid="'+key+'">'+(n<=cur?'⭐':'☆')+'</span>';}).join('')+
-      '</div>'+
-    '</div>';}
-
-  // Build right panel content
-  var rightPanel='';
-  if(!etm||!eco){
-    rightPanel='<div class="card-ghost" style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">👆</div><p class="t2 f12">Selecciona un equipo para coevaluar</p></div>';
-  } else {
-    var subs=DB.getSubs()[etm.id]||{};
-    rightPanel='<div class="card">';
-    // Header
-    rightPanel+='<div class="flex g10 mb12"><span style="font-size:22px">'+eco.e+'</span>'+
-      '<div><div class="fw7">'+etm.name+'</div>'+
-      '<div class="t2 f12">'+eco.n+' · '+teamProg(etm.id)+'/5 etapas</div>'+
-      '<div class="flex g4 mt4">'+getMemberNames(etm).map(function(n){return'<span class="badge bblue f11">'+n.split(' ')[0]+'</span>';}).join('')+'</div>'+
-      '</div></div>';
-    rightPanel+=(existEval?'<div class="alert aok mb10">✅ Ya evaluaste este equipo. Puedes actualizar tu evaluación.</div>':'');
-    // Stages with open-ended answers
-    var hasContent=false;
-    [1,2,3,4,5].forEach(function(s){
-      var sub=subs[s]; if(!sub) return;
-      var fields=OPEN[s]||[];
-      var filled=fields.filter(function(f){return sub.data&&sub.data[f.id]&&sub.data[f.id].trim().length>20;});
-      if(!filled.length) return;
-      hasContent=true;
-      rightPanel+='<div style="margin-bottom:14px"><div class="flex g8 mb8">'+
-        '<span class="badge bp">Etapa '+s+'</span>'+
-        '<span class="fw6 f12">'+sLabels[s]+'</span></div>';
-      filled.forEach(function(f){
-        // Show the actual text answer
-        rightPanel+='<div style="background:var(--s3);border-radius:8px;padding:8px 10px;margin-bottom:6px">'+
-          '<div class="t2 f11 mb4">'+f.lbl+'</div>'+
-          '<div class="f12" style="line-height:1.6;color:var(--text)">'+
-            (sub.data[f.id]||'').slice(0,400)+(sub.data[f.id]&&sub.data[f.id].length>400?'...':'')+
-          '</div>'+
-          starRow(s, f.id, '¿Qué tan buena es esta respuesta?')+
-        '</div>';
+  function rubricBlock(s){
+    var rubric=RUBRICS[s];if(!rubric)return'';
+    var out='<div class="fw7 f12 mb10">Rubrica de evaluacion — Etapa '+s+'</div>';
+    rubric.criteria.forEach(function(c){
+      out+='<div class="rb-wrap">';
+      out+='<div class="rb-title">'+c.name+'</div>';
+      out+='<div class="rb-desc">'+c.desc+'</div>';
+      out+='<div class="rb-levels">';
+      var lNames={4:'Excelente',3:'Bueno',2:'Regular',1:'Insuf.'};
+      [4,3,2,1].forEach(function(v){
+        var key='rc_'+s+'_'+c.id;
+        var stored=parseInt(A.inp[key]||(existEval&&existEval.rubricScores&&existEval.rubricScores[c.id])||0);
+        var isSel=stored===v;
+        out+='<div class="rbl s'+v+(isSel?' sel':'')+'" data-rv="'+v+'" data-rcid="'+key+'">';
+        out+='<span class="rv">'+v+'</span><span class="rl">'+lNames[v]+'</span></div>';
       });
-      rightPanel+='</div>';
+      out+='</div>';
+      var sel=parseInt(A.inp['rc_'+s+'_'+c.id]||(existEval&&existEval.rubricScores&&existEval.rubricScores[c.id])||0);
+      if(sel>0){out+='<div class="rbl-hint">'+c.lvl[sel]+'</div>';}
+      out+='</div>';
     });
-    if(!hasContent){
-      rightPanel+='<p class="t2 f12">Este equipo no tiene respuestas abiertas para evaluar aún.</p>';
-    } else {
-      rightPanel+='<div class="lbl mt12">Comentario general</div>'+
-        '<textarea class="inp mb12" id="ev_comment" rows="3" placeholder="El equipo demostró fortaleza en... Sus análisis de interpretación muestran..."></textarea>'+
-        '<button class="btn btn-p" id="btnEval" data-tid="'+tgt+'">'+
-          (existEval?'Actualizar evaluación':'Enviar evaluación →')+
-        '</button>';
-    }
-    rightPanel+='</div>';
+    return out;
   }
 
-  return '<div class="fadein">'+
-    '<div class="fbet mb12">'+
-      '<div><h2 class="f20">Coevaluación de Respuestas</h2>'+
-      '<p class="t2 f12">Evalúa solo las respuestas de análisis e interpretación de otros equipos (no los cálculos numéricos).</p></div>'+
-    '</div>'+
-    // PARTICIPATION BADGE
+  var OPEN={
+    1:[{id:'s1a',lbl:'Por que eligieron esta empresa'},{id:'s1b',lbl:'Entorno externo'},{id:'s1c',lbl:'Coherencia del modelo'},{id:'s1bmc_propuesta',lbl:'Canvas: Propuesta de Valor'},{id:'s1bmc_segmentos',lbl:'Canvas: Segmentos'},{id:'s1bmc_ingresos',lbl:'Canvas: Fuentes de Ingreso'}],
+    2:[{id:'s2g1',lbl:'Estructura de activos'},{id:'s2g2',lbl:'Costos y PV'},{id:'s2g3',lbl:'Financiamiento'},{id:'s2g4',lbl:'Margen esperado'}],
+    3:[{id:'s3i',lbl:'Interpretacion liquidez'},{id:'s3opi',lbl:'Ciclos operativos'},{id:'s3g1',lbl:'Liquidez del sector'}],
+    4:[{id:'s4i',lbl:'Diagnostico H+V+EFE'},{id:'s4g1',lbl:'Tendencias del sector'},{id:'s4g2',lbl:'Eficiencia operativa'}],
+    5:[{id:'s5i',lbl:'Interpretacion PE'},{id:'s5g2',lbl:'Portafolio'},{id:'s5g3',lbl:'Palancas PE'}],
+  };
+
+  var rightPanel='';
+  if(!etm||!eco){
+    rightPanel='<div class="card-ghost" style="text-align:center;padding:32px"><p class="t2 f12">Selecciona un equipo para evaluar</p></div>';
+  } else {
+    var subs=DB.getSubs()[etm.id]||{};
+    var stageTabs='<div class="tabs">';
+    [1,2,3,4,5].forEach(function(s){
+      var hasSub=!!subs[s];
+      var evd=myEvals.some(function(e){return e.teamId===tgt&&e.stage===s;});
+      stageTabs+='<div class="tab'+(evalStage===s?' active':'')+(hasSub?'':' locked')+'"'+(hasSub?' data-evalstage="'+s+'"':'')+' style="'+(hasSub?'':'opacity:.35;cursor:not-allowed;pointer-events:none')+'">';
+      stageTabs+=sLabels[s]+' <span class="wbadge">'+WEIGHTS[s]+'%</span>'+(evd?' <span class="badge bok f11">v</span>':'');
+      stageTabs+='</div>';
+    });
+    stageTabs+='</div>';
+    var rubric=RUBRICS[evalStage];
+    var sub=subs[evalStage];
+    var filled=rubric?rubric.criteria.filter(function(c){var key='rc_'+evalStage+'_'+c.id;return parseInt(A.inp[key]||(existEval&&existEval.rubricScores&&existEval.rubricScores[c.id])||0)>0;}).length:0;
+    var openFields=sub?(OPEN[evalStage]||[]).filter(function(f){return sub.data&&sub.data[f.id]&&sub.data[f.id].trim().length>20;}):[];
+    rightPanel='<div class="card">'+
+      '<div class="flex g10 mb10"><span style="font-size:20px">'+eco.e+'</span><div><div class="fw7 f13">'+etm.name+'</div><div class="t2 f12">'+eco.n+'</div></div></div>'+
+      stageTabs+
+      (existEval?'<div class="alert aok mb8 f12">Ya evaluaste esta etapa.</div>':'')+
+      (!sub?'<p class="t2 f12">Aun no entrega esta etapa.</p>':
+        '<div>'+
+        (openFields.length?
+          '<div class="fw7 f12 mb8">Respuestas del equipo:</div>'+
+          openFields.map(function(f){return'<div style="background:var(--s3);border-radius:7px;padding:7px 10px;margin-bottom:6px"><div class="t2 f11 mb2">'+f.lbl+'</div><div class="f11" style="line-height:1.55">'+sub.data[f.id].slice(0,260)+(sub.data[f.id].length>260?'...':'')+'</div></div>';}).join('')
+          :'<div class="alert ai mb8 f12">Sin respuestas abiertas en esta etapa.</div>')+
+        '<div class="sep"></div>'+
+        rubricBlock(evalStage)+
+        '<div class="alert '+(filled===(rubric?rubric.criteria.length:0)?'aok':'aw')+' mb10 f12">'+
+          (rubric&&filled===rubric.criteria.length?'Rubrica completa ('+filled+'/'+rubric.criteria.length+')':'Completa la rubrica: '+filled+'/'+(rubric?rubric.criteria.length:0)+' criterios')+
+        '</div>'+
+        '<div class="lbl">Comentario general</div>'+
+        '<textarea class="inp mb10" id="ev_comment" rows="2" placeholder="Fortalezas y areas de mejora..."></textarea>'+
+        '<button class="btn btn-p" id="btnEval" data-tid="'+tgt+'" data-evals="'+evalStage+'">'+(existEval?'Actualizar':'Enviar evaluacion')+' E'+evalStage+'</button>'+
+        '</div>')+
+    '</div>';
+  }
+
+  return'<div class="fadein">'+
+    '<div class="fbet mb12"><div><h2 class="f20">Coevaluacion con Rubrica</h2>'+
+    '<p class="t2 f12">Evalua cada etapa con criterios especificos. Tu participacion impacta tu ranking.</p></div></div>'+
     '<div class="card-s mb12 flex g12">'+
-      '<div style="text-align:center;min-width:80px">'+
-        '<div class="f20 fw7" style="color:'+(partPct>=80?'var(--green)':partPct>=50?'var(--yellow)':'var(--red)')+'">'+partPct+'%</div>'+
-        '<div class="t3 f11">Participación</div>'+
-      '</div>'+
-      '<div style="flex:1">'+
-        '<div class="fw6 f12 mb4">Tu participación en coevaluación</div>'+
-        '<div class="prog"><div class="prog-f" style="width:'+partPct+'%;background:'+(partPct>=80?'var(--green)':partPct>=50?'linear-gradient(90deg,var(--yellow),var(--p))':'linear-gradient(90deg,var(--red),var(--yellow))')+'"></div></div>'+
-        '<div class="t2 f11 mt4">Has evaluado '+evDone+' de '+evTotal+' equipos disponibles. '+
-          (partPct<100&&evTotal>0?'Evalúa más para subir tu ranking.':'')+'</div>'+
-      '</div>'+
+      '<div style="text-align:center;min-width:72px"><div class="f20 fw7" style="color:'+(partPct>=70?'var(--green)':partPct>=40?'var(--yellow)':'var(--red)')+'">'+partPct+'%</div>'+
+      '<div class="t3 f11">Participacion</div></div>'+
+      '<div style="flex:1"><div class="prog"><div class="prog-f" style="width:'+partPct+'%"></div></div>'+
+      '<div class="t2 f11 mt4">'+evDone+' de '+evTotal+' evaluaciones posibles</div></div>'+
     '</div>'+
+    '<div class="card-s mb12"><div class="fw7 f12 mb8">Ponderacion de etapas:</div><div class="flex g8" style="flex-wrap:wrap">'+
+    [1,2,3,4,5].map(function(s){var sn=['','Empresa','Est.Fin.','Razones','H+V','PE'][s];return'<div style="flex:1;min-width:80px;text-align:center;background:var(--s3);border-radius:7px;padding:6px 8px"><div class="f18 fw7" style="color:var(--yellow)">'+WEIGHTS[s]+'%</div><div class="t3 f11">E'+s+': '+sn+'</div></div>';}).join('')+
+    '</div></div>'+
     '<div class="g2">'+
-      // LEFT: team list
-      '<div>'+
-        '<div class="lbl mb8">Equipos con respuestas abiertas</div>'+
-        (others.length?others.map(function(t){
-          var tc=getC(t.companyId);
-          var evd=myEvals.some(function(e){return e.teamId===t.id;});
-          var stages=[1,2,3,4,5].filter(function(s){return getTeamSub(t.id,s);}).length;
-          return'<div class="coc'+(t.id===tgt?' sel':'')+' mb8" data-et="'+t.id+'">'+
-            '<div class="fbet">'+
-              '<div class="flex g8"><span class="f18">'+(tc?tc.e:'?')+'</span>'+
-              '<div><div class="fw6 f13">'+t.name+'</div>'+
-              '<div class="t2 f11">'+(tc?tc.n:'?')+' · '+stages+'/5 etapas</div></div></div>'+
-              (evd?'<span class="badge bok f11">✓ Evaluado</span>':
-               stages>0?'<span class="badge bwarn f11">Pendiente</span>':'<span class="badge bmuted f11">Sin entregas</span>')+
-            '</div>'+
-          '</div>';}).join('')
-        :'<p class="t2 f12">Aún no hay otros equipos con entregas.</p>')+
+      '<div><div class="lbl mb8">Equipos disponibles</div>'+
+      (others.length?others.map(function(t){var tc=getC(t.companyId);var evCount=myEvals.filter(function(e){return e.teamId===t.id;}).length;return'<div class="coc'+(t.id===tgt?' sel':'')+' mb8" data-et="'+t.id+'"><div class="fbet"><div class="flex g8"><span class="f18">'+(tc?tc.e:'?')+'</span><div><div class="fw6 f13">'+t.name+'</div><div class="t2 f11">'+(tc?tc.n:'?')+'</div></div></div><span class="badge '+(evCount>=5?'bok':evCount>0?'bwarn':'bmuted')+' f11">'+evCount+'/5</span></div></div>';}).join(''):'<p class="t2 f12">Sin equipos disponibles.</p>')+
       '</div>'+
-      // RIGHT: evaluation form
       '<div>'+rightPanel+'</div>'+
     '</div>'+
   '</div>';}
 
-
-function calcParticipation(teamId){
-  var team=DB.getTeams().find(function(t){return t.id===teamId;});
-  if(!team)return 0;
-  var evaluable=DB.getTeams().filter(function(t){return t.companyId&&t.id!==teamId&&teamProg(t.id)>0;});
-  if(!evaluable.length)return 100;
-  var evs=DB.getEvals().filter(function(e){return team.members&&team.members.includes(e.evalId);});
-  var unique=new Set(evs.map(function(e){return e.teamId;})).size;
-  return Math.round(unique/evaluable.length*100);}
-
-function calcEvalQuality(team){
-  var evs=DB.getEvals().filter(function(e){return team.members&&team.members.includes(e.evalId);});
-  if(!evs.length)return 0;
-  var acc=0,cnt=0;
-  evs.forEach(function(ev){
-    var target=DB.getTeams().find(function(t){return t.id===ev.teamId;});
-    if(!target)return;
-    var ts=calcTeamScore(ev.teamId);
-    // average star rating from fieldEvals
-    var fv=ev.fieldEvals?Object.values(ev.fieldEvals):[];
-    if(!fv.length&&ev.scores){var sc=ev.scores;fv=[sc.rigor,sc.comp,sc.interp,sc.pres].filter(Boolean);}
-    if(!fv.length)return;
-    var avg=fv.reduce(function(s,v){return s+(parseInt(v)||0);},0)/fv.length;
-    var evalPct=avg/5*100;
-    acc+=Math.max(0,100-Math.abs(evalPct-ts));cnt++;
-  });
-  return cnt?Math.round(acc/cnt):0;}
 
 function rRanking(team,co){
   var allT=DB.getTeams().filter(function(t){return t.companyId;});
@@ -1668,9 +1784,9 @@ function rSupabasePanel(){
     '</div>'+
     '<div class="g2">'+
       '<div><div class="lbl">Supabase URL</div>'+
-        '<input class="inp" id="sb_url" value="'+(cfg.url||'')+'" placeholder="https://xxxx.supabase.co"></div>'+
+        '<input class="inp" id="sb_url" value="'+(cfg.url||'https://gfogifozhhbzxhcbecgf.supabase.co')+'" placeholder="https://xxxx.supabase.co"></div>'+
       '<div><div class="lbl">Anon Key (pública)</div>'+
-        '<input class="inp" id="sb_key" value="'+(cfg.key||'')+'" placeholder="eyJhbGciOiJIUzI1NiIs..."></div>'+
+        '<input class="inp" id="sb_key" value="'+(cfg.key||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ...')+'" placeholder="eyJhbGciOiJIUzI1NiIs..."></div>'+
     '</div>'+
     '<div class="flex g8 mt10">'+
       '<button class="btn btn-p btn-sm" id="btnSBConnect">Guardar y conectar</button>'+
@@ -1678,161 +1794,220 @@ function rSupabasePanel(){
     '</div>'+
   '</div>';}
 
+
 function rTeacher(){
   if(A.teacherTeam)return rTeamDetail(A.teacherTeam);
-  const users=DB.getUsers().filter(u=>u.role==='student');
-  const teams=DB.getTeams();const activeT=teams.filter(t=>t.companyId);const lobbyT=teams.filter(t=>!t.companyId);
-  const subs=DB.getSubs();const totalSubs=Object.values(subs).reduce((s,t)=>s+Object.keys(t).length,0);
-  const sLabels=['','Empresa','E. Financieros','Razones Liq.','An. H y V','Pto. Equil.'];
-  return '<div style="padding:1.5rem;max-width:1100px"><div class="fbet mb16 no-print"><div><h1 class="f18">Panel Docente — FinAcademy v2</h1><p class="t2 f12">'+users.length+' alumnos · '+teams.length+' equipos ('+activeT.length+' activos, '+lobbyT.length+' en lobby) · '+totalSubs+' entregas</p></div><div class="flex g8"><button class="btn btn-sm" id="btnExport">📤 Exportar</button><button class="btn btn-sm" id="btnImport">📥 Importar</button><button class="btn btn-danger btn-sm" id="btnReset">🗑 Reiniciar</button><button class="btn btn-sm" id="btnLogout">🚪 Salir</button></div></div>'+(A.msg?rMsg():'')+'<div class="g4c mb16"><div class="metric"><div class="metric-l">Alumnos</div><div class="metric-v">'+users.length+'</div></div><div class="metric"><div class="metric-l">Equipos activos</div><div class="metric-v">'+activeT.length+'</div></div><div class="metric"><div class="metric-l">En lobby</div><div class="metric-v">'+lobbyT.length+'</div></div><div class="metric"><div class="metric-l">Total entregas</div><div class="metric-v">'+totalSubs+'</div></div></div><div class="g2 mb16"><div class="card"><div class="fw7 f13 mb12">🏆 Ranking de Equipos</div>'+(activeT.length?activeT.sort((a,b)=>calcTeamScore(b.id)-calcTeamScore(a.id)).map((t,i)=>{const co=getC(t.companyId);const score=calcTeamScore(t.id);const med=['🥇','🥈','🥉'][i]||'#'+(i+1);return '<div class="rr mb4"><div style="width:24px;text-align:center">'+med+'</div><span>'+(co?co.e:'?')+'</span><div style="flex:1"><div class="fw6 f12">'+t.name+'</div><div class="t2 f11">'+(co?co.n:'?')+' · '+teamProg(t.id)+'/5</div></div><span class="badge bp">'+score+'%</span></div>';}).join(''):'<p class="t2 f12">Sin equipos activos.</p>')+'</div><div class="card"><div class="fw7 f13 mb12">⏳ Equipos en Lobby</div>'+(lobbyT.length?lobbyT.map(t=>{const mems=teamMembers(t.id);const pend=pendingReqs(t.id).length;return '<div class="card-s mb8"><div class="fbet"><div class="fw6 f12">'+t.name+'</div><div class="flex g4">'+(pend?'<span class="badge berr">'+pend+' sol.</span>':'')+'<span class="badge bmuted">'+mems.length+'/'+t.maxMembers+'</span></div></div><div class="flex g4 mt4">'+mems.slice(0,5).map(m=>av(m.name,m.id,'sm')).join('')+'</div></div>';}).join(''):'<p class="t2 f12">Sin equipos en lobby.</p>')+'</div></div><div class="card mb16"><div class="fw7 f13 mb12">📊 Progreso Detallado</div><div class="ox"><table class="ft"><tr><th>Equipo</th><th>Empresa</th><th>Miembros</th><th style="text-align:center">E1</th><th style="text-align:center">E2</th><th style="text-align:center">E3</th><th style="text-align:center">E4</th><th style="text-align:center">E5</th><th style="text-align:center">Score</th></tr>'+activeT.map(t=>{const co=getC(t.companyId);function sc(s){const sub=getTeamSub(t.id,s);return sub?'<span class="badge bok f11">'+sub.score+'%</span>':'<span class="t3">—</span>';}return '<tr><td class="fw6">'+t.name+'</td><td>'+(co?co.e+' '+co.n:'—')+'</td><td class="t2 f11">'+t.members.length+'</td><td style="text-align:center">'+sc(1)+'</td><td style="text-align:center">'+sc(2)+'</td><td style="text-align:center">'+sc(3)+'</td><td style="text-align:center">'+sc(4)+'</td><td style="text-align:center">'+sc(5)+'</td><td style="text-align:center"><strong>'+calcTeamScore(t.id)+'%</strong></td></tr>';}).join('')||'<tr><td colspan="9" class="t2">Sin equipos activos.</td></tr>'+'</table></div></div><div class="card"><div class="fw7 f13 mb12">👥 Alumnos Registrados</div><div class="ox"><table class="ft"><tr><th>Nombre</th><th>Correo</th><th>Equipo</th><th>Estado</th><th>Registro</th></tr>'+users.map(u=>{const t=DB.getTeams().find(t=>t.members&&t.members.includes(u.id));const co=t?getC(t.companyId):null;const pend=getPendingReq(u.id);const status=t?(co?'<span class="badge bok">Activo</span>':'<span class="badge bwarn">Sin empresa</span>'):(pend?'<span class="badge bblue">Solicitud enviada</span>':'<span class="badge bmuted">Sin equipo</span>');return '<tr><td><div class="flex g8">'+av(u.name,u.id,'sm')+'<span class="fw6">'+u.name+'</span></div></td><td class="t2 f11">'+u.email+'</td><td>'+(t?t.name+(t.leaderId===u.id?' 👑':''):'—')+'</td><td>'+status+'</td><td class="t2 f11">'+new Date(u.createdAt).toLocaleDateString('es-MX')+'</td></tr>';}).join('')||'<tr><td colspan="5" class="t2">Sin alumnos.</td></tr>'+'</table></div></div><input type="file" id="importFile" accept=".json" style="display:none"></div>';}
+  var users=DB.getUsers().filter(function(u){return u.role==='student'||u.role==='team';});
+  var teams=DB.getTeams();var activeT=teams.filter(function(t){return t.companyId;});
+  var lobbyT=teams.filter(function(t){return!t.companyId;});
+  var subs=DB.getSubs();var totalSubs=Object.values(subs).reduce(function(s,t){return s+Object.keys(t).length;},0);
+  var tab=A.teacherTab||'overview';
+  return'<div style="padding:1.5rem;max-width:1100px">'+
+    '<div class="fbet mb12 no-print">'+
+      '<div><h1 class="f18">Panel Docente — FinAcademy</h1>'+
+      '<p class="t2 f12">'+users.length+' alumnos · '+teams.length+' equipos · '+totalSubs+' entregas</p></div>'+
+      '<div class="flex g8">'+
+        '<button class="btn btn-sm" id="btnSyncNow">&#x1F504; Sync</button>'+
+        '<button class="btn btn-sm" id="btnExport">&#x1F4E4; Exportar</button>'+
+        '<button class="btn btn-sm" id="btnImport">&#x1F4E5; Importar</button>'+
+        '<button class="btn btn-sm" id="btnLogout">&#x1F6AA; Salir</button>'+
+      '</div>'+
+    '</div>'+
+    (A.msg?rMsg():'')+
+    // TABS
+    '<div class="tabs mb12">'+
+      '<div class="tab'+(tab==='overview'?' active':'')+'" data-ttab="overview">&#x1F4CA; Resumen</div>'+
+      '<div class="tab'+(tab==='teams'?' active':'')+'" data-ttab="teams">&#x1F3C6; Equipos</div>'+
+      '<div class="tab'+(tab==='students'?' active':'')+'" data-ttab="students">&#x1F465; Alumnos</div>'+
+      '<div class="tab'+(tab==='scores'?' active':'')+'" data-ttab="scores">&#x270F;&#xFE0F; Calificaciones</div>'+
+      '<div class="tab'+(tab==='supabase'?' active':'')+'" data-ttab="supabase">&#x1F5C4;&#xFE0F; Supabase</div>'+
+    '</div>'+
+    (tab==='overview'?rTeacherOverview(activeT,lobbyT,users,totalSubs):'')+
+    (tab==='teams'?rTeacherTeams(teams):'')+
+    (tab==='students'?rTeacherStudents(users,teams):'')+
+    (tab==='scores'?rTeacherScores(activeT):'')+
+    (tab==='supabase'?rSupabasePanel():'')+
+    '<input type="file" id="importFile" accept=".json" style="display:none">'+
+  '</div>';}
+
+function rTeacherOverview(activeT,lobbyT,users,totalSubs){
+  return'<div class="g4c mb12">'+
+    '<div class="metric"><div class="metric-l">Alumnos</div><div class="metric-v">'+users.length+'</div></div>'+
+    '<div class="metric"><div class="metric-l">Equipos activos</div><div class="metric-v">'+activeT.length+'</div></div>'+
+    '<div class="metric"><div class="metric-l">En lobby</div><div class="metric-v">'+lobbyT.length+'</div></div>'+
+    '<div class="metric"><div class="metric-l">Entregas</div><div class="metric-v">'+totalSubs+'</div></div>'+
+  '</div>'+
+  '<div class="g2 mb12">'+
+    '<div class="card"><div class="fw7 f13 mb10">&#x1F3C6; Ranking</div>'+
+    (activeT.length?activeT.sort(function(a,b){return calcTeamScore(b.id)-calcTeamScore(a.id);}).map(function(t,i){
+      var co=getC(t.companyId);var med=['&#x1F947;','&#x1F948;','&#x1F949;'][i]||'#'+(i+1);
+      return'<div class="rr mb4"><div style="width:26px;text-align:center">'+med+'</div><span>'+(co?co.e:'?')+'</span>'+
+        '<div style="flex:1"><div class="fw6 f12">'+t.name+'</div><div class="t2 f11">'+(co?co.n:'?')+' · '+teamProg(t.id)+'/5</div></div>'+
+        '<div class="flex g8"><span class="badge bp">'+calcTeamScore(t.id)+'%</span>'+
+        '<span class="wbadge">'+calcWeightedGrade(t.id)+'</span>'+
+        '<button class="btn btn-xs btn-acc" data-tview="'+t.id+'">&#x1F441;</button></div>'+
+      '</div>';}).join(''):'<p class="t2 f12">Sin equipos activos.</p>')+
+    '</div>'+
+    '<div class="card"><div class="fw7 f13 mb10">&#x23F3; En Lobby</div>'+
+    (lobbyT.length?lobbyT.map(function(t){var mems=getMemberNames(t);return'<div class="card-s mb8"><div class="fbet"><div class="fw6 f12">'+t.name+'</div><button class="btn btn-danger btn-xs" data-delteam="'+t.id+'">&#x1F5D1;</button></div><div class="t2 f11">'+mems.join(', ')+'</div></div>';}).join(''):'<p class="t2 f12">Ninguno.</p>')+
+    '</div>'+
+  '</div>';}
+
+function rTeacherTeams(teams){
+  return'<div class="card">'+
+    '<div class="fw7 f13 mb10">Gestión de Equipos</div>'+
+    '<div class="alert ai mb10 f12">Puedes borrar equipos, cambiar empresa o reiniciar sus entregas.</div>'+
+    (teams.length?'<div class="ox"><table class="ft"><tr><th>Equipo</th><th>Empresa</th><th>Integrantes</th><th>Prog.</th><th>Score</th><th>Acciones</th></tr>'+
+    teams.map(function(t){
+      var co=getC(t.companyId);var mems=getMemberNames(t);
+      return'<tr>'+
+        '<td class="fw6">'+t.name+'</td>'+
+        '<td>'+(co?co.e+' '+co.n:'Sin empresa')+
+          (co?'<br><button class="btn btn-xs btn-warn" data-changeco="'+t.id+'" style="margin-top:2px">Cambiar</button>':'')+
+        '</td>'+
+        '<td class="t2 f11">'+mems.join(', ')+'</td>'+
+        '<td>'+teamProg(t.id)+'/5</td>'+
+        '<td><span class="badge bp">'+calcTeamScore(t.id)+'%</span><br><span class="wbadge">'+calcWeightedGrade(t.id)+'</span></td>'+
+        '<td><div class="flex g4">'+
+          '<button class="btn btn-xs btn-acc" data-tview="'+t.id+'">&#x1F441; Ver</button>'+
+          '<button class="btn btn-xs btn-warn" data-resetteam="'+t.id+'">&#x1F504; Reset</button>'+
+          '<button class="btn btn-xs btn-danger" data-delteam="'+t.id+'">&#x1F5D1; Borrar</button>'+
+        '</div></td>'+
+      '</tr>';}).join('')+
+    '</table></div>':'<p class="t2 f12">Sin equipos.</p>')+
+  '</div>';}
+
+function rTeacherStudents(users,teams){
+  return'<div class="card">'+
+    '<div class="fw7 f13 mb10">Alumnos Registrados</div>'+
+    '<div class="ox"><table class="ft"><tr><th>Nombre</th><th>Tipo</th><th>Equipo</th><th>Estado</th><th>Acciones</th></tr>'+
+    users.map(function(u){
+      var t=teams.find(function(t){return t.members&&t.members.includes(u.id);});
+      var co=t?getC(t.companyId):null;
+      return'<tr>'+
+        '<td class="fw6">'+u.name+'</td>'+
+        '<td><span class="badge '+(u.role==='team'?'bblue':'bp')+'">'+( u.role==='team'?'Equipo':'Individual')+'</span></td>'+
+        '<td class="t2 f11">'+(t?t.name:'—')+'</td>'+
+        '<td>'+(t&&co?'<span class="badge bok">'+co.e+' '+co.n+'</span>':t?'<span class="badge bwarn">Sin empresa</span>':'<span class="badge bmuted">Sin equipo</span>')+'</td>'+
+        '<td><button class="btn btn-xs btn-danger" data-deluser="'+u.id+'">&#x1F5D1; Borrar</button></td>'+
+      '</tr>';}).join('')+
+    '</table></div>'+
+    '<div class="sep"></div>'+
+    '<button class="btn btn-danger btn-sm" id="btnReset">&#x1F5D1; Reiniciar TODOS los datos</button>'+
+  '</div>';}
+
+function rTeacherScores(activeT){
+  var sLabels=['','Empresa','Est.Fin.','Razones','H+V+EFE','PE'];
+  return'<div class="card">'+
+    '<div class="fw7 f13 mb10">Calificaciones por Etapa</div>'+
+    '<div class="alert ai mb10 f12">Haz clic en el puntaje para ajustarlo manualmente.</div>'+
+    (activeT.length?'<div class="ox"><table class="ft"><tr><th>Equipo</th><th>Empresa</th>'+
+    [1,2,3,4,5].map(function(s){return'<th style="text-align:center">E'+s+'<br><span class="wbadge">'+WEIGHTS[s]+'%</span></th>';}).join('')+
+    '<th style="text-align:center">Total pond.</th></tr>'+
+    activeT.map(function(t){
+      var co=getC(t.companyId);var subs=DB.getSubs()[t.id]||{};
+      return'<tr><td class="fw6">'+t.name+'</td><td class="f11 t2">'+(co?co.e+' '+co.n:'?')+'</td>'+
+        [1,2,3,4,5].map(function(s){
+          var sub=subs[s];
+          return'<td style="text-align:center">'+(sub?
+            '<button class="btn btn-xs btn-ok" data-editscore="'+t.id+'" data-editstage="'+s+'" title="Clic para editar">'+sub.score+'%</button>':
+            '<span class="t3">—</span>')+
+          '</td>';}).join('')+
+        '<td style="text-align:center"><strong>'+calcWeightedGrade(t.id)+'</strong></td>'+
+      '</tr>';}).join('')+'</table></div>'
+    :'<p class="t2 f12">Sin equipos activos.</p>')+
+  '</div>';}
+
+
+
 
 // ================================================================
-// SCORE CALC
+// AUTH — SOLO NOMBRE
 // ================================================================
-function calcScore(stage,tid,data){
-  const t=DB.getTeams().find(t=>t.id===tid);if(!t||!t.companyId)return 0;
-  const a=getC(t.companyId).ans;let tot=0,ok=0;
-  function chk(v,ans){tot++;if(close(parseFloat(v),ans))ok++;}
-  if(stage===1)return 100;
-  if(stage===2){['y1','y2'].forEach(yr=>{const bg=a[yr].bg,er=a[yr].er;chk(data['s2ac'+yr],bg.ac);chk(data['s2anc'+yr],bg.anc);chk(data['s2ta'+yr],bg.ta);chk(data['s2pc'+yr],bg.pc);chk(data['s2tp'+yr],bg.tp);chk(data['s2ur'+yr],bg.ur);chk(data['s2cap'+yr],bg.cap);chk(data['s2tpc'+yr],bg.ta);chk(data['s2ub'+yr],er.ub);chk(data['s2tgo'+yr],er.tgo);chk(data['s2uo'+yr],er.uo);chk(data['s2uai'+yr],er.uai);chk(data['s2isr'+yr],er.isr);chk(data['s2un'+yr],er.un);});}
-  else if(stage===3){['y1','y2'].forEach(yr=>{const r=a[yr].rat;['ctn','rc','pa','re','rte'].forEach(k=>chk(data['s3'+k+yr],r[k]));});}
-  else if(stage===4){['b_ef','b_ac','b_ta','b_pc','b_tp','b_cap','e_v','e_cv','e_ub','e_uo','e_un'].forEach(k=>{chk(data['s4h_'+k],a.h[k]);chk(data['s4v1_'+k],a.v.y1[k]);chk(data['s4v2_'+k],a.v.y2[k]);});}
-  else if(stage===5){const be=a.be;chk(data.s5num,be.num/1000);be.pr.forEach((p,i)=>{chk(data['s5mc'+i],p.pv-p.cv);chk(data['s5mcp'+i],Math.round((p.pv-p.cv)*p.p*100)/100);});chk(data.s5mcpt,be.mc);chk(data.s5pe,be.pe);}
-  return tot?Math.round(ok/tot*100):0;}
+function rLogin(){
+  var isTeam=(A.loginMode||'individual')==='team';
+  var mc=Math.max(2,Math.min(6,parseInt(A.inp.memberCount||'2')));
+  var uval=(A.inp.lUser||'').toLowerCase().trim();
+  var needPin=uval==='profe'||uval==='profesor';
+  return'<div class="auth-bg"><div class="auth-box fadein" style="max-width:460px">'+
+    '<div style="text-align:center;margin-bottom:20px">'+
+      '<div class="auth-logo">&#x1F4CA;</div>'+
+      '<div class="auth-title">FinAcademy</div>'+
+      '<p class="t2 f12 mt4">Escuela Bancaria y Comercial</p>'+
+    '</div>'+
+    '<div class="flex g8 mb12">'+
+      '<div class="mode-btn'+(isTeam?'':' active')+'" data-mode="individual">&#x1F464; Individual</div>'+
+      '<div class="mode-btn'+(isTeam?' active':'')+'" data-mode="team">&#x1F465; En Equipo</div>'+
+    '</div>'+
+    '<div class="card">'+
+    (A.msg?rMsg():'')+
+    (isTeam?
+      '<div class="lbl">Nombre del equipo</div>'+
+      '<input class="inp mb8" id="tName" placeholder="Equipo Alpha...">'+
+      '<div class="lbl">Integrantes</div>'+
+      [0,1,2,3,4,5].slice(0,mc).map(function(i){return'<div class="flex g6 mb6"><span class="member-num">'+(i+1)+'</span><input class="inp" id="m'+i+'" placeholder="'+(i===0?'Tu nombre (requerido)':'Nombre del integrante')+'"></div>';}).join('')+
+      (mc<6?'<button class="btn btn-sm" id="btnAddMember" style="margin:4px 0 12px">+ Integrante</button>':'<div class="mb12"></div>')+
+      '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar al equipo &#x2192;</button>'
+    :
+      '<div class="lbl">&#x1F44B; Tu nombre completo</div>'+
+      '<input class="inp mb8" id="lUser" placeholder="Ej. Juan García" autocomplete="off">'+
+      (needPin?'<div class="lbl">PIN docente</div><input class="inp mb12" id="lPin" type="password" placeholder="PIN">':'<p class="t3 f11 mb12">Sin contraseña — tu cuenta se crea al instante.</p>')+
+      '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar &#x2192;</button>'
+    )+
+    '</div>'+
+    ''+
+  '</div></div>';}
 
-// ================================================================
-// REPORT GENERATION
-// ================================================================
-function generateReport(stage,team,co){
-  const sub=getTeamSub(team.id,stage);if(!sub)return;
-  const a=co.ans;const labels=['','Perfil de Empresa','Estados Financieros','Razones de Liquidez','Análisis H y V','Punto de Equilibrio'];
-  let body='';
-  if(stage===1){body='<h3>Razón de selección</h3><p>'+(sub.data.s1a||'N/A')+'</p><h3>Entorno externo</h3><p>'+(sub.data.s1b||'N/A')+'</p><h3>Fortalezas esperadas</h3><p>'+(sub.data.s1c||'N/A')+'</p>';}
-  else if(stage===2){['y1','y2'].forEach((yr,yi)=>{const y=co.y[yi],bg=a[yr].bg,er=a[yr].er;body+='<h3>Balance General '+y+'</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th colspan="2">Miles MXN</th></tr><tr><td>Total Activo Circulante</td><td align="right">'+fmt(bg.ac)+'</td></tr><tr><td>Total Activo No Circulante</td><td align="right">'+fmt(bg.anc)+'</td></tr><tr style="font-weight:bold;background:#ddd"><td>TOTAL ACTIVO</td><td align="right">'+fmt(bg.ta)+'</td></tr><tr><td>Total Pasivo Circulante</td><td align="right">'+fmt(bg.pc)+'</td></tr><tr><td>Deuda LP</td><td align="right">'+fmt(bg.pnc)+'</td></tr><tr style="font-weight:bold"><td>TOTAL PASIVO</td><td align="right">'+fmt(bg.tp)+'</td></tr><tr><td>Capital Social</td><td align="right">'+fmt(bg.cs)+'</td></tr><tr><td>Utilidades Retenidas</td><td align="right">'+fmt(bg.ur)+'</td></tr><tr style="font-weight:bold;background:#ddd"><td>TOTAL P+C</td><td align="right">'+fmt(bg.ta)+'</td></tr></table><h3>Estado de Resultados '+y+'</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th colspan="2">Miles MXN</th></tr><tr><td>Ventas Netas</td><td align="right">'+fmt(er.v)+'</td></tr><tr><td>(-) Costo de Ventas</td><td align="right">('+fmt(er.cv)+')</td></tr><tr style="font-weight:bold"><td>Utilidad Bruta</td><td align="right">'+fmt(er.ub)+'</td></tr><tr><td>(-) Gastos Operativos</td><td align="right">('+fmt(er.tgo)+')</td></tr><tr style="font-weight:bold"><td>Utilidad Operativa</td><td align="right">'+fmt(er.uo)+'</td></tr><tr style="font-weight:bold;background:#d0f0d0"><td>UTILIDAD NETA</td><td align="right">'+fmt(er.un)+'</td></tr></table>';});}
-  else if(stage===3){['y1','y2'].forEach((yr,yi)=>{const r=a[yr].rat;body+='<h3>Razones Año '+co.y[yi]+'</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:60%;margin-bottom:16px"><tr><td>CTN</td><td>'+fmt(r.ctn)+' miles</td></tr><tr><td>Razón Corriente</td><td>'+fmt(r.rc,3)+'x</td></tr><tr><td>Prueba Ácida</td><td>'+fmt(r.pa,3)+'x</td></tr><tr><td>Razón Efectivo</td><td>'+fmt(r.re,3)+'x</td></tr><tr><td>Razón Tesorería</td><td>'+fmt(r.rte,3)+'x</td></tr></table>';});body+='<h3>Interpretación</h3><p>'+(sub.data.s3i||'—')+'</p>';}
-  else if(stage===4){const its=[['b_ef','Efectivo'],['b_ac','Total AC'],['b_ta','Total Activo'],['b_pc','Total PC'],['b_tp','Total Pasivo'],['b_cap','Capital'],['e_v','Ventas'],['e_ub','Util. Bruta'],['e_uo','Util. Operativa'],['e_un','Util. Neta']];body='<h3>Análisis H y V</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th>Partida</th><th>Var. Hor. %</th><th>Vert. '+co.y[0]+'%</th><th>Vert. '+co.y[1]+'%</th></tr>'+its.map(([k,l])=>'<tr><td>'+l+'</td><td>'+pct(a.h[k])+'</td><td>'+pct(a.v.y1[k])+'</td><td>'+pct(a.v.y2[k])+'</td></tr>').join('')+'</table><h3>Interpretación</h3><p>'+(sub.data.s4i||'—')+'</p>';}
-  else if(stage===5){const be=a.be;body='<h3>Datos del P.E.</h3><table border="1" cellpadding="5" style="border-collapse:collapse;margin-bottom:16px"><tr><td>Gastos Operativos</td><td>$'+fmt(be.gf.op)+'K</td></tr><tr><td>Gastos No Op.</td><td>$'+fmt(be.gf.nop)+'K</td></tr><tr><td>Util. Esperada</td><td>$'+fmt(be.gf.ue)+'K</td></tr><tr><td>ISR</td><td>'+be.t*100+'%</td></tr><tr style="font-weight:bold"><td>Numerador</td><td>$'+fmt(be.num/1000)+'K</td></tr></table><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th>Producto</th><th>MC Unit.</th><th>% Ventas</th><th>MC Pond.</th></tr>'+be.pr.map(p=>'<tr><td>'+p.n+'</td><td>$'+fmt(p.pv-p.cv,0)+'</td><td>'+(p.p*100).toFixed(0)+'%</td><td>$'+fmt(Math.round((p.pv-p.cv)*p.p*100)/100)+'</td></tr>').join('')+'<tr style="font-weight:bold"><td colspan="3">MCP Total</td><td>$'+fmt(be.mc)+'</td></tr></table><div style="background:#d0f0d0;border:1px solid #4caf50;padding:10px;border-radius:6px;font-weight:bold">PE PONDERADO: '+fmt(be.pe,0)+' unidades</div><h3>Interpretación</h3><p>'+(sub.data.s5i||'—')+'</p>';}
-  const w=window.open('','_blank','width=900,height=700');
-  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte '+labels[stage]+' — '+team.name+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;color:#222;line-height:1.6}h1{color:#6c63ff;border-bottom:3px solid #6c63ff;padding-bottom:8px}h3{color:#555;margin-top:14px}.score{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:10px 14px;margin:14px 0;font-weight:bold;font-size:16px}.nop{margin-bottom:18px}@media print{.nop{display:none}}</style></head><body><div class="nop"><button onclick="window.print()" style="padding:8px 18px;background:#6c63ff;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px">🖨️ Imprimir/PDF</button><button onclick="window.close()" style="padding:8px 16px;border:1px solid #ccc;border-radius:6px;cursor:pointer">✕</button></div><h1>FinAcademy · '+labels[stage]+'</h1><p><strong>Empresa:</strong> '+co.e+' '+co.n+' &nbsp;·&nbsp; <strong>Equipo:</strong> '+team.name+' &nbsp;·&nbsp; <strong>Fecha:</strong> '+new Date(sub.submittedAt).toLocaleString('es-MX')+'</p><div class="score">Score de precisión: '+sub.score+'% correcto</div>'+body+'</body></html>');
-  w.document.close();}
+function rRegister(){return rLogin();}
 
-// ================================================================
-// EVENTS
-// ================================================================
-document.addEventListener('click',e=>{
-  const el=e.target;const id=el.id||el.closest('[id]')?.id||'';
-  function closest(attr){return el.closest('['+attr+']')?.getAttribute(attr);}
-  if(id==='btnLogin')return doLogin();
-  if(id==='btnGoReg')return ss({screen:'register'});
-  if(id==='btnReg')return doRegister();
-  if(id==='btnGoLogin')return ss({screen:'login'});
-  if(id==='btnLogout'||el.closest('#btnLogout'))return doLogout();
-  if(id==='btnCreateTeam')return doCreateTeam();
-  const mode=el.closest('[data-mode]')?.dataset.mode;if(mode)return ss({loginMode:mode,inp:{}});
-  if(id==='btnAddMember'){var cur=Math.max(2,Math.min(5,parseInt(A.inp.memberCount||'2')));A.inp.memberCount=String(cur+1);render();return;}
-  var peprog=el.closest('[data-peprog]')?.dataset.peprog;if(peprog)return doPEProgress(parseInt(peprog));
-  var peforce=el.closest('[data-peforce]')?.dataset.peforce;if(peforce){ss({pePhase:parseInt(peforce),peErr:{}});return;}
 
-  if(id==='btnRefreshLobby'||id==='btnRefreshTeam')return ss({});
-  const jt=closest('data-jointeam');if(jt)return doJoinRequest(jt);
-  if(id==='btnCancelReq'){const tid=el.dataset.tid||el.closest('[data-tid]')?.dataset.tid;return doCancelReq(tid);}
-  const tsv=closest('data-tsv');if(tsv)return ss({tsv});
-  const approveEl=el.closest('[data-approve]');if(approveEl)return doApproveReq(approveEl.dataset.tid,approveEl.dataset.approve);
-  const rejectEl=el.closest('[data-reject]');if(rejectEl)return doRejectReq(rejectEl.dataset.tid,rejectEl.dataset.reject);
-  const kickEl=el.closest('[data-kick]');if(kickEl)return doKick(kickEl.dataset.tid,kickEl.dataset.kick);
-  if(id==='btnLeaveTeam'||el.closest('#btnLeaveTeam')){const tid=el.dataset.tid||el.closest('[data-tid]')?.dataset.tid;return doLeaveTeam(tid);}
-  const selco=el.closest('[data-selco]');if(selco)return doSelectCo(selco.dataset.tid,selco.dataset.selco);
-  const ns=el.closest('[data-ns]')?.dataset.ns;if(ns){const n=parseInt(ns);const team=getUserTeam(A.user.id);if(team&&!stageOk(n,team.id)){msg('Completa las etapas anteriores primero.','warn');return;}return ss({view:'stages',stage:n});}
-  const nv=el.closest('[data-nv]')?.dataset.nv;if(nv)return ss({view:nv,tsv:'members'});
-  const tab=el.closest('[data-tab]')?.dataset.tab;if(tab)return ss({tab});
-  const et=el.closest('[data-et]')?.dataset.et;if(et)return ss({evalTarget:et});
-  if(id==='btnS1')return doSubmit(1);if(id==='btnS2')return doSubmit(2);if(id==='btnS3')return doSubmit(3);if(id==='btnS4')return doSubmit(4);if(id==='btnS5')return doSubmit(5);
-  if(id==='btnEval'||el.closest('#btnEval'))return doEval();
-  const sv=el.closest('[data-sv]');if(sv){A.inp['ev_'+sv.dataset.sid]=parseInt(sv.dataset.sv);render();return;}
-  const rpt=el.closest('[data-rpt]')?.dataset.rpt;if(rpt){const team=getUserTeam(A.user.id);if(team)generateReport(parseInt(rpt),team,getC(team.companyId));return;}
-  if(id==='btnSBConnect'||el.closest('#btnSBConnect'))return doSBConnect();
-if(id==='btnSyncNow'||el.closest('#btnSyncNow')){SYNC.pull().then(function(){msg('✅ Datos sincronizados.','ok');});return;}
-if(id==='btnSBExportAll'||el.closest('#btnSBExportAll'))return doSBExportAll();
-if(id==='btnExport')return doExport();
-  if(id==='btnImport')return document.getElementById('importFile')?.click();
-  var democoid=el.closest('[data-democoid]')?.dataset.democoid;if(democoid!==undefined){return ss({demoCoId:democoid===''?null:democoid,demoStage:1});}
-var demostage=el.closest('[data-demostage]')?.dataset.demostage;if(demostage)return ss({demoStage:parseInt(demostage)});
-if(el.closest('[data-toteacher]'))return ss({screen:'teacher'});
-var tview=el.closest('[data-tview]')?.dataset.tview;if(tview)return ss({teacherTeam:tview});
-if(id==='btnBackTeacher')return ss({teacherTeam:null});
-var treportS=el.closest('[data-treport]')?.dataset.treport;var treportTid=el.closest('[data-ttid]')?.dataset.ttid;if(treportS&&treportTid){var _tt=DB.getTeams().find(function(t){return t.id===treportTid;});if(_tt)generateReport(parseInt(treportS),_tt,getC(_tt.companyId));return;}
-if(id==='btnReset'){if(confirm('¿Borrar TODOS los datos?')){['fa2_users','fa2_teams','fa2_subs','fa2_evals'].forEach(k=>localStorage.removeItem(k));msg('Datos reiniciados.','ok');ss({});}}
-});
-document.addEventListener('input',e=>{
-  const el=e.target;
-  if(el.classList.contains('blank')&&el.dataset.a){A.inp[el.id]=el.value;const v=parseFloat(el.value),ans=parseFloat(el.dataset.a);if(el.value!==''){el.classList.remove('ok','err');el.classList.add(close(v,ans)?'ok':'err');}else el.classList.remove('ok','err');}
-  if(el.tagName==='TEXTAREA'||['text','email','password'].includes(el.type||'')){A.inp[el.id]=el.value;if(el.id==='lUser'){var v=el.value.trim().toLowerCase();if(v==='profesor'||v==='')render();}}
-});
+
+function doLogout(){DB.clearSession();ss({user:null,screen:'login',inp:{},pePhase:1,peErr:{}});}
 
 // ================================================================
-// ACTIONS
+// TEACHER ACTIONS
 // ================================================================
+function doDeleteTeam(tid){
+  var teams=DB.getTeams().filter(function(t){return t.id!==tid;});DB.saveTeams(teams);
+  var subs=DB.getSubs();delete subs[tid];DB.saveSubs(subs);
+  var evs=DB.getEvals().filter(function(e){return e.teamId!==tid;});DB.saveEvals(evs);
+  msg('Equipo eliminado.','ok');ss({teacherTab:A.teacherTab||'teams'});}
+
+function doDeleteUser(uid_){
+  if(uid_==='teacher'||uid_==='demo')return;
+  var users=DB.getUsers().filter(function(u){return u.id!==uid_;});DB.saveUsers(users);
+  var teams=DB.getTeams();
+  teams.forEach(function(t){t.members=(t.members||[]).filter(function(id){return id!==uid_;});});
+  DB.saveTeams(teams);msg('Usuario eliminado.','ok');ss({teacherTab:'students'});}
+
+function doResetTeam(tid){
+  var subs=DB.getSubs();delete subs[tid];DB.saveSubs(subs);
+  msg('Entregas reiniciadas.','ok');ss({teacherTab:'teams'});}
+
+function doChangeCompany(tid){
+  var teams=DB.getTeams();var t=teams.find(function(t){return t.id===tid;});if(!t)return;
+  var options=COS.map(function(c,i){return (i+1)+'. '+c.e+' '+c.n;}).join('\n');
+  var idx=parseInt(prompt('Elige empresa (1-8):\n'+options))-1;
+  if(idx>=0&&idx<COS.length){t.companyId=COS[idx].id;DB.saveTeams(teams);SYNC.pushTeam(t);
+    msg('Empresa cambiada a '+COS[idx].n+'.','ok');ss({teacherTab:'teams'});}
+}
+
+function doEditScore(tid,stage){
+  var subs=DB.getSubs();if(!subs[tid]||!subs[tid][stage]){msg('Sin entrega en esa etapa.','warn');return;}
+  var cur=subs[tid][stage].score||0;
+  var nuevo=parseInt(prompt('Puntaje actual: '+cur+'%\nNuevo puntaje (0-100):',cur));
+  if(!isNaN(nuevo)&&nuevo>=0&&nuevo<=100){
+    subs[tid][stage].score=nuevo;DB.saveSubs(subs);
+    SYNC.pushSub(tid,stage,subs[tid][stage]);
+    msg('Puntaje actualizado a '+nuevo+'%.','ok');ss({teacherTab:'scores'});}
+}
+
+function doReset(){
+  if(!confirm('Borrar TODOS los datos? Esta accion no se puede deshacer.'))return;
+  localStorage.clear();location.reload();}
 
 
-function doLogin(){
-  var mode=A.loginMode||'individual';
-  var email=(A.inp.lEmail||document.getElementById('lEmail')?.value||'').trim().toLowerCase();
-  var pass=A.inp.lPass||document.getElementById('lPass')?.value||'';
-  if(!email||!email.includes('@')){msg('Ingresa tu correo EBC v&aacute;lido.','warn');return;}
-  if(!pass||pass.length<4){msg('La contrase&ntilde;a debe tener m&iacute;nimo 4 caracteres.','warn');return;}
-  // TEACHER
-  if(email==='profe@ebc.mx'||email==='profesor@ebc.mx'){
-    if(pass!=='2024'){msg('Contrase&ntilde;a incorrecta.','err');return;}
-    var tu={id:'teacher',name:'Docente EBC',email:email,role:'teacher'};
-    DB.saveSession(tu);ss({user:tu,screen:'teacher'});return;}
-  // DEMO ADMIN
-  if(email==='demo@ebc.mx'){
-    if(pass!=='demo2024'){msg('Contrase&ntilde;a incorrecta.','err');return;}
-    var du={id:'demo',name:'Demo Admin',email:email,role:'admin'};
-    DB.saveSession(du);ss({user:du,screen:'demo'});return;}
-  // TEAM MODE
-  if(mode==='team'){
-    var teamName=(document.getElementById('tName')?.value||'').trim();
-    var mc=Math.max(2,Math.min(6,parseInt(A.inp.memberCount||'2')));
-    var mnames=[];
-    for(var i=0;i<mc;i++){var mn=(document.getElementById('m'+i)?.value||'').trim();if(mn)mnames.push(mn);}
-    var users=DB.getUsers();
-    var u=users.find(function(x){return x.email===email;});
-    if(!u){
-      if(!teamName){msg('Escribe el nombre del equipo.','warn');return;}
-      if(mnames.length<1){msg('Agrega al menos 1 integrante.','warn');return;}
-      u={id:uid(),name:teamName,teamName:teamName,email:email,password:pass,
-         role:'team',memberNames:mnames,createdAt:Date.now()};
-      users.push(u);DB.saveUsers(users);
-    } else {
-      if(u.password&&u.password!==pass){msg('Contrase&ntilde;a incorrecta.','err');return;}
-      if(!u.password){u.password=pass;}
-      if(mnames.length>0){u.memberNames=mnames;u.teamName=teamName||u.teamName;}
-      DB.saveUsers(users);
-    }
-    ensureTeamForUser(u);
-    DB.saveSession(u);var t=getUserTeam(u.id);
-    ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});return;}
-  // INDIVIDUAL MODE
-  var users=DB.getUsers();
-  var u=users.find(function(x){return x.email===email;});
-  if(!u){
-    var rawN=email.split('@')[0].replace(/[._-]/g,' ');
-    var dispN=rawN.replace(/\b\w/g,function(c){return c.toUpperCase();});
-    u={id:uid(),name:dispN,email:email,password:pass,role:'student',
-       memberNames:[dispN],createdAt:Date.now()};
-    users.push(u);DB.saveUsers(users);
-  } else {
-    if(u.password&&u.password!==pass){msg('Contrase&ntilde;a incorrecta.','err');return;}
-    if(!u.password){u.password=pass;DB.saveUsers(users);}
-  }
-  ensureTeamForUser(u);
-  DB.saveSession(u);var t=getUserTeam(u.id);
-  ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});}
 
-function doRegister(){doLogin();}
-
-function doLogout(){DB.clearSession();ss({user:null,screen:'login',inp:{},view:'home',stage:1,tsv:'members'});}
 
 function doCreateTeam(){
   const name=(A.inp.ct_name||document.getElementById('ct_name')?.value||'').trim();
@@ -1896,71 +2071,20 @@ if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[te
   if(score<25){msg('Score de '+score+'%. Revisa tus cálculos (mínimo 25%).','warn');return;}
   const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
   subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);
-  SYNC.pushSub(team.id,stage,subs[team.id][stage]);
   if(stage<5)ss({view:'stages',stage:stage+1});else ss({view:'home'});
   msg('✅ Etapa '+stage+' entregada. Score: '+score+'%','ok');}
 
-
 function doEval(){
-  var tid=A.evalTarget;if(!tid){msg('Selecciona un equipo.','warn');return;}
-  var comment=document.getElementById('ev_comment')?.value||'';
-  if(!comment.trim()){msg('Agrega un comentario general.','warn');return;}
-  // Collect field evaluations
-  var fieldEvals={};
-  var fcount=0;
-  Object.keys(A.inp).forEach(function(k){
-    if(k.startsWith('fev_')&&parseInt(A.inp[k])>0){fieldEvals[k]=parseInt(A.inp[k]);fcount++;}
-  });
-  if(fcount<2){msg('Califica al menos 2 respuestas con estrellas antes de enviar.','warn');return;}
-  var evs=DB.getEvals();
-  var idx=evs.findIndex(function(e){return e.evalId===A.user.id&&e.teamId===tid;});
-  var ev={id:uid(),evalId:A.user.id,evalName:A.user.name,teamId:tid,
-          fieldEvals:fieldEvals,scores:{},comment:comment,createdAt:Date.now()};
+  const tid=A.evalTarget;if(!tid){msg('Selecciona un equipo.','warn');return;}
+  const comment=document.getElementById('ev_comment')?.value||'';
+  if(!comment.trim()){msg('Escribe un comentario constructivo.','warn');return;}
+  const scores={rigor:parseInt(A.inp['ev_rigor'])||0,comp:parseInt(A.inp['ev_comp'])||0,interp:parseInt(A.inp['ev_interp'])||0,pres:parseInt(A.inp['ev_pres'])||0};
+  if(scores.rigor+scores.comp+scores.interp+scores.pres<4){msg('Califica todas las dimensiones (1-5 estrellas).','warn');return;}
+  const evs=DB.getEvals();const idx=evs.findIndex(e=>e.evalId===A.user.id&&e.teamId===tid);
+  const ev={id:uid(),evalId:A.user.id,evalName:A.user.name,teamId:tid,scores,comment,createdAt:Date.now()};
   if(idx>=0)evs[idx]=ev;else evs.push(ev);
-  DB.saveEvals(evs);
-  SYNC.pushEval(ev);
-  // Clear this eval's inputs
-  Object.keys(A.inp).forEach(function(k){if(k.startsWith('fev_'))delete A.inp[k];});
+  DB.saveEvals(evs);['rigor','comp','interp','pres'].forEach(k=>delete A.inp['ev_'+k]);
   msg('✅ Evaluación enviada.','ok');ss({});}
-
-
-
-async function doSBConnect(){
-  var url=(document.getElementById('sb_url')?.value||'').trim();
-  var key=(document.getElementById('sb_key')?.value||'').trim();
-  if(!url||!key){msg('Ingresa la URL y la clave de Supabase.','warn');return;}
-  SYNC.saveConfig(url,key);
-  var ok=SYNC.init(url,key);
-  if(ok){
-    msg('Conectando...','info',60000);
-    await SYNC.pull();
-    SYNC.subscribe();
-    msg('✅ Conectado a Supabase. Datos sincronizados.','ok');
-    ss({});
-  } else {
-    msg('Error al conectar. Verifica la URL y la clave.','err');
-  }
-}
-
-async function doSBExportAll(){
-  if(!SYNC.enabled){msg('Primero configura y conecta Supabase.','warn');return;}
-  msg('Exportando datos...','info',30000);
-  try{
-    var users=DB.getUsers();
-    var teams=DB.getTeams();
-    var subs=DB.getSubs();
-    var evals=DB.getEvals();
-    // Push all users
-    for(var u of users){await SYNC.pushUser(u);}
-    // Push all teams
-    for(var t of teams){await SYNC.pushTeam(t);}
-    // Push all submissions
-    for(var tid in subs){for(var stage in subs[tid]){await SYNC.pushSub(tid,parseInt(stage),subs[tid][stage]);}}
-    // Push all evals
-    for(var ev of evals){await SYNC.pushEval(ev);}
-    msg('✅ Todos los datos exportados a Supabase ('+users.length+' usuarios, '+teams.length+' equipos).','ok');
-  }catch(e){msg('Error al exportar: '+e.message,'err');}
-}
 
 function doExport(){const d={users:DB.getUsers(),teams:DB.getTeams(),subs:DB.getSubs(),evals:DB.getEvals(),at:new Date().toISOString()};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download='finacademy_'+new Date().toLocaleDateString('es-MX').replace(/\//g,'-')+'.json';a.click();}
 function doImport(f){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.users)DB.saveUsers(d.users);if(d.teams)DB.saveTeams(d.teams);if(d.subs)DB.saveSubs(d.subs);if(d.evals)DB.saveEvals(d.evals);msg('✅ Datos importados.','ok');ss({});}catch{msg('Error al importar el archivo.','err');}};r.readAsText(f);}
@@ -1968,13 +2092,405 @@ function doImport(f){const r=new FileReader();r.onload=e=>{try{const d=JSON.pars
 // ================================================================
 // INIT
 // ================================================================
+
+window.onerror = function(msg,src,line,col,err){
+  var app=document.getElementById('app');
+  if(app) app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#0b0e1a;min-height:100vh"><h2>Error JS:</h2><pre>'+msg+'\n\nLine: '+line+'\nCol: '+col+'\n\n'+(err?err.stack:'')+'</pre></div>';
+  return false;};
+
+function generateReport(stage,team,co){
+  var sub=getTeamSub(team.id,stage);if(!sub)return;
+  var a=co.ans;
+  var d=sub.data||{};
+  var members=getMemberNames(team).join(', ');
+  var corteNum=stage<=2?1:stage<=4?2:3;
+  var corte=CORTES[corteNum];
+  var snames=['','Empresa y Business Model Canvas','Estados Financieros','Razones de Liquidez y Operativas','Análisis Horizontal, Vertical y Flujo de Efectivo','Punto de Equilibrio Ponderado'];
+  var evs=DB.getEvals().filter(function(e){return e.teamId===team.id&&(e.stage===stage||(stage===1&&e.stage===undefined));});
+
+  // === CSS ===
+  var css=[
+    'body{font-family:Arial,sans-serif;max-width:850px;margin:0 auto;padding:20px;color:#1a1a2e;font-size:12px;line-height:1.6}',
+    '@page{margin:1.5cm}',
+    '.cover{background:linear-gradient(135deg,'+corte.color+',#252840);color:#fff;padding:32px;border-radius:10px;margin-bottom:24px;text-align:center}',
+    '.cover h1{font-size:22px;margin:0 0 6px}.cover h2{font-size:16px;margin:0 0 12px;opacity:.85}',
+    '.cover .meta{font-size:11px;opacity:.7;line-height:1.8}',
+    '.score-box{display:inline-block;background:#10b981;color:#fff;padding:6px 18px;border-radius:20px;font-weight:700;font-size:13px;margin:12px 0}',
+    '.section{margin-bottom:20px}',
+    '.section-title{background:'+corte.color+';color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;margin-bottom:10px;letter-spacing:.04em}',
+    '.answer-block{background:#f8f9ff;border-left:4px solid '+corte.color+';padding:9px 13px;margin-bottom:8px;border-radius:0 5px 5px 0}',
+    '.field-label{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}',
+    '.field-text{font-size:12px;color:#1a1a2e;line-height:1.7}',
+    'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px}',
+    'th{background:#f0f0f8;padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:10px;text-transform:uppercase;letter-spacing:.04em}',
+    'td{padding:5px 8px;border:1px solid #ddd}',
+    'td.r{text-align:right;font-family:monospace}',
+    'td.pos{color:#10b981;font-weight:600}td.neg{color:#ef4444;font-weight:600}',
+    'tr.subtotal td{font-weight:700;background:#eef0ff}',
+    'tr.total td{font-weight:700;background:#e8e8f8;font-size:12px}',
+    '.canvas-grid{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;gap:0;border:1px solid #ccc;border-radius:8px;overflow:hidden;margin-bottom:12px}',
+    '.canvas-cell{padding:10px;border:1px solid #ddd;font-size:11px;min-height:80px}',
+    '.canvas-cell.pv{grid-row:1/3;background:#f0eeff;border-color:'+corte.color+"}'",
+    '.canvas-cell.wide{grid-column:1/3;background:#fff0f0}',
+    '.canvas-cell.wide2{grid-column:3/6;background:#f0fff0}',
+    '.cell-title{font-size:10px;font-weight:700;text-transform:uppercase;color:'+corte.color+';margin-bottom:4px;letter-spacing:.05em}',
+    '.cell-text{font-size:11px;color:#333;line-height:1.6}',
+    '.coeval-card{background:#fff8e1;border:1px solid #ffc107;border-radius:7px;padding:10px 12px;margin-bottom:8px}',
+    '.coeval-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}',
+    '.coeval-name{font-weight:700;font-size:12px}',
+    '.rubric-table td{font-size:10px}.rubric-table th{font-size:10px}',
+    '.stars{color:#f59e0b;font-size:12px}',
+    '.footer{text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999}',
+    '.no-print{margin-bottom:20px}@media print{.no-print{display:none}}'
+  ].join('\n');
+
+  // === HELPERS ===
+  function sec(title){return '<div class="section-title">'+title+'</div>';}
+  function ans(label,text){if(!text||!text.trim())return'';return'<div class="answer-block"><div class="field-label">'+label+'</div><div class="field-text">'+text+'</div></div>';}
+  function fmtN(n,d){if(n==null||isNaN(n))return'—';return Number(n).toLocaleString('es-MX',{minimumFractionDigits:d||2,maximumFractionDigits:d||2});}
+
+  // === BODY ===
+  var body='';
+
+  // ── ETAPA 1 ──────────────────────────────────────────────────
+  if(stage===1){
+    body+='<div class="section">'+sec('PERFIL DE LA EMPRESA')+
+      '<table><tr><th>Empresa</th><th>Sector</th><th>Año</th><th>Lema estratégico</th></tr>'+
+      '<tr><td><strong>'+co.e+' '+co.n+'</strong></td><td>'+co.s+'</td><td>'+co.y[0]+' – '+co.y[1]+'</td><td><em>'+co.tag+'</em></td></tr></table>'+
+      '<table><tr><th>Misión</th><th>Visión</th></tr><tr><td>'+co.mis+'</td><td>'+co.vis+'</td></tr></table>'+
+      '</div>';
+
+    body+='<div class="section">'+sec('ANÁLISIS DEL EQUIPO')+
+      ans('¿Por qué eligieron esta empresa?',d.s1a)+
+      ans('Análisis del entorno externo (oportunidades y amenazas)',d.s1b)+
+      ans('Coherencia del modelo de negocio (Canvas → Finanzas)',d.s1c)+
+      '</div>';
+
+    // Canvas completo
+    var ckeys=[
+      {k:'socios',   t:'Socios Clave',          col:'s'},
+      {k:'actividades',t:'Actividades Clave',    col:'s'},
+      {k:'propuesta',t:'Propuesta de Valor',      col:'pv'},
+      {k:'relaciones',t:'Relaciones c/Clientes', col:'s'},
+      {k:'segmentos',t:'Segmentos de Clientes',   col:'s'},
+      {k:'recursos', t:'Recursos Clave',          col:'s'},
+      {k:'canales',  t:'Canales',                 col:'s'},
+      {k:'costos',   t:'Estructura de Costos',    col:'wide'},
+      {k:'ingresos', t:'Fuentes de Ingresos',     col:'wide2'},
+    ];
+    var hasCanvas=ckeys.some(function(c){return d['s1bmc_'+c.k];});
+    if(hasCanvas){
+      body+='<div class="section">'+sec('BUSINESS MODEL CANVAS — '+co.n.toUpperCase());
+      // Table layout for canvas
+      body+='<table style="table-layout:fixed"><tr>';
+      body+='<th style="width:12%">Socios Clave</th><th style="width:18%">Actividades Clave</th><th style="width:20%;background:#ede9ff">Propuesta de Valor</th><th style="width:18%">Relaciones</th><th style="width:18%">Segmentos</th></tr>';
+      body+='<tr style="vertical-align:top">';
+      body+='<td rowspan="2" style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Socios Clave</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_socios||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Actividades Clave</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_actividades||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td rowspan="2" style="background:#ede9ff;border-color:'+corte.color+'">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">★ PROPUESTA DE VALOR</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_propuesta||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Relaciones c/Clientes</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_relaciones||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td rowspan="2" style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Segmentos</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_segmentos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='</tr><tr style="vertical-align:top">';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Recursos Clave</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_recursos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td style="background:#f9f9ff">'+
+        '<div style="font-size:10px;color:'+corte.color+';font-weight:700;margin-bottom:4px">Canales</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_canales||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='</tr><tr style="vertical-align:top">';
+      body+='<td colspan="2" style="background:#fff0f0">'+
+        '<div style="font-size:10px;color:#ef4444;font-weight:700;margin-bottom:4px">Estructura de Costos</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_costos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='<td colspan="3" style="background:#f0fff0">'+
+        '<div style="font-size:10px;color:#10b981;font-weight:700;margin-bottom:4px">Fuentes de Ingresos</div>'+
+        '<div style="font-size:11px">'+(d.s1bmc_ingresos||'<em style="color:#999">Sin respuesta</em>')+'</div></td>';
+      body+='</tr></table></div>';
+    }
+  }
+
+  // ── ETAPA 2 ──────────────────────────────────────────────────
+  else if(stage===2){
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — PREGUNTAS DE CONTEXTO');
+    var g2=['s2g1','s2g2','s2g3','s2g4'];
+    var g2labels=['Estructura de activos esperada','Costos y propuesta de valor','Estrategia de financiamiento','Margen de ganancia esperado'];
+    g2.forEach(function(k,i){body+=ans(g2labels[i],d[k]);});
+    body+='</div>';
+
+    ['y1','y2'].forEach(function(yr,yi){
+      var y=co.y[yi],bg=a[yr].bg,er=a[yr].er;
+      body+='<div class="section">'+sec('BALANCE GENERAL — '+y+' (Miles de Pesos MXN)')+
+        '<table><tr><th colspan="2">ACTIVO</th><th colspan="2">PASIVO Y CAPITAL</th></tr>'+
+        '<tr><td>Efectivo y equivalentes</td><td class="r">$'+fmtN(bg.ef)+'</td><td>Cuentas por pagar</td><td class="r">$'+fmtN(bg.cxp)+'</td></tr>'+
+        '<tr><td>Cuentas por cobrar</td><td class="r">$'+fmtN(bg.cxc)+'</td><td>Deuda a corto plazo</td><td class="r">$'+fmtN(bg.dcp)+'</td></tr>'+
+        '<tr><td>Inventarios</td><td class="r">$'+fmtN(bg.inv)+'</td><td>Impuestos por pagar</td><td class="r">$'+fmtN(bg.imp)+'</td></tr>'+
+        '<tr class="subtotal"><td>Total Activo Circulante</td><td class="r">$'+fmtN(bg.ac)+'</td><td>Total Pasivo Circ.</td><td class="r">$'+fmtN(bg.pc)+'</td></tr>'+
+        '<tr><td>Equipos brutos</td><td class="r">$'+fmtN(bg.eq)+'</td><td>Deuda a largo plazo</td><td class="r">$'+fmtN(bg.pnc)+'</td></tr>'+
+        '<tr><td>(-) Dep. acumulada</td><td class="r">('+fmtN(Math.abs(bg.dep))+')</td><td>Total Pasivo</td><td class="r">$'+fmtN(bg.tp)+'</td></tr>'+
+        '<tr><td>Otros activos NC</td><td class="r">$'+fmtN(bg.onc)+'</td><td>Capital social</td><td class="r">$'+fmtN(bg.cs)+'</td></tr>'+
+        '<tr class="subtotal"><td>Total Activo No Circ.</td><td class="r">$'+fmtN(bg.anc)+'</td><td>Utilidades retenidas</td><td class="r">$'+fmtN(bg.ur)+'</td></tr>'+
+        '<tr class="total"><td>TOTAL ACTIVO</td><td class="r">$'+fmtN(bg.ta)+'</td><td>TOTAL PASIVO + CAPITAL</td><td class="r">$'+fmtN(bg.ta)+'</td></tr>'+
+        '</table></div>';
+      body+='<div class="section">'+sec('ESTADO DE RESULTADOS — '+y+' (Miles de Pesos MXN)')+
+        '<table><tr><th>Concepto</th><th class="r">Importe</th><th class="r">% Ventas</th></tr>'+
+        '<tr><td>Ventas Netas</td><td class="r">$'+fmtN(er.v)+'</td><td class="r">100.0%</td></tr>'+
+        '<tr><td>(-) Costo de Ventas</td><td class="r">($'+fmtN(er.cv)+')</td><td class="r">'+(Math.round(er.cv/er.v*1000)/10)+'%</td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Bruta</td><td class="r">$'+fmtN(er.ub)+'</td><td class="r">'+(Math.round(er.ub/er.v*1000)/10)+'%</td></tr>'+
+        '<tr><td>(-) Gastos Administración</td><td class="r">($'+fmtN(er.ga)+')</td><td class="r"></td></tr>'+
+        '<tr><td>(-) Gastos Ventas</td><td class="r">($'+fmtN(er.gv)+')</td><td class="r"></td></tr>'+
+        '<tr><td>(-) Depreciación</td><td class="r">($'+fmtN(er.dep)+')</td><td class="r"></td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Operativa (UAFIR)</td><td class="r">$'+fmtN(er.uo)+'</td><td class="r">'+(Math.round(er.uo/er.v*1000)/10)+'%</td></tr>'+
+        '<tr><td>(+) Otros ingresos / (-) Gastos financieros</td><td class="r">$'+fmtN(er.oi-er.gf_)+'</td><td class="r"></td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Antes de Impuestos (UAI)</td><td class="r">$'+fmtN(er.uai)+'</td><td class="r">'+(Math.round(er.uai/er.v*1000)/10)+'%</td></tr>'+
+        '<tr><td>(-) ISR ('+er.t*100+'%)</td><td class="r">($'+fmtN(er.isr)+')</td><td class="r"></td></tr>'+
+        '<tr class="total"><td>UTILIDAD NETA</td><td class="r">$'+fmtN(er.un)+'</td><td class="r">'+(Math.round(er.un/er.v*1000)/10)+'%</td></tr>'+
+        '</table></div>';
+    });
+  }
+
+  // ── ETAPA 3 ──────────────────────────────────────────────────
+  else if(stage===3){
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — CONTEXTO DE LIQUIDEZ');
+    ['s3g1','s3g2','s3g3'].forEach(function(k,i){body+=ans(['Liquidez óptima del sector','Rol estratégico del inventario','Ciclo de cobro y pago'][i],d[k]);});
+    body+='</div>';
+
+    body+='<div class="section">'+sec('RAZONES DE LIQUIDEZ (ambos períodos)')+
+      '<table><tr><th>Razón Financiera</th><th>Fórmula</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th><th>Interpretación</th></tr>'+
+      '<tr><td>Capital de Trabajo Neto</td><td>AC − PC</td><td class="r">$'+fmtN(a.y1.rat.ctn)+'K</td><td class="r">$'+fmtN(a.y2.rat.ctn)+'K</td><td>'+( a.y2.rat.ctn>0?'Positivo: puede pagar deudas a CP':'Negativo: riesgo de iliquidez')+'</td></tr>'+
+      '<tr><td>Razón Corriente</td><td>AC ÷ PC</td><td class="r">'+fmtN(a.y1.rat.rc,3)+'x</td><td class="r">'+fmtN(a.y2.rat.rc,3)+'x</td><td>'+( a.y2.rat.rc>=1.5?'Saludable':'Revisar liquidez')+'</td></tr>'+
+      '<tr><td>Prueba Ácida</td><td>(AC−Inv) ÷ PC</td><td class="r">'+fmtN(a.y1.rat.pa,3)+'x</td><td class="r">'+fmtN(a.y2.rat.pa,3)+'x</td><td></td></tr>'+
+      '<tr><td>Razón de Efectivo</td><td>Efvo ÷ PC</td><td class="r">'+fmtN(a.y1.rat.re,3)+'x</td><td class="r">'+fmtN(a.y2.rat.re,3)+'x</td><td></td></tr>'+
+      '<tr><td>Razón de Tesorería</td><td>(Efvo+CxC) ÷ PC</td><td class="r">'+fmtN(a.y1.rat.rte,3)+'x</td><td class="r">'+fmtN(a.y2.rat.rte,3)+'x</td><td></td></tr>'+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('RAZONES OPERATIVAS Y CICLOS')+
+      '<table><tr><th>Razón Operativa</th><th>Fórmula</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th></tr>'+
+      '<tr><td>Rotación de CxC</td><td>Ventas ÷ CxC</td><td class="r">'+fmtN(a.y1.op.rcxc,2)+'x</td><td class="r">'+fmtN(a.y2.op.rcxc,2)+'x</td></tr>'+
+      '<tr><td>Días de Cobro</td><td>365 ÷ Rot.CxC</td><td class="r">'+fmtN(a.y1.op.dc,0)+' días</td><td class="r">'+fmtN(a.y2.op.dc,0)+' días</td></tr>'+
+      '<tr><td>Rotación de CxP</td><td>CV ÷ CxP</td><td class="r">'+fmtN(a.y1.op.rcxp,2)+'x</td><td class="r">'+fmtN(a.y2.op.rcxp,2)+'x</td></tr>'+
+      '<tr><td>Días de Pago</td><td>365 ÷ Rot.CxP</td><td class="r">'+fmtN(a.y1.op.dp,0)+' días</td><td class="r">'+fmtN(a.y2.op.dp,0)+' días</td></tr>'+
+      (a.y1.op.hasInv?'<tr><td>Días de Inventario</td><td>365 ÷ Rot.Inv.</td><td class="r">'+fmtN(a.y1.op.di,0)+' días</td><td class="r">'+fmtN(a.y2.op.di,0)+' días</td></tr>':'')+
+      (a.y1.op.co?'<tr class="subtotal"><td>Ciclo Operativo</td><td>D.Inv+D.Cobro</td><td class="r">'+fmtN(a.y1.op.co,0)+' días</td><td class="r">'+fmtN(a.y2.op.co,0)+' días</td></tr>':'')+
+      (a.y1.op.ce?'<tr class="total"><td>Ciclo de Efectivo</td><td>C.Op−D.Pago</td><td class="r '+(a.y1.op.ce<0?'pos':'neg')+'">'+fmtN(a.y1.op.ce,0)+' días</td><td class="r '+(a.y2.op.ce<0?'pos':'neg')+'">'+fmtN(a.y2.op.ce,0)+' días</td></tr>':'')+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('INTERPRETACIONES DEL EQUIPO')+
+      ans('Interpretación integral de la liquidez de '+co.n,d.s3i)+
+      ans('Interpretación del ciclo operativo y de efectivo',d.s3opi)+
+      '</div>';
+  }
+
+  // ── ETAPA 4 ──────────────────────────────────────────────────
+  else if(stage===4){
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — CONTEXTO DEL ANÁLISIS');
+    ['s4g1','s4g2','s4g3'].forEach(function(k,i){body+=ans(['Factores de crecimiento del sector','Eficiencia operativa y apalancamiento','Evolución de la estructura de activos'][i],d[k]);});
+    body+='</div>';
+
+    var items=[
+      {k:'b_ef',l:'Efectivo'},{k:'b_ac',l:'Total Activo Circ.'},{k:'b_ta',l:'TOTAL ACTIVO'},
+      {k:'b_pc',l:'Total Pasivo Circ.'},{k:'b_tp',l:'TOTAL PASIVO'},{k:'b_cap',l:'TOTAL CAPITAL'},
+      {k:'e_v',l:'Ventas Netas'},{k:'e_cv',l:'Costo de Ventas'},{k:'e_ub',l:'Utilidad Bruta'},
+      {k:'e_uo',l:'Utilidad Operativa'},{k:'e_un',l:'UTILIDAD NETA'},
+    ];
+    function gv(k,yr){return a[yr][k.startsWith('b_')?'bg':'er'][k.slice(2)];}
+    body+='<div class="section">'+sec('ANÁLISIS HORIZONTAL Y VERTICAL COMPLETO')+
+      '<table><tr><th>Partida</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th><th class="r">Var. Absoluta $K</th><th class="r">Var. Relativa %</th><th class="r">Vert. '+co.y[0]+'%</th><th class="r">Vert. '+co.y[1]+'%</th></tr>'+
+      items.map(function(it){
+        var v1=gv(it.k,'y1'),v2=gv(it.k,'y2');
+        var abs=Math.round((v2-v1)*100)/100;
+        var isBold=it.k==='b_ta'||it.k==='b_tp'||it.k==='e_v'||it.k==='e_un';
+        return'<tr'+(isBold?' class="total"':'')+'>'+
+          '<td>'+(isBold?'<strong>':'')+it.l+(isBold?'</strong>':'')+'</td>'+
+          '<td class="r">$'+fmtN(v1)+'</td>'+
+          '<td class="r">$'+fmtN(v2)+'</td>'+
+          '<td class="r '+(abs>=0?'pos':'neg')+'">'+(abs>=0?'+':'')+fmtN(abs)+'</td>'+
+          '<td class="r '+(a.h[it.k]>=0?'pos':'neg')+'">'+(a.h[it.k]>=0?'+':'')+a.h[it.k]+'%</td>'+
+          '<td class="r">'+a.v.y1[it.k]+'%</td>'+
+          '<td class="r">'+a.v.y2[it.k]+'%</td>'+
+        '</tr>';
+      }).join('')+
+      '</table></div>';
+
+    var cf=a.cf;
+    if(cf){
+      body+='<div class="section">'+sec('ESTADO DE FLUJO DE EFECTIVO — MÉTODO INDIRECTO ('+co.y[0]+' → '+co.y[1]+')')+
+        '<table><tr><th colspan="2" style="background:#e0e8ff">I. ACTIVIDADES OPERATIVAS</th></tr>'+
+        '<tr><td>Utilidad Neta</td><td class="r">$'+fmtN(cf.un)+'</td></tr>'+
+        '<tr><td>+ Depreciación (no monetaria)</td><td class="r">$'+fmtN(cf.dep)+'</td></tr>'+
+        '<tr><td>± Δ Cuentas por Cobrar</td><td class="r '+(cf.dcxc>=0?'pos':'neg')+'">$'+fmtN(cf.dcxc)+'</td></tr>'+
+        '<tr><td>± Δ Inventarios</td><td class="r '+(cf.dinv>=0?'pos':'neg')+'">$'+fmtN(cf.dinv)+'</td></tr>'+
+        '<tr><td>± Δ Otros Activos Circ.</td><td class="r '+(cf.doc>=0?'pos':'neg')+'">$'+fmtN(cf.doc)+'</td></tr>'+
+        '<tr><td>± Δ Cuentas por Pagar</td><td class="r '+(cf.dcxp>=0?'pos':'neg')+'">$'+fmtN(cf.dcxp)+'</td></tr>'+
+        '<tr><td>± Δ Impuestos por Pagar</td><td class="r '+(cf.dimp>=0?'pos':'neg')+'">$'+fmtN(cf.dimp)+'</td></tr>'+
+        '<tr class="total"><td>= FLUJO NETO OPERATIVO</td><td class="r '+(cf.fo>=0?'pos':'neg')+'">$'+fmtN(cf.fo)+'</td></tr>'+
+        '<tr><th colspan="2" style="background:#e0ffe0">II. ACTIVIDADES DE INVERSIÓN</th></tr>'+
+        '<tr><td>Compra/Venta neta de Activos Fijos</td><td class="r '+(cf.deq>=0?'pos':'neg')+'">$'+fmtN(cf.deq)+'</td></tr>'+
+        '<tr class="total"><td>= FLUJO NETO DE INVERSIÓN</td><td class="r '+(cf.fi>=0?'pos':'neg')+'">$'+fmtN(cf.fi)+'</td></tr>'+
+        '<tr><th colspan="2" style="background:#fffde0">III. ACTIVIDADES DE FINANCIAMIENTO</th></tr>'+
+        '<tr><td>± Δ Deuda a Corto Plazo</td><td class="r '+(cf.ddcp>=0?'pos':'neg')+'">$'+fmtN(cf.ddcp)+'</td></tr>'+
+        '<tr><td>± Δ Deuda a Largo Plazo</td><td class="r '+(cf.ddlp>=0?'pos':'neg')+'">$'+fmtN(cf.ddlp)+'</td></tr>'+
+        '<tr class="total"><td>= FLUJO NETO DE FINANCIAMIENTO</td><td class="r '+(cf.ff>=0?'pos':'neg')+'">$'+fmtN(cf.ff)+'</td></tr>'+
+        '<tr class="total" style="font-size:13px"><td>VARIACIÓN NETA DE EFECTIVO</td><td class="r '+(cf.vnet>=0?'pos':'neg')+'">$'+fmtN(cf.vnet)+'</td></tr>'+
+        '<tr><td>+ Efectivo Inicial ('+co.y[0]+')</td><td class="r">$'+fmtN(cf.ef_ini)+'</td></tr>'+
+        '<tr class="total" style="background:#d0ffd0"><td>= EFECTIVO FINAL (verificar vs Balance '+co.y[1]+')</td><td class="r pos">$'+fmtN(cf.ef_fin)+'</td></tr>'+
+        '</table></div>';
+    }
+
+    body+='<div class="section">'+sec('INTERPRETACIONES DEL EQUIPO')+
+      ans('Diagnóstico integral H y V + EFE de '+co.n,d.s4i)+
+      ans('Interpretación del Estado de Flujo de Efectivo',d.s4efe)+
+      '</div>';
+  }
+
+  // ── ETAPA 5 ──────────────────────────────────────────────────
+  else if(stage===5){
+    var be=a.be;
+    body+='<div class="section">'+sec('ANÁLISIS GUIADO — COMPRENSIÓN DEL PUNTO DE EQUILIBRIO');
+    ['s5g1','s5g2','s5g3'].forEach(function(k,i){body+=ans(['Por qué usar PE ponderado','Análisis del portafolio de productos','Palancas para reducir el PE'][i],d[k]);});
+    body+='</div>';
+
+    body+='<div class="section">'+sec('DATOS DEL MODELO DE PUNTO DE EQUILIBRIO')+
+      '<table><tr><th>Concepto</th><th class="r">Valor</th><th>Explicación</th></tr>'+
+      '<tr><td>Gastos Operativos (GFO)</td><td class="r">$'+fmtN(be.gf.op)+'K</td><td>Renta, sueldos, servicios, depreciación</td></tr>'+
+      '<tr><td>Gastos No Operativos (GNO)</td><td class="r">$'+fmtN(be.gf.nop)+'K</td><td>Intereses bancarios, comisiones financieras</td></tr>'+
+      '<tr><td>Tasa ISR (T)</td><td class="r">'+be.t*100+'%</td><td>Impuesto Sobre la Renta aplicable</td></tr>'+
+      '<tr><td>Utilidad Esperada (UE)</td><td class="r">$'+fmtN(be.gf.ue)+'K</td><td>Ganancia mínima requerida por la empresa</td></tr>'+
+      '<tr class="subtotal"><td>Numerador = (GFO+GNO)×(1−T)+UE</td><td class="r">$'+fmtN(be.num/1000)+'K</td><td>Meta total a cubrir con las ventas</td></tr>'+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('MARGEN DE CONTRIBUCIÓN PONDERADO — PORTAFOLIO DE '+co.n.toUpperCase())+
+      '<table><tr><th>Producto / Servicio</th><th class="r">Precio Venta</th><th class="r">Costo Variable</th><th class="r">MC Unitario</th><th class="r">% Participación</th><th class="r">MC Ponderado</th></tr>'+
+      be.pr.map(function(p){
+        var mc=p.pv-p.cv;var mcp=Math.round(mc*p.p*100)/100;
+        return'<tr><td>'+p.n+'</td><td class="r">$'+fmtN(p.pv,0)+'</td><td class="r">$'+fmtN(p.cv,0)+'</td><td class="r">$'+fmtN(mc,0)+'</td><td class="r">'+(p.p*100).toFixed(0)+'%</td><td class="r">$'+fmtN(mcp)+'</td></tr>';
+      }).join('')+
+      '<tr class="total"><td colspan="5">MCP Total (denominador de la fórmula)</td><td class="r">$'+fmtN(be.mc)+'</td></tr>'+
+      '</table></div>';
+
+    body+='<div class="section">'+sec('RESULTADO FINAL')+
+      '<table style="max-width:400px"><tr><th>Concepto</th><th class="r">Valor</th></tr>'+
+      '<tr><td>Numerador (meta total)</td><td class="r">$'+fmtN(be.num/1000)+'K</td></tr>'+
+      '<tr><td>MCP Total (denominador)</td><td class="r">$'+fmtN(be.mc)+'</td></tr>'+
+      '<tr class="total" style="font-size:14px"><td>PUNTO DE EQUILIBRIO PONDERADO</td><td class="r pos">'+Math.ceil(be.num/be.mc)+' unidades</td></tr>'+
+      '</table>'+
+      ans('Interpretación: ¿qué significa este PE para '+co.n+'?',d.s5i)+
+      '</div>';
+  }
+
+  // ── CO-EVALUACIONES RECIBIDAS ─────────────────────────────────
+  if(evs.length){
+    body+='<div class="section">'+sec('CO-EVALUACIONES RECIBIDAS DE PARES ('+evs.length+')')+
+      evs.map(function(ev){
+        var rubric=RUBRICS[stage];
+        var rubricRows='';
+        if(rubric&&ev.rubricScores){
+          var lNames={4:'Excelente',3:'Bueno',2:'Regular',1:'Insuficiente'};
+          rubricRows='<table class="rubric-table" style="margin-top:6px"><tr><th>Criterio</th><th class="r">Calificación</th><th>Nivel</th></tr>'+
+            rubric.criteria.map(function(c){
+              var v=parseInt(ev.rubricScores[c.id]||0);
+              return'<tr><td>'+c.name+'</td><td class="r"><strong>'+v+'/4</strong></td><td>'+(v>0?lNames[v]:'—')+'</td></tr>';
+            }).join('')+'</table>';
+        }
+        return'<div class="coeval-card">'+
+          '<div class="coeval-header">'+
+            '<span class="coeval-name">'+ev.evalName+'</span>'+
+            '<span style="font-size:11px;color:#666">'+new Date(ev.createdAt).toLocaleDateString('es-MX')+'</span>'+
+          '</div>'+
+          rubricRows+
+          (ev.comment?'<div style="margin-top:6px;font-size:11px;border-top:1px solid #ffc107;padding-top:6px"><strong>Comentario:</strong> '+ev.comment+'</div>':'')+
+        '</div>';
+      }).join('')+
+      '</div>';
+  }
+
+  // === RENDER WINDOW ===
+  var w=window.open('','_blank','width=980,height=800');
+  var dateStr=new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
+  w.document.write([
+    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">',
+    '<title>Reporte Etapa '+stage+' — '+snames[stage]+' — '+team.name+'</title>',
+    '<style>'+css+'</style></head><body>',
+    '<div class="no-print">',
+    '<button onclick="window.print()" style="padding:9px 22px;background:'+corte.color+';color:#fff;border:none;border-radius:7px;cursor:pointer;margin-right:8px;font-size:13px;font-weight:600">🖨️ Guardar como PDF</button>',
+    '<button onclick="window.close()" style="padding:9px 16px;border:1px solid #ccc;border-radius:7px;cursor:pointer;font-size:13px">✕ Cerrar</button>',
+    '<span style="margin-left:16px;font-size:11px;color:#666">Tip: En el diálogo de impresión selecciona "Guardar como PDF" como destino</span>',
+    '</div>',
+    '<div class="cover">',
+    '<h1>'+co.e+' '+co.n+'</h1>',
+    '<h2>Etapa '+stage+': '+snames[stage]+'</h2>',
+    '<div class="meta">',
+    '<strong>'+corte.name+'</strong> &nbsp;·&nbsp; Ponderación: '+WEIGHTS[stage]+'%<br>',
+    'Equipo: <strong>'+team.name+'</strong><br>',
+    'Integrantes: '+members+'<br>',
+    'Entregada: '+new Date(sub.submittedAt).toLocaleString('es-MX')+'<br>',
+    'Reporte generado: '+dateStr,
+    '</div>',
+    '</div>',
+    '<div class="score-box">Precisión numérica: '+sub.score+'% &nbsp;·&nbsp; Ponderación etapa: '+WEIGHTS[stage]+'% &nbsp;·&nbsp; Calificación ponderada aportada: '+Math.round(sub.score*WEIGHTS[stage]/100)+' pts</div>',
+    body,
+    '<div class="footer">FinAcademy — Escuela Bancaria y Comercial &nbsp;·&nbsp; '+co.e+' '+co.n+' &nbsp;·&nbsp; Equipo: '+team.name+'</div>',
+    '</body></html>'
+  ].join(''));
+  w.document.close();}
+
+
+
+function generateCorteReport(corteNum,team,co){
+  var corte=CORTES[corteNum];if(!corte)return;
+  var subs=DB.getSubs()[team.id]||{};
+  var members=getMemberNames(team).join(', ');
+  var css='body{font-family:Arial,sans-serif;max-width:820px;margin:30px auto;padding:20px;color:#222;font-size:12px;line-height:1.6}'+
+    '.cover{background:linear-gradient(135deg,'+corte.color+',#252840);color:#fff;padding:30px;border-radius:10px;margin-bottom:20px;text-align:center}'+
+    '.cover h1{font-size:22px;margin:0 0 6px}.cover p{margin:4px 0;opacity:.85;font-size:13px}'+
+    '.sh{background:'+corte.color+';color:#fff;padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;margin:18px 0 10px}'+
+    '.score{display:inline-block;background:#10b981;color:#fff;padding:3px 12px;border-radius:12px;font-weight:700;font-size:11px}'+
+    '.ans{background:#f8f9ff;border-left:3px solid '+corte.color+';padding:8px 12px;margin:5px 0;font-size:11px;line-height:1.6}'+
+    '.lbl{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px}'+
+    'table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}'+
+    'th{background:#f0f0f0;padding:5px 8px;border:1px solid #ddd;text-align:left;font-size:10px}'+
+    'td{padding:5px 8px;border:1px solid #ddd}td.r{text-align:right;font-family:monospace}'+
+    '.row{display:flex;gap:10px;margin-bottom:14px}.cell{flex:1;background:#f5f5f5;border-radius:6px;padding:10px;text-align:center}'+
+    '.cell .v{font-size:20px;font-weight:700;color:'+corte.color+'}.cell .l{font-size:10px;color:#666}'+
+    '.no-print{margin-bottom:20px}@media print{.no-print{display:none}}';
+  var snames=['','Empresa y Canvas','Estados Financieros','Razones de Liquidez','Analisis H+V+EFE','P. Equilibrio'];
+  var totalScore=0,stageCount=0;
+  corte.stages.forEach(function(s){var sub=subs[s];if(sub){totalScore+=sub.score||0;stageCount++;}});
+  var avgScore=stageCount?Math.round(totalScore/stageCount):0;
+  var body='<div class="row">';
+  corte.stages.forEach(function(s){var sub=subs[s];body+='<div class="cell"><div class="v">'+(sub?sub.score+'%':'—')+'</div><div class="l">Etapa '+s+'</div></div>';});
+  body+='<div class="cell" style="border:2px solid '+corte.color+'"><div class="v">'+avgScore+'%</div><div class="l fw7">Promedio corte</div></div></div>';
+  corte.stages.forEach(function(s){
+    var sub=subs[s];
+    body+='<div class="sh">Etapa '+s+': '+snames[s]+(sub?' <span class="score">'+sub.score+'%</span>':' (sin entregar)')+'</div>';
+    if(!sub){body+='<p style="color:#999;font-size:11px">No entregada.</p>';return;}
+    var d=sub.data||{};
+    var openFields={1:['s1a','s1b','s1c'],2:['s2g1','s2g2','s2g3','s2g4'],3:['s3i','s3opi','s3g1'],4:['s4i','s4efe','s4g1'],5:['s5i','s5g1','s5g2']};
+    var labels={s1a:'Por que eligieron la empresa',s1b:'Entorno externo',s1c:'Coherencia del modelo',s2g1:'Estructura de activos',s2g2:'Costos y PV',s2g3:'Financiamiento',s2g4:'Margen esperado',s3i:'Interpretacion liquidez',s3opi:'Ciclos operativos',s3g1:'Liquidez del sector',s4i:'Interpretacion H+V+EFE',s4efe:'Flujo de efectivo',s4g1:'Factores de crecimiento',s5i:'Interpretacion PE',s5g1:'Por que PE ponderado',s5g2:'Portafolio de productos'};
+    (openFields[s]||[]).forEach(function(k){if(d[k]){body+='<div class="lbl">'+labels[k]+'</div><div class="ans">'+d[k]+'</div>';}});
+  });
+  var w=window.open('','_blank','width=950,height=750');
+  var dateStr=new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
+  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>'+corte.name+' — '+team.name+'</title><style>'+css+'</style></head><body>'+
+    '<div class="no-print"><button onclick="window.print()" style="padding:8px 20px;background:'+corte.color+';color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px;font-weight:600">Guardar como PDF</button><button onclick="window.close()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer">Cerrar</button></div>'+
+    '<div class="cover"><h1>'+co.e+' '+co.n+'</h1><p><strong>'+corte.name+'</strong> — '+corte.desc+'</p><p style="font-size:15px;font-weight:700;margin-top:8px">Equipo: '+team.name+'</p><p>'+members+'</p><p>'+dateStr+'</p></div>'+
+    body+'</body></html>');
+  w.document.close();}
+
 (function init(){
-  // Load Supabase config from localStorage
-  var cfg=SYNC.loadConfig();if(cfg.url&&cfg.key){SYNC.init(cfg.url,cfg.key);if(SYNC.enabled){SYNC.subscribe();SYNC.pull().then(function(){render();});}}
   const ses=DB.getSession();
   if(ses){A.user=ses;if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);if(ses.role==='teacher')A.screen='teacher';else{const t=getUserTeam(ses.id);A.screen=t&&t.companyId?'student':'lobby';}}
   render();
 })();
+
 </script>
 </body>
 </html>
