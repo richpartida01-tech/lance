@@ -1615,6 +1615,125 @@ function doPEProgress(nextPhase){
 
 
 
+
+function rCoevalWork(sub,co,stage,evalStage){
+  if(!sub||!sub.data)return'';
+  var d=sub.data;
+  var co_=co;
+  var a=co_.ans;
+  var out='<div style="background:var(--s3);border-radius:10px;border:1px solid var(--border);margin-bottom:12px;overflow:hidden">';
+  out+='<div style="padding:8px 14px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="var b=this.nextElementSibling;b.style.display=b.style.display===\'none\'?\'block\':\'none\'">';
+  out+='<span style="font-size:14px">📂</span><span class="fw7 f12">Ver trabajo entregado — Etapa '+evalStage+'</span>';
+  out+='<span class="t2 f11" style="margin-left:auto">clic para '+(d.s1a||d.s2g1||d.s3i||d.s4i||d.s5i?'expandir':'ver')+'</span></div>';
+  out+='<div style="padding:14px;display:none">';
+
+  function ansBlock(label,text){
+    if(!text||!text.trim())return'';
+    return'<div style="margin-bottom:10px"><div class="t2 f11 mb3">'+label+'</div>'+
+      '<div style="background:var(--s1);border-left:3px solid var(--p);padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;line-height:1.65">'+text+'</div></div>';}
+
+  if(evalStage===1){
+    out+=ansBlock('¿Por qué eligieron esta empresa?',d.s1a);
+    out+=ansBlock('Análisis del entorno externo',d.s1b);
+    out+=ansBlock('Coherencia del modelo de negocio',d.s1c);
+    var ckeys=['propuesta','segmentos','ingresos','costos','socios','actividades','recursos','relaciones','canales'];
+    var clabels={propuesta:'Propuesta de Valor',segmentos:'Segmentos',ingresos:'Fuentes de Ingreso',costos:'Estructura de Costos',socios:'Socios Clave',actividades:'Actividades Clave',recursos:'Recursos Clave',relaciones:'Relaciones con Clientes',canales:'Canales'};
+    var hasCanvas=ckeys.some(function(k){return d['s1bmc_'+k];});
+    if(hasCanvas){
+      out+='<div class="fw7 f12 mb8" style="margin-top:8px">Business Model Canvas:</div>';
+      out+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+      ckeys.forEach(function(k){
+        if(d['s1bmc_'+k]){
+          out+='<div style="background:var(--s1);border-radius:6px;padding:7px 10px;border:1px solid var(--border)">'+
+            '<div class="t2 f10 mb2">'+clabels[k]+'</div>'+
+            '<div class="f11" style="line-height:1.55">'+d['s1bmc_'+k].slice(0,200)+(d['s1bmc_'+k].length>200?'...':'')+'</div>'+
+          '</div>';
+        }
+      });
+      out+='</div>';
+    }
+  } else if(evalStage===2){
+    ['s2g1','s2g2','s2g3','s2g4'].forEach(function(k,i){
+      out+=ansBlock(['Estructura de activos','Costos y propuesta de valor','Estrategia de financiamiento','Margen esperado'][i],d[k]);
+    });
+    // Show key financials
+    if(a.y1&&a.y2){
+      out+='<div class="fw7 f12 mb6 mt8">Resumen financiero:</div>';
+      out+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
+      var metrics=[
+        {l:'Ventas '+co_.y[0],v:'$'+fmt(a.y1.er.v)+'K'},
+        {l:'Ventas '+co_.y[1],v:'$'+fmt(a.y2.er.v)+'K'},
+        {l:'Util.Neta '+co_.y[1],v:'$'+fmt(a.y2.er.un)+'K'},
+        {l:'Total Activo '+co_.y[1],v:'$'+fmt(a.y2.bg.ta)+'K'},
+        {l:'Capital '+co_.y[1],v:'$'+fmt(a.y2.bg.cap)+'K'},
+        {l:'Total Pasivo '+co_.y[1],v:'$'+fmt(a.y2.bg.tp)+'K'},
+      ];
+      metrics.forEach(function(m){
+        out+='<div style="background:var(--s1);border-radius:6px;padding:6px 8px;text-align:center">'+
+          '<div class="t2 f10">'+m.l+'</div><div class="fw7 f12">'+m.v+'</div></div>';
+      });
+      out+='</div>';
+    }
+  } else if(evalStage===3){
+    out+=ansBlock('Interpretación de liquidez',d.s3i);
+    out+=ansBlock('Interpretación ciclos operativos',d.s3opi);
+    ['s3g1','s3g2','s3g3'].forEach(function(k,i){
+      out+=ansBlock(['Liquidez óptima del sector','Rol del inventario','Ciclo de cobro y pago'][i],d[k]);
+    });
+    // Key ratios
+    if(a.y1&&a.y2){
+      out+='<div class="fw7 f12 mb6 mt8">Razones clave:</div>';
+      out+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">';
+      [
+        {l:'Razón Corriente '+co_.y[0],v:a.y1.rat.rc+'x'},{l:'Razón Corriente '+co_.y[1],v:a.y2.rat.rc+'x'},
+        {l:'Prueba Ácida '+co_.y[1],v:a.y2.rat.pa+'x'},{l:'Ciclo Efectivo '+co_.y[1],v:a.y2.op.ce+' días'},
+      ].forEach(function(m){
+        out+='<div style="background:var(--s1);border-radius:6px;padding:6px 8px;text-align:center">'+
+          '<div class="t2 f10">'+m.l+'</div><div class="fw7 f12">'+m.v+'</div></div>';
+      });
+      out+='</div>';
+    }
+  } else if(evalStage===4){
+    out+=ansBlock('Diagnóstico integral H y V + EFE',d.s4i);
+    out+=ansBlock('Interpretación del flujo de efectivo',d.s4efe);
+    ['s4g1','s4g2','s4g3'].forEach(function(k,i){
+      out+=ansBlock(['Factores de crecimiento','Eficiencia operativa','Evolución de activos'][i],d[k]);
+    });
+    // Key HV data
+    if(a.h){
+      out+='<div class="fw7 f12 mb6 mt8">Variaciones clave:</div>';
+      out+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">';
+      [{k:'e_v',l:'Ventas'},{k:'e_ub',l:'Util. Bruta'},{k:'e_un',l:'Util. Neta'},{k:'b_ta',l:'Total Activo'}].forEach(function(it){
+        if(a.h[it.k]!==undefined){
+          var pos=a.h[it.k]>=0;
+          out+='<div style="background:var(--s1);border-radius:6px;padding:6px 8px;text-align:center">'+
+            '<div class="t2 f10">'+it.l+' (var.%)</div>'+
+            '<div class="fw7 f12" style="color:'+(pos?'var(--green)':'var(--red)')+'">'+
+              (pos?'+':'')+a.h[it.k]+'%</div></div>';
+        }
+      });
+      out+='</div>';
+    }
+  } else if(evalStage===5){
+    out+=ansBlock('Interpretación del PE ponderado',d.s5i);
+    ['s5g1','s5g2','s5g3'].forEach(function(k,i){
+      out+=ansBlock(['Por qué PE ponderado','Análisis del portafolio','Palancas para reducir el PE'][i],d[k]);
+    });
+    if(a.be){
+      out+='<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:10px;margin-top:8px;text-align:center">'+
+        '<div class="t2 f11">PE Ponderado calculado</div>'+
+        '<div class="fw7 f20" style="color:var(--green)">'+Math.ceil(a.be.pe,0)+' unidades</div>'+
+        '<div class="t2 f11">MCP = $'+fmt(a.be.mc)+' | Numerador = $'+fmt(a.be.num/1000)+'K</div>'+
+      '</div>';
+    }
+  }
+
+  if(!d.s1a&&!d.s1b&&!d.s2g1&&!d.s3i&&!d.s4i&&!d.s5i&&!d.s1bmc_propuesta){
+    out+='<p class="t2 f12">Este equipo no registró respuestas escritas en esta etapa.</p>';
+  }
+  out+='</div></div>';
+  return out;}
+
 function rCoeval(team,co){
   var others=DB.getTeams().filter(function(t){return t.companyId&&t.id!==team.id&&teamProg(t.id)>0;});
   var myEvals=DB.getEvals().filter(function(e){return e.evalId===A.user.id;});
@@ -1679,11 +1798,16 @@ function rCoeval(team,co){
     var filled=rubric?rubric.criteria.filter(function(c){var key='rc_'+evalStage+'_'+c.id;return parseInt(A.inp[key]||(existEval&&existEval.rubricScores&&existEval.rubricScores[c.id])||0)>0;}).length:0;
     var openFields=sub?(OPEN[evalStage]||[]).filter(function(f){return sub.data&&sub.data[f.id]&&sub.data[f.id].trim().length>20;}):[];
     rightPanel='<div class="card">'+
-      '<div class="flex g10 mb10"><span style="font-size:20px">'+eco.e+'</span><div><div class="fw7 f13">'+etm.name+'</div><div class="t2 f12">'+eco.n+'</div></div></div>'+
+      '<div class="flex g10 mb10">'+
+        '<span style="font-size:20px">'+eco.e+'</span>'+
+        '<div style="flex:1"><div class="fw7 f13">'+etm.name+'</div><div class="t2 f12">'+eco.n+'</div></div>'+
+        '<button class="btn btn-sm btn-ok" data-coevalpdf="'+etm.id+'|'+evalStage+'" style="font-size:11px">&#x1F4E5; PDF del equipo</button>'+
+        '</div>'+
       stageTabs+
       (existEval?'<div class="alert aok mb8 f12">Ya evaluaste esta etapa.</div>':'')+
       (!sub?'<p class="t2 f12">Aun no entrega esta etapa.</p>':
         '<div>'+
+        rCoevalWork(sub,eco,evalStage,evalStage)+
         (openFields.length?
           '<div class="fw7 f12 mb8">Respuestas del equipo:</div>'+
           openFields.map(function(f){return'<div style="background:var(--s3);border-radius:7px;padding:7px 10px;margin-bottom:6px"><div class="t2 f11 mb2">'+f.lbl+'</div><div class="f11" style="line-height:1.55">'+sub.data[f.id].slice(0,260)+(sub.data[f.id].length>260?'...':'')+'</div></div>';}).join('')
@@ -2544,6 +2668,12 @@ function generateCorteReport(corteNum,team,co){
     var resetteam=el.closest&&el.closest('[data-resetteam]');if(resetteam){if(confirm('Reiniciar entregas?'))doResetTeam(resetteam.dataset.resetteam);return;}
     var changeco=el.closest&&el.closest('[data-changeco]');if(changeco){doChangeCompany(changeco.dataset.changeco);return;}
     var editscore=el.closest&&el.closest('[data-editscore]');if(editscore){doEditScore(editscore.dataset.editscore,parseInt(editscore.dataset.editstage));return;}
+var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
+    if(coevalpdf){var parts=coevalpdf.dataset.coevalpdf.split('|');
+      var tid3=parts[0];var stg3=parseInt(parts[1]);
+      var t3=DB.getTeams().find(function(t){return t.id===tid3;});
+      var co3=t3?getC(t3.companyId):null;
+      if(t3&&co3){generateReport(stg3,t3,co3);}else{msg('Sin datos de este equipo.','warn');}return;}
     if(id==='btnReset'){if(confirm('Borrar TODOS los datos?'))doReset();return;}
   }
   window.fa_click=handleClick;
