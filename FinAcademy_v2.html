@@ -587,15 +587,20 @@ const SYNC={
       }
       if(ev.data)localStorage.setItem('fa2_evals',JSON.stringify(ev.data));
       console.log('[SYNC] Datos actualizados desde Supabase');
-      render();
     }catch(e){console.warn('[SYNC] Error al sincronizar:',e.message);}
   },
   // Subscribe to real-time changes
   subscribe(){
     if(!this.sb)return;
-    var self=this;
+    var self=this;var pullTimer=null;
     this.sb.channel('fa_realtime')
-      .on('postgres_changes',{event:'*',schema:'public'},function(){self.pull();})
+      .on('postgres_changes',{event:'*',schema:'public'},function(){
+        // Debounce: only pull once per 3 seconds
+        clearTimeout(pullTimer);
+        pullTimer=setTimeout(function(){
+          self.pull().then(function(){render();});
+        },3000);
+      })
       .subscribe();
     console.log('[SYNC] Suscripción en tiempo real activa');
   },
@@ -877,57 +882,6 @@ function doLogout(){
   A.pePhase=1;A.peErr={};A.evalStage=1;A.teacherTab='overview';
   render();}
 
-
-function doLogin(){
-  var mode=A.loginMode||'individual';
-  // TEAM MODE
-  if(mode==='team'){
-    var teamName=(document.getElementById('tName')?.value||'').trim();
-    var mc=Math.max(2,Math.min(6,parseInt(A.inp.memberCount||'2')));
-    var mnames=[];
-    for(var i=0;i<mc;i++){var mn=(document.getElementById('m'+i)?.value||'').trim();if(mn)mnames.push(mn);}
-    if(!teamName){msg('Escribe el nombre del equipo.','warn');return;}
-    if(mnames.length<1){msg('Agrega al menos un integrante.','warn');return;}
-    // Find or create team account by team name
-    var users=DB.getUsers();
-    var u=users.find(function(x){return x.role==='team'&&x.name.toLowerCase()===teamName.toLowerCase();});
-    if(!u){
-      u={id:uid(),name:teamName,teamName:teamName,email:teamName.toLowerCase().replace(/\s+/g,'_')+'@equipo',
-         role:'team',memberNames:mnames,createdAt:Date.now()};
-      users.push(u);DB.saveUsers(users);
-    } else {
-      if(mnames.length>0){u.memberNames=mnames;DB.saveUsers(users);}
-    }
-    ensureTeamForUser(u);DB.saveSession(u);
-    var t=getUserTeam(u.id);ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});return;
-  }
-  // INDIVIDUAL / SPECIAL MODE
-  var luserEl=document.getElementById('lUser');var uname=(luserEl?luserEl.value:'') || A.inp.lUser || '';uname=uname.trim();
-  if(!uname){msg('Escribe tu nombre.','warn');return;}
-  var lname=uname.toLowerCase();
-  // Teacher
-  if(lname==='profe'||lname==='profesor'){
-    var pin=A.inp.lPin||document.getElementById('lPin')?.value||'';
-    if(pin!=='2024'){msg('PIN incorrecto.','err');return;}
-    var tu={id:'teacher',name:'Docente',email:'profe',role:'teacher'};
-    DB.saveSession(tu);ss({user:tu,screen:'teacher'});return;
-  }
-  // Demo admin
-  if(lname==='demo'){
-    var du={id:'demo',name:'Demo Admin',email:'demo',role:'admin'};
-    DB.saveSession(du);ss({user:du,screen:'demo'});return;
-  }
-  // Regular student - find or create by name
-  var users=DB.getUsers();
-  var u=users.find(function(x){return x.name.toLowerCase()===lname;});
-  if(!u){
-    u={id:uid(),name:uname,email:uname.toLowerCase().replace(/\s+/g,'_'),role:'student',
-       memberNames:[uname],createdAt:Date.now()};
-    users.push(u);DB.saveUsers(users);SYNC.pushUser(u);
-  }
-  ensureTeamForUser(u);DB.saveSession(u);
-  var t=getUserTeam(u.id);
-  ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});}
 
 function doRegister(){doLogin();}
 
@@ -1850,13 +1804,13 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     var el=e.target;
     if(!el.id)return;
     A.inp[el.id]=el.value;
-    if(el.id==='lUser'){var v=el.value.trim().toLowerCase();if(v==='profe'||v==='profesor'||v==='')render();}
+    if(el.id==='lEmail'||el.id==='lCode'){render();}
     if(el.id==='memberCount')render();
   });
   document.addEventListener('keydown',function(e){
     if(e.key==='Enter'){
       var aid=document.activeElement&&document.activeElement.id;
-      if(aid==='lUser'||aid==='lPin'||aid==='m0')doLogin();
+      if(aid==='lEmail'||aid==='lCode'||aid==='lPin')doLogin();
     }
   });
   console.log('[FA] Input handler registered ✅');
