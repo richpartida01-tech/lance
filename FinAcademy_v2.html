@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- FinAcademy v2.1 | Build: 2026-05-15 16:55 | EBC -->
+<!-- FinAcademy v2.2 | Build: 2026-05-15 16:55 | EBC -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -725,7 +725,7 @@ function rLogin(){
       (A.msg?rMsg():'')+
       (isTeam?
         '<div class="lbl">Nombre del equipo</div>'+
-        '<input class="inp mb8" id="tName" placeholder="Equipo Alpha...">'+
+        '<input class="inp mb8" id="tName" placeholder="Equipo Alpha..." oninput="A.inp.tName=this.value">'+
         '<div class="lbl">Integrantes (escribe los nombres)</div>'+
         [0,1,2,3,4,5].slice(0,mc).map(function(i){
           return'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'+
@@ -736,7 +736,7 @@ function rLogin(){
         '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar al equipo &#x2192;</button>'
       :
         '<div class="lbl">&#x1F44B; Tu nombre o alias</div>'+
-        '<input class="inp mb8" id="lUser" placeholder="Ej. Juan García" autocomplete="off">'+
+        '<input class="inp mb8" id="lUser" placeholder="Ej. Juan García" autocomplete="off" oninput="A.inp.lUser=this.value">'+
         (isSpecial?'<div class="lbl">PIN docente</div><input class="inp mb12" id="lPin" type="password" placeholder="PIN">':'<div style="margin-bottom:4px"></div>')+
         '<p class="t3 f11 mb12">Primera vez? Tu cuenta se crea al instante.</p>'+
         '<button class="btn btn-p btn-w" id="btnLogin" style="padding:10px">Entrar &#x2192;</button>'
@@ -786,7 +786,7 @@ function doLogin(){
     var t=getUserTeam(u.id);ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});return;
   }
   // INDIVIDUAL / SPECIAL MODE
-  var uname=(A.inp.lUser||document.getElementById('lUser')?.value||'').trim();
+  var uname=(A.inp.lUser||A.inp.lU||document.getElementById('lUser')?.value||'').trim();
   if(!uname){msg('Escribe tu nombre.','warn');return;}
   var lname=uname.toLowerCase();
   // Teacher
