@@ -1366,18 +1366,45 @@ const SYNC={
         this.sb.from('fa_subs').select('*'),
         this.sb.from('fa_evals').select('*'),
       ]);
-      if(u.data)localStorage.setItem('fa2_users',JSON.stringify(u.data));
-      if(t.data){var teams=t.data.map(function(r){var row=Object.assign({},r);if('description' in row){row.desc=row.description;delete row.description;}return row;});localStorage.setItem('fa2_teams',JSON.stringify(teams));}
+      // ── Users: snake_case → camelCase ──
+      if(u.data){
+        var users=u.data.map(function(r){return{
+          id:r.id,name:r.name,email:r.email||'',password:r.password||'',
+          role:r.role||'student',studentCode:r.student_code||'',
+          teamName:r.team_name||'',memberNames:r.member_names||[r.name],
+          createdAt:r.created_at};});
+        localStorage.setItem('fa2_users',JSON.stringify(users));}
+      // ── Teams: snake_case → camelCase ──
+      if(t.data){
+        var teams=t.data.map(function(r){return{
+          id:r.id,name:r.name,desc:r.description||'',
+          leaderId:r.leader_id,members:r.members||[],
+          requests:r.requests||[],companyId:r.company_id||null,
+          maxMembers:r.max_members||4,status:r.status||'open',
+          memberNames:r.member_names||[],isTeamAccount:r.is_team_account||false,
+          roles:r.roles||{},rolesConfirmed:r.roles_confirmed||false,
+          createdAt:r.created_at};});
+        localStorage.setItem('fa2_teams',JSON.stringify(teams));}
+      // ── Subs: snake_case → camelCase ──
       if(s.data){
         var subs={};
         s.data.forEach(function(r){
           if(!subs[r.team_id])subs[r.team_id]={};
-          subs[r.team_id][r.stage]={data:r.data,score:r.score,submittedBy:r.submitted_by,submittedAt:r.submitted_at};
+          subs[r.team_id][r.stage]={
+            data:r.data||{},score:r.score||0,
+            submittedBy:r.submitted_by||'',submittedAt:r.submitted_at||0};
         });
-        localStorage.setItem('fa2_subs',JSON.stringify(subs));
-      }
-      if(ev.data)localStorage.setItem('fa2_evals',JSON.stringify(ev.data));
-      console.log('[SYNC] Datos actualizados desde Supabase');
+        localStorage.setItem('fa2_subs',JSON.stringify(subs));}
+      // ── Evals: snake_case → camelCase ──
+      if(ev.data){
+        var evals=ev.data.map(function(r){return{
+          id:r.id,evalId:r.eval_id,evalName:r.eval_name||'',
+          teamId:r.team_id,stage:r.stage||1,
+          rubricScores:r.rubric_scores||{},
+          fieldEvals:r.field_evals||{},scores:r.scores||{},
+          comment:r.comment||'',createdAt:r.created_at};});
+        localStorage.setItem('fa2_evals',JSON.stringify(evals));}
+      console.log('[SYNC] Datos actualizados desde Supabase ✅');
     }catch(e){console.warn('[SYNC] Error al sincronizar:',e.message);}
   },
   // Subscribe to real-time changes
