@@ -1070,6 +1070,10 @@ function rCoeval(team,co){
   '</div></div></div>';}
 
 function doEval(){
+  var myTeam0=getUserTeam(A.user.id);
+  if(myTeam0&&myTeam0.leaderId!==A.user.id&&A.user.role!=='admin'){
+    msg('Solo el capitán puede enviar coevaluaciones.','warn');return;
+  }
   var tid=A.evalTarget; var stage=parseInt(A.evalStage||1);
   if(!tid){msg('Selecciona un equipo.','warn');return;}
   var rubric=RUBRICS[stage];
@@ -1673,7 +1677,6 @@ function rLobby(){
   var myTeam=getUserTeam(A.user.id);
   if(!myTeam)return rLobbyMain();
   if(myTeam.companyId)return rStudent();
-  if(myTeam.rolesConfirmed)return rCoSelectFull(myTeam);
   return rTeamWaiting(myTeam);
 }
 
@@ -1789,7 +1792,7 @@ function rTeamWaiting(team){
         :
           '<p class="t2 f12 mb12">Asigna un rol a cada integrante antes de elegir la empresa. Cada rol define qué análisis lidera cada persona.</p>'+
           '<button class="btn btn-p btn-w btn-lg" onclick="ss({screen:\'lobby\'})">'+
-            '🎭 Asignar roles al equipo →'+
+            '🏢 Elegir empresa →'+
           '</button>'+
           '<button class="btn btn-sm btn-w mt8" style="opacity:.5" onclick="if(confirm(\'¿Saltar asignación de roles?\'))doConfirmRoles()">'+
             'Saltar y elegir empresa directamente'+
@@ -2481,7 +2484,7 @@ function doConfirmRoles(){
   if(!t)return;
   t.rolesConfirmed=true;
   DB.saveTeams(teams);SYNC.pushTeam(t);
-  ss({screen:'lobby'});}
+  A.screen='lobby';render();}
 
 
 // ================================================================
@@ -2666,6 +2669,112 @@ function rTEquipos(teams){
           '</div></td>'+
         '</tr>';}).join('')+
       '</table></div>':'<p class="t2 f12">Sin equipos.</p>')+
+  '</div>';}
+
+
+function rTCoevals(){
+  var teams=DB.getTeams().filter(function(t){return t.companyId;});
+  var evs=DB.getEvals();
+  var users=DB.getUsers();
+  var snames=['','Empresa','Est.Fin.','Razones','H+V+EFE','PE'];
+
+  // Build matrix: evaluator → teams evaluated per stage
+  var evalMatrix={};
+  evs.forEach(function(ev){
+    if(!evalMatrix[ev.evalId])evalMatrix[ev.evalId]={};
+    var key=ev.teamId+'_'+(ev.stage||1);
+    evalMatrix[ev.evalId][key]={score:ev.rubricScores,comment:ev.comment,stage:ev.stage||1};
+  });
+
+  // Summary cards
+  var totalEvs=evs.length;
+  var uniqueEvaluators=Object.keys(evalMatrix).length;
+  var avgRubric=0;
+  if(evs.length){
+    var total=0,cnt=0;
+    evs.forEach(function(ev){
+      var rubric=RUBRICS[ev.stage||1];
+      if(rubric&&ev.rubricScores){
+        rubric.criteria.forEach(function(c){
+          var v=parseInt((ev.rubricScores||{})[c.id]||0);
+          if(v){total+=v;cnt++;}
+        });
+      }
+    });
+    avgRubric=cnt?Math.round(total/cnt*10)/10:0;
+  }
+
+  return'<div>'+
+    '<div class="g4c mb14">'+
+      '<div class="metric"><div class="metric-l">Total coevaluaciones</div><div class="metric-v">'+totalEvs+'</div></div>'+
+      '<div class="metric"><div class="metric-l">Evaluadores activos</div><div class="metric-v">'+uniqueEvaluators+'</div></div>'+
+      '<div class="metric"><div class="metric-l">Promedio rúbrica</div><div class="metric-v">'+avgRubric+'/4</div></div>'+
+      '<div class="metric"><div class="metric-l">Evaluaciones/equipo</div><div class="metric-v">'+(teams.length?Math.round(totalEvs/teams.length*10)/10:0)+'</div></div>'+
+    '</div>'+
+
+    // Matrix: who evaluated whom
+    '<div class="card mb14">'+
+      '<div class="fw7 f13 mb10">Matriz de Coevaluaciones por Etapa</div>'+
+      '<div class="ox"><table class="ft">'+
+        '<tr><th>Evaluador</th>'+
+        teams.map(function(t){
+          var co=getC(t.companyId);
+          return'<th style="text-align:center">'+(co?co.e:'')+' '+t.name.split(' ')[0]+'</th>';
+        }).join('')+
+        '</tr>'+
+        users.filter(function(u){return u.role==='student';}).map(function(u){
+          var myEvs=evs.filter(function(e){return e.evalId===u.id;});
+          var myTeam=teams.find(function(t){return(t.members||[]).includes(u.id);});
+          var evaledTeams=new Set(myEvs.map(function(e){return e.teamId;}));
+          var evalCount=evaledTeams.size;
+          return'<tr>'+
+            '<td class="f12">'+
+              '<div class="fw6">'+u.name+'</div>'+
+              '<div class="t2 f10">'+(myTeam?myTeam.name:'Sin equipo')+'</div>'+
+              '<span class="badge '+(evalCount>=2?'bok':evalCount===1?'bwarn':'bmuted')+' f10">'+evalCount+' eval</span>'+
+            '</td>'+
+            teams.map(function(t){
+              if(myTeam&&t.id===myTeam.id)return'<td style="text-align:center;background:var(--s3)"><span class="t3 f10">propio</span></td>';
+              var stagesEvaled=myEvs.filter(function(e){return e.teamId===t.id;}).map(function(e){return e.stage||1;});
+              if(!stagesEvaled.length)return'<td style="text-align:center"><span class="t3 f11">—</span></td>';
+              return'<td style="text-align:center">'+
+                stagesEvaled.map(function(s){return'<span class="badge bok f10">E'+s+'</span>';}).join(' ')+
+              '</td>';
+            }).join('')+
+          '</tr>';
+        }).join('')+
+      '</table></div>'+
+    '</div>'+
+
+    // Detailed evaluations per team
+    '<div class="card">'+
+      '<div class="fw7 f13 mb10">Detalle de coevaluaciones recibidas por equipo</div>'+
+      teams.map(function(t){
+        var co=getC(t.companyId);
+        var received=evs.filter(function(e){return e.teamId===t.id;});
+        if(!received.length)return'<div class="card-s mb8"><div class="fw6 f12">'+(co?co.e:'') +' '+t.name+'</div><div class="t2 f11">Sin coevaluaciones recibidas.</div></div>';
+        return'<div class="card-s mb10">'+
+          '<div class="fw7 f13 mb8">'+(co?co.e+' ':'')+t.name+' <span class="badge bp f11">'+received.length+' eval recibidas</span></div>'+
+          received.map(function(ev){
+            var evaluator=users.find(function(u){return u.id===ev.evalId;});
+            var rubric=RUBRICS[ev.stage||1];
+            var avgScore=0;
+            if(rubric&&ev.rubricScores){
+              var sum=0,n=0;
+              rubric.criteria.forEach(function(c){var v=parseInt((ev.rubricScores||{})[c.id]||0);if(v){sum+=v;n++;}});
+              avgScore=n?Math.round(sum/n*10)/10:0;
+            }
+            return'<div style="border-left:3px solid var(--p);padding:8px 12px;margin-bottom:8px;background:var(--s1);border-radius:0 6px 6px 0">'+
+              '<div class="fbet mb4">'+
+                '<div class="fw6 f12">'+(evaluator?evaluator.name:'?')+' <span class="t2 f11">· Etapa '+(ev.stage||1)+'</span></div>'+
+                '<span class="badge bp f11">'+avgScore+'/4</span>'+
+              '</div>'+
+              (ev.comment?'<div class="t2 f11" style="font-style:italic">'+ev.comment+'</div>':'')+
+            '</div>';
+          }).join('')+
+        '</div>';
+      }).join('')+
+    '</div>'+
   '</div>';}
 
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
@@ -2859,9 +2968,22 @@ function doPEProgress(nextPhase){
 
 
 function doSubmit(stage){
+  var team0=getUserTeam(A.user.id);
+  if(team0&&team0.leaderId!==A.user.id&&A.user.role!=='admin'){
+    msg('Solo el capitán del equipo puede enviar las etapas.','warn');return;
+  }
   document.querySelectorAll('textarea,input[type=text],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
   const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
+  // Coeval gate: must eval ≥2 teams in previous stage
+  if(stage>1&&A.user&&A.user.role!=='admin'){
+    var prevStage=stage-1;
+    var evCount=DB.getEvals().filter(function(e){return e.evalId===A.user.id&&e.stage===prevStage;}).length;
+    if(evCount<2){
+      msg('Debes coevaluar al menos 2 equipos en la Etapa '+prevStage+' antes de enviar la Etapa '+stage+'. Llevas '+evCount+'/2.','warn');
+      return;
+    }
+  }
   if(stage>=2&&(!A.user||A.user.role!=='admin')){var gqs=getGuide(stage,co);var gAnswered=gqs.filter(function(q){return(A.inp[q.id]||'').trim().length>=30;});if(gAnswered.length<2){msg('Responde al menos 2 preguntas del Análisis Guiado (30+ caracteres c/u) antes de entregar.','warn');return;}}
 if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[team.id][1]={data:{...A.inp},score:100,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);ss({view:'stages',stage:2});msg('✅ Etapa 1 entregada.','ok');return;}
   const score=calcScore(stage,team.id,A.inp);
