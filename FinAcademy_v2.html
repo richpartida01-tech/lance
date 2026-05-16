@@ -1405,15 +1405,23 @@ const SYNC={
             submittedBy:r.submitted_by||'',submittedAt:r.submitted_at||0};
         });
         localStorage.setItem('fa2_subs',JSON.stringify(subs));}
-      // ── Evals: snake_case → camelCase ──
+      // ── Evals: snake_case → camelCase, MERGE with local ──
       if(ev.data){
-        var evals=ev.data.map(function(r){return{
+        var fromSupabase=ev.data.map(function(r){return{
           id:r.id,evalId:r.eval_id,evalName:r.eval_name||'',
           teamId:r.team_id,stage:r.stage||1,
           rubricScores:r.rubric_scores||{},
           fieldEvals:r.field_evals||{},scores:r.scores||{},
           comment:r.comment||'',createdAt:r.created_at};});
-        localStorage.setItem('fa2_evals',JSON.stringify(evals));}
+        var localOnly=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
+        // Merge: keep local evals not yet in Supabase
+        var sbIds=new Set(fromSupabase.map(function(e){return e.id;}));
+        var onlyLocal=localOnly.filter(function(e){return!sbIds.has(e.id);});
+        var merged=fromSupabase.concat(onlyLocal);
+        localStorage.setItem('fa2_evals',JSON.stringify(merged));
+        if(onlyLocal.length){console.log('[FA] '+onlyLocal.length+' evals solo en local, intentando subir...');
+          onlyLocal.forEach(function(ev){SYNC.pushEval(ev).catch(function(e){console.warn(e);});});}
+      }
       console.log('[SYNC] Datos actualizados desde Supabase ✅');
     }catch(e){console.warn('[SYNC] Error al sincronizar:',e.message);}
   },
@@ -2740,6 +2748,7 @@ function rTCoevals(){
   '<div class="flex g8">'+
     '<button class="btn btn-sm btn-ok" onclick="doRetryPendingEvals()">🔄 Reintentar Sync</button>'+
     '<button class="btn btn-sm" onclick="SYNC.pull().then(function(){render();msg(\'✅ Datos actualizados\',\'ok\');})">⬇️ Jalar Supabase</button>'+
+    '<button class="btn btn-sm btn-warn" onclick="doDiagnosticEvals()">🔬 Diagnóstico</button>'+
   '</div>'+
   '</div>'+
     '<div class="g4c mb14">'+
@@ -2831,6 +2840,71 @@ function doRetryPendingEvals(){
     }
     render();
   });}
+
+
+async function doDiagnosticEvals(){
+  var app=document.getElementById('app');
+  var out='<div style="padding:20px;font-family:monospace;font-size:12px;background:#0a0a14;color:#e2e8f0;min-height:100vh">';
+  out+='<h2 style="color:#6c63ff">🔬 Diagnóstico de Coevaluaciones</h2>';
+
+  // 1. LocalStorage
+  var localEvs=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
+  var localPending=JSON.parse(localStorage.getItem('fa2_pending_evals')||'[]');
+  out+='<h3 style="color:#10b981">1. LocalStorage</h3>';
+  out+='<p>fa2_evals: <strong>'+localEvs.length+'</strong> registros</p>';
+  out+='<p>fa2_pending_evals: <strong>'+localPending.length+'</strong> pendientes</p>';
+  if(localEvs.length){
+    out+='<pre style="background:#111;padding:10px;border-radius:6px;overflow:auto;max-height:200px">'+
+      JSON.stringify(localEvs.slice(0,3),null,2)+'</pre>';
+  }
+
+  // 2. SYNC status
+  out+='<h3 style="color:#10b981">2. Supabase</h3>';
+  out+='<p>SYNC.enabled: <strong>'+(SYNC.enabled?'✅ Sí':'❌ No')+'</strong></p>';
+  out+='<p>SYNC.sb: <strong>'+(SYNC.sb?'✅ Conectado':'❌ null')+'</strong></p>';
+
+  if(SYNC.sb){
+    try{
+      var result=await SYNC.sb.from('fa_evals').select('*').limit(20);
+      out+='<p>Supabase fa_evals: <strong>'+(result.data?result.data.length:'error')+'</strong> registros</p>';
+      if(result.error)out+='<p style="color:#ef4444">Error: '+result.error.message+'</p>';
+      if(result.data&&result.data.length){
+        out+='<pre style="background:#111;padding:10px;border-radius:6px;overflow:auto;max-height:200px">'+
+          JSON.stringify(result.data.slice(0,2),null,2)+'</pre>';
+      }
+    }catch(e){out+='<p style="color:#ef4444">Error consultando Supabase: '+e.message+'</p>';}
+  }
+
+  // 3. Force push ALL local evals
+  out+='<h3 style="color:#10b981">3. Acciones</h3>';
+  out+='<button onclick="doForceAllEvals()" style="background:#6c63ff;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin:4px">💾 Forzar subida de TODAS las evals locales a Supabase</button>';
+  out+='<button onclick="SYNC.pull().then(function(){render();alert(\'Sync completo\')})" style="background:#10b981;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin:4px">⬇️ Jalar Supabase → LocalStorage</button>';
+  out+='<button onclick="A.teacherTab=\'coevs\';render()" style="background:#374151;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin:4px">← Volver</button>';
+  out+='</div>';
+  if(app)app.innerHTML=out;
+}
+
+async function doForceAllEvals(){
+  var localEvs=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
+  if(!localEvs.length){alert('No hay evaluaciones en localStorage.');return;}
+  if(!SYNC.sb){alert('Supabase no está conectado.');return;}
+  var ok=0,err=0;
+  for(var ev of localEvs){
+    try{
+      await SYNC.sb.from('fa_evals').upsert({
+        id:ev.id,eval_id:ev.evalId||ev.eval_id,eval_name:ev.evalName||ev.eval_name||'',
+        team_id:ev.teamId||ev.team_id,stage:ev.stage||1,
+        rubric_scores:ev.rubricScores||ev.rubric_scores||{},
+        field_evals:ev.fieldEvals||ev.field_evals||{},
+        scores:ev.scores||{},comment:ev.comment||'',
+        created_at:ev.createdAt||ev.created_at||Date.now()
+      },{onConflict:'id'});
+      ok++;
+    }catch(e){err++;console.error(e);}
+  }
+  localStorage.removeItem('fa2_pending_evals');
+  alert('Resultado: '+ok+' subidas, '+err+' errores. Revisa la consola para detalles.');
+  doDiagnosticEvals();}
 
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
