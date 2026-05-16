@@ -1032,7 +1032,11 @@ function rCoeval(team,co){
       (etmSub&&rubric?
         '<div class="card">'+
           '<div class="fw7 f13 mb4">Rúbrica de evaluación — Etapa '+evalStage+'</div>'+
-          (alreadyEval?'<div class="alert aok mb10 f12">✅ Ya evaluaste esta etapa de este equipo. Puedes actualizar tu evaluación.</div>':'')+
+          (alreadyEval?'<div class="alert aok mb12" style="align-items:center">'+
+          '<span style="font-size:28px">✅</span>'+
+          '<div><div class="fw7 f13 mb2">Coevaluación guardada correctamente</div>'+
+          '<div class="f12 t2">Etapa '+evalStage+' evaluada. Se registró en la base de datos. Puedes modificarla.</div></div>'+
+        '</div>':'')+
           rubric.criteria.map(function(c){
             var stateKey='ev_'+tgt+'_'+evalStage+'_'+c.id;
             // Load existing eval if any
@@ -1096,11 +1100,13 @@ function doEval(){
           teamId:tid,stage:stage,rubricScores:rubricScores,
           fieldEvals:{},scores:{},comment:comment,createdAt:Date.now()};
   if(idx>=0)evs[idx]=ev;else evs.push(ev);
-  DB.saveEvals(evs);SYNC.pushEval(ev);
-  // Clear state for this team+stage
+  DB.saveEvals(evs);
+  try{SYNC.pushEval(ev);}catch(se){console.warn('[SYNC]',se);}
   rubric.criteria.forEach(function(c){delete A.inp['ev_'+tid+'_'+stage+'_'+c.id];});
   delete A.inp['ev_comment_'+tid+'_'+stage];
-  msg('✅ Evaluación de Etapa '+stage+' enviada.','ok');ss({});}
+  var tname=(DB.getTeams().find(function(t){return t.id===tid;})||{name:'equipo'}).name;
+  msg('✅ Coevaluación E'+stage+' de '+tname+' guardada en la base de datos.','ok');
+  ss({});}
 
 // Check if user has co-evaluated all teams for a given stage
 function hasEvaluatedAll(stage){
@@ -2933,12 +2939,11 @@ function calcParticipation(teamId){
   if(!team)return 0;
   var evaluable=DB.getTeams().filter(function(t){return t.companyId&&t.id!==teamId&&teamProg(t.id)>0;});
   if(!evaluable.length)return 100;
-  var evs=DB.getEvals().filter(function(e){
-    return (team.members||[]).includes(e.evalId)||e.evalId===teamId;
-  });
-  var unique=new Set(evs.map(function(e){return e.teamId+'_'+(e.stage||1);})).size;
-  var total=evaluable.length*5;
-  return Math.min(100,Math.round(unique/total*100));}
+  var allEvs=DB.getEvals();
+  var memberIds=team.members||[];
+  var evs=allEvs.filter(function(e){return memberIds.includes(e.evalId);});
+  var uniqueTeams=new Set(evs.map(function(e){return e.teamId;})).size;
+  return Math.min(100,Math.round(uniqueTeams/evaluable.length*100));}
 
 
 function doPEProgress(nextPhase){
@@ -4489,7 +4494,8 @@ function rTeacher(){
       '<div class="tab'+(tab==='mover'?' active':'')+'" data-ttab="mover">&#x1F503; Mover Alumnos</div>'+
       '<div class="tab'+(tab==='empresas'?' active':'')+'" data-ttab="empresas">&#x1F3E2; Empresas</div>'+
       '<div class="tab'+(tab==='scores'?' active':'')+'" data-ttab="scores">&#x270F;&#xFE0F; Calificaciones</div>'+
-      '<div class="tab'+(tab==='limpiar'?' active':'')+'" data-ttab="limpiar" style="color:var(--red)">&#x1F9F9; Limpiar</div>'+
+      '<div class="tab'+(tab==='coevs'?' active':'')+'" data-ttab="coevs">&#x2B50; Coevaluaciones</div>'+
+    '<div class="tab'+(tab==='limpiar'?' active':'')+'" data-ttab="limpiar" style="color:var(--red)">&#x1F9F9; Limpiar</div>'+
       '<div class="tab'+(tab==='supabase'?' active':'')+'" data-ttab="supabase">&#x1F5C4;&#xFE0F; Supabase</div>'+
     '</div>'+
     (tab==='overview'?rTOverview(users,teams,subs,totalSubs):'')+
@@ -4500,7 +4506,7 @@ function rTeacher(){
     (tab==='scores'?rTScores(teams):'')+
     (tab==='evaluar'?rTeacherEvalPanel():'')+
     (tab==='evaluar'?rTeacherEvalPanel():'')+
-    (tab==='limpiar'?rTLimpiar(teams,users,subs):'')+
+    (tab==='coevs'?rTCoevals():'')+(tab==='limpiar'?rTLimpiar(teams,users,subs):'')+
     (tab==='supabase'?rSupabasePanel():'')+
     '<input type="file" id="importFile" accept=".json" style="display:none">'+
   '</div>';}
