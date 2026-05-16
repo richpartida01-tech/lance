@@ -1261,15 +1261,6 @@ function doImport(f){const r=new FileReader();r.onload=e=>{try{const d=JSON.pars
 // INIT
 // ================================================================
 
-window.onerror = function(msg,src,line,col,err){
-  var app=document.getElementById('app');
-  if(app) app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#0b0e1a;min-height:100vh"><h2>Error JS:</h2><pre>'+msg+'\n\nLine: '+line+'\nCol: '+col+'\n\n'+(err?err.stack:'')+'</pre></div>';
-  return false;};
-(function init(){
-  const ses=DB.getSession();
-  if(ses){A.user=ses;if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);if(ses.role==='teacher')A.screen='teacher';else{const t=getUserTeam(ses.id);A.screen=t&&t.companyId?'student':'lobby';}}
-  render();
-})();
 const RUBRICS={
   1:{name:'Empresa & Canvas',weight:10,criteria:[
     {id:'r1_1',name:'Justificacion de la seleccion',desc:'La justificacion es clara, argumentada y conecta con el sector?',
@@ -4611,52 +4602,17 @@ function rCoevalWork(sub,co,stage,evalStage){
   return out;}
 
 
-(function(){
-  // Restore session if exists
-  var ses=DB.getSession();
-  if(ses){
-    A.user=ses;
-    if(ses.role==='teacher'){A.screen='teacher';}
-    else if(ses.role==='admin'){A.screen='demo';}
-    else{
-      if(ses.role==='team')ensureTeamForUser(ses);
-      var t=getUserTeam(ses.id);
-      A.screen=t&&t.companyId?'student':'lobby';
-    }
-  }
-  // Connect Supabase only on real server (not file://)
-  if(location.protocol!=='file:'){
-    try{
-      var cfg=SYNC.loadConfig();
-      if(cfg.url&&cfg.key){
-        SYNC.init(cfg.url,cfg.key);
-        if(SYNC.enabled){
-          try{SYNC.subscribe();}catch(e){console.warn('[SYNC subscribe]',e);}
-          SYNC.pull().then(function(){
-            render();
-            console.log('[FA] Sincronizado con Supabase ✅');
-          }).catch(function(e){console.warn('[SYNC pull]',e);});
-        }
-      }
-    }catch(e){console.warn('[SYNC init error]',e);}
-  }
-  // Load preloaded students on first run
-  var existingUsers=DB.getUsers().filter(function(u){return u.role==='student';});
-  if(existingUsers.length===0){
-    var allUsers=DB.getUsers();
-    PRELOADED_STUDENTS.forEach(function(s){
-      if(!allUsers.find(function(u){return u.email===s.email||u.studentCode===s.studentCode;})){
-        allUsers.push(s);
-      }
-    });
-    DB.saveUsers(allUsers);
-    if(SYNC.enabled){PRELOADED_STUDENTS.forEach(function(s){SYNC.pushUser(s);});}
-    console.log('[FA] '+PRELOADED_STUDENTS.length+' alumnos pre-cargados');
-  }
-  // Always render
+
+
+window.onerror = function(msg,src,line,col,err){
+  var app=document.getElementById('app');
+  if(app) app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#0b0e1a;min-height:100vh"><h2>Error JS:</h2><pre>'+msg+'\n\nLine: '+line+'\nCol: '+col+'\n\n'+(err?err.stack:'')+'</pre></div>';
+  return false;};
+(function init(){
+  const ses=DB.getSession();
+  if(ses){A.user=ses;if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);if(ses.role==='teacher')A.screen='teacher';else{const t=getUserTeam(ses.id);A.screen=t&&t.companyId?'student':'lobby';}}
   render();
 })();
-
 </script>
 </body>
 </html>
