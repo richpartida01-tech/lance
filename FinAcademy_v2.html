@@ -335,6 +335,941 @@ const COS=RAW.map(buildCo);
 
 
 const WEIGHTS={1:10,2:25,3:20,4:30,5:15};
+
+function getGuide(stage,co){
+var g={
+2:[
+{id:'s2g1',icon:'',ttl:'Estructura de activos esperada',
+q:'En el sector de <em>'+co.s+'</em>, \u00bfqu\u00e9 tipo de activos (circulantes vs. no circulantes) esperas que predomine en '+co.n+'? Explica c\u00f3mo el modelo de negocio determina la estructura del Balance.',
+tip:'Pista: \u00bfNecesita mucho equipo f\u00edsico permanente (parques, m\u00e1quinas) o el negocio es digital/servicio ligero en activos fijos?'},
+{id:'s2g2',icon:'',ttl:'Costos y propuesta de valor',
+q:'\u00bfC\u00f3mo se relaciona el nivel de costos de ventas de '+co.n+' con su propuesta de valor "'+co.tag+'"? \u00bfPor qu\u00e9 tiene ese nivel de costo para generar ese valor diferencial?',
+tip:'Pista: \u00bfEl valor que ofrece depende de muchos insumos f\u00edsicos (costo alto) o de intangibles/plataforma/servicio (costo m\u00e1s bajo)?'},
+{id:'s2g3',icon:'',ttl:'Estrategia de financiamiento',
+q:'\u00bfC\u00f3mo crees que financia '+co.n+' sus operaciones y crecimiento: m\u00e1s con deuda bancaria o con capital propio? Justifica considerando el riesgo y ciclo de vida del negocio en <em>'+co.s+'</em>.',
+tip:'Pista: Una empresa en expansi\u00f3n en sector nuevo tiende a usar m\u00e1s deuda. Una consolidada y rentable puede financiarse con utilidades retenidas.'},
+{id:'s2g4',icon:'',ttl:'Margen de ganancia esperado',
+q:'Antes de calcular: \u00bfQu\u00e9 margen de utilidad neta (%) consideras razonable para '+co.n+'? \u00bfAlto o bajo? \u00bfPor qu\u00e9 empresas de <em>'+co.s+'</em> tienden a ese nivel de rentabilidad?',
+tip:'Pista: Plataformas digitales tienen m\u00e1rgenes altos (pocos costos variables). Parques y complejos f\u00edsicos tienen m\u00e1rgenes moderados por su alta inversi\u00f3n en infraestructura.'},
+],
+3:[
+{id:'s3g1',icon:'',ttl:'Liquidez \u00f3ptima del sector',
+q:'\u00bfDebera '+co.n+' mantener una raz\u00f3n corriente alta o moderada? Considera que opera en <em>'+co.s+'</em>: \u00bfsus clientes pagan al contado, con anticipaci\u00f3n o a cr\u00e9dito? \u00bfEs predecible su flujo de caja?',
+tip:'Pista: Un cine o estadio cobra al contado (no necesita mucha liquidez). Una empresa B2B que cobra a 90 d\u00edas necesita muchos activos circulantes para no quedarse sin efectivo.'},
+{id:'s3g2',icon:'',ttl:'Rol estrat\u00e9gico del inventario',
+q:'\u00bfQu\u00e9 papel juegan los inventarios en '+co.n+'? \u00bfSon cr\u00edticos (sin stock no hay venta) o marginales (es principalmente de servicio)? \u00bfC\u00f3mo afecta esto la diferencia entre raz\u00f3n corriente y prueba \u00e1cida?',
+tip:'Pista: La prueba \u00e1cida excluye inventarios porque son el activo menos l\u00edquido. Si la diferencia entre RC y PA es grande, el inventario es importante en la empresa.'},
+{id:'s3g3',icon:'',ttl:'Ciclo de cobro y pago',
+q:'\u00bfEn qu\u00e9 momento cobra '+co.n+' a sus clientes (\u00bfanticipado, inmediato o a cr\u00e9dito?) y cu\u00e1ndo paga a proveedores? Describe el gap de efectivo que esto genera en la operaci\u00f3n diaria.',
+tip:'Pista: Si pagas a proveedores en 30 d\u00edas pero cobras a clientes en 60, tienes 30 d\u00edas de gap que debes financiar. Este gap es el ciclo de conversi\u00f3n de efectivo.'},
+],
+4:[
+{id:'s4g1',icon:'',ttl:'Factores de crecimiento del sector',
+q:'Entre '+co.y[0]+' y '+co.y[1]+', \u00bfqu\u00e9 factores del mercado de <em>'+co.s+'</em> podr\u00edan explicar el crecimiento o contracci\u00f3n de las ventas de '+co.n+'? Considera tendencias, competencia, cambios en el consumo.',
+tip:'Pista: Factores comunes: digitalizaci\u00f3n del sector, expansi\u00f3n de sucursales, cambios generacionales en consumo, recuperaci\u00f3n post-pandemia, mayor competencia, etc.'},
+{id:'s4g2',icon:'',ttl:'Eficiencia operativa y apalancamiento',
+q:'\u00bfEl incremento en costos de '+co.n+' es proporcional al incremento en ventas entre los dos a\u00f1os? \u00bfQu\u00e9 significar\u00eda si los costos crecen M\u00c1S que las ventas? \u00bfY si crecen MENOS?',
+tip:'Pista: Costos crecen menos que ventas = apalancamiento operativo positivo = econom\u00edas de escala funcionando. Es la se\u00f1al de un modelo de negocio escalable.'},
+{id:'s4g3',icon:'',ttl:'Evoluci\u00f3n de la estructura de activos',
+q:'\u00bfCambi\u00f3 la proporci\u00f3n de activos circulantes vs. no circulantes de '+co.n+' entre los dos a\u00f1os? \u00bfQu\u00e9 decisiones de inversi\u00f3n o desinversi\u00f3n podr\u00edan explicar ese cambio?',
+tip:'Pista: Aumento en activos no circulantes = expansi\u00f3n (nuevas instalaciones, equipo). Disminuci\u00f3n = ventas de activos, depreciaci\u00f3n acelerada o simplemente no reinversi\u00f3n.'},
+],
+5:[
+{id:'s5g1',icon:'',ttl:'Por qu\u00e9 usar el PE ponderado',
+q:co.n+' tiene '+co.pr.length+' productos/servicios con precios y costos distintos. \u00bfPor qu\u00e9 un PE simple NO ser\u00eda v\u00e1lido aqu\u00ed? \u00bfQu\u00e9 problema espec\u00edfico resuelve el PE ponderado con la mezcla de ventas?',
+tip:'Pista: PE simple asume un solo producto. Con varios, hay que ponderar el margen seg\u00fan participaci\u00f3n de cada producto para obtener el margen representativo del portafolio.'},
+{id:'s5g2',icon:'',ttl:'An\u00e1lisis del portafolio de productos',
+q:'Revisa los '+co.pr.length+' productos de '+co.n+'. \u00bfCu\u00e1l tiene el mayor MC absoluto ($)? \u00bfY el mayor MC porcentual sobre precio? \u00bfEs el mismo producto en ambos casos? \u00bfQu\u00e9 estrategia sugiere este an\u00e1lisis?',
+tip:'Pista: MC alto en $ = contribuye m\u00e1s por unidad. MC alto en % = m\u00e1s eficiente. La estrategia de ventas deber\u00eda enfocarse en maximizar ambos criterios simult\u00e1neamente.'},
+{id:'s5g3',icon:'',ttl:'Palancas para reducir el PE',
+q:'Si los directivos de '+co.n+' necesitaran reducir su PE un 20%, \u00bfqu\u00e9 tres acciones concretas podr\u00edan tomar? Ord\u00e9nalas de m\u00e1s a menos factible para el sector <em>'+co.s+'</em> y explica los trade-offs.',
+tip:'Pista: Las 3 palancas cl\u00e1sicas: (1) Reducir costos fijos, (2) Subir precios de venta, (3) Desplazar la mezcla hacia productos de mayor MC. Cada una tiene consecuencias distintas.'},
+],
+};
+return g[stage]||[];
+}
+
+const BMC={
+  nexspin:{
+    socios:{hint:'Publishers de videojuegos (Riot, Valve, Blizzard), plataformas de streaming (Twitch/YouTube), ligas regionales, patrocinadores de hardware (Razer, Logitech), organizadores de eventos locales.',pistas:'¿Con quién necesita aliarse NexSpin para poder organizar torneos con licencias oficiales y transmitirlos legalmente?'},
+    actividades:{hint:'Desarrollo y mantenimiento de la plataforma tecnológica, organización de torneos por rangos, gestión de comunidad, producción de broadcasts, atención a jugadores.',pistas:'¿Qué hace NexSpin cada día para que sus 2M de gamers puedan competir y la plataforma funcione sin interrupciones?'},
+    recursos:{hint:'Plataforma cloud escalable, algoritmo de matchmaking, equipo de ingeniería, base de datos de jugadores, contratos con publishers, reputación de marca.',pistas:'¿Qué activos críticos necesita NexSpin que no podría operar sin ellos?'},
+    propuesta:{hint:'Torneos competitivos accesibles desde nivel amateur hasta profesional, prize pools reales, experiencia sin latencia, comunidad activa LATAM, reconocimiento y carrera profesional para gamers.',pistas:'¿Por qué un gamer elegiría NexSpin sobre Battlefy o Toornament? ¿Qué problema resuelve?'},
+    relaciones:{hint:'Comunidad en Discord, soporte técnico 24/7, programa de embajadores (streamers), newsletters semanales, ligas exclusivas para suscriptores Premium, ranking global.',pistas:'¿Cómo mantiene NexSpin la lealtad de sus gamers y evita que migren a la competencia?'},
+    canales:{hint:'App móvil, plataforma web, Twitch/YouTube (torneos en vivo), TikTok e Instagram (contenido viral), comunidades en Discord/Reddit, tiendas de apps.',pistas:'¿Por dónde llega NexSpin a sus jugadores y cómo los convierte en usuarios pagantes?'},
+    segmentos:{hint:'Gamers amateur-semipro (12-28 años), gamers profesionales buscando exposición, sponsors corporativos (tech/bebidas energéticas), publishers buscando ampliar su base de jugadores.',pistas:'¿Quiénes son exactamente los clientes de NexSpin? ¿Tienen más de un tipo de cliente?'},
+    costos:{hint:'Infraestructura cloud (AWS/Azure), prize pools de torneos, salarios de ingenieros y moderadores, licencias de juegos, marketing digital, atención al cliente.',pistas:'¿Cuáles son los 3 gastos más grandes de NexSpin para poder operar diariamente?'},
+    ingresos:{hint:'Suscripciones Premium ($299/mes), entry fees por torneo ($150 promedio), publicidad y banners in-platform, patrocinios de marcas tech/gaming, venta de merchandise.',pistas:'¿De qué manera convierte NexSpin su base de usuarios en ingresos sostenibles?'}
+  },
+  trailblaze:{
+    socios:{hint:'Proveedores de equipos de skate (Vans, Independent, Sector 9), constructores de skateparks, federaciones de deportes extremos, municipios (permisos), instructores certificados.',pistas:'¿Quién ayuda a TrailBlaze a construir y operar sus skateparks sin hacerlo todo internamente?'},
+    actividades:{hint:'Operación de 12 skateparks, programas de clases por niveles, organización de competencias, gestión de tienda especializada, mantenimiento de instalaciones.',pistas:'¿Qué actividades realiza TrailBlaze diariamente para mantener 50,000 miembros activos y satisfechos?'},
+    recursos:{hint:'Propiedades físicas (skateparks indoor/outdoor), instructores certificados, marca reconocida en cultura skate, inventario de equipo especializado, comunidad de miembros.',pistas:'¿Qué recursos físicos, humanos y de marca hacen que TrailBlaze sea difícil de imitar?'},
+    propuesta:{hint:'Espacios urbanos de clase mundial accesibles para todos los niveles, desde principiante hasta profesional, comunidad auténtica de skate, formación de talento y cultura urbana genuina.',pistas:'¿Por qué alguien paga membresía en TrailBlaze en lugar de patinar en la calle?'},
+    relaciones:{hint:'Comunidad presencial y en redes, instructores como mentores, eventos de competencia, programa de membresía con beneficios, canal de YouTube con tutoriales propios.',pistas:'¿Cómo crea TrailBlaze un sentido de pertenencia que va más allá del simple gimnasio de skate?'},
+    canales:{hint:'Skateparks físicos (canal principal), app de reservas y clases, Instagram/TikTok (comunidad y tutoriales), boca a boca, colaboraciones con escuelas de deportes.',pistas:'¿Cómo saben los skaters de TrailBlaze y por dónde acceden a sus servicios?'},
+    segmentos:{hint:'Jóvenes urbanos (10-25 años) que quieren aprender, skaters intermedios/avanzados, padres que buscan actividad deportiva para hijos, competidores profesionales, compradores de equipo especializado.',pistas:'¿A qué diferentes tipos de personas sirve TrailBlaze y qué busca cada uno?'},
+    costos:{hint:'Renta o hipotecas de espacios físicos (mayor costo), salarios de instructores, mantenimiento de rampas y equipos, inventario de tienda, seguros, marketing.',pistas:'¿Cuál es la estructura de costos de un negocio con 12 espacios físicos? ¿Cómo afecta la escala?'},
+    ingresos:{hint:'Membresías mensuales ($599), clases individuales y grupales ($350), venta de equipo en tienda, cuotas de inscripción a competencias ($2,500), patrocinios de marcas de skate.',pistas:'¿Qué tan diversificadas están las fuentes de ingreso de TrailBlaze frente a riesgos como cierre temporal?'}
+  },
+  futurefest:{
+    socios:{hint:'Artistas internacionales y agencias de booking, municipios y gobierno (permisos), patrocinadores (marcas de bebidas, tech, moda), productoras AV, empresas de seguridad.',pistas:'¿Sin quiénes sería imposible para FutureFest montar un festival de 80K personas?'},
+    actividades:{hint:'Producción y logística de eventos (principal), contratación de artistas, venta de boletos, coordinación de patrocinios, gestión de redes durante el evento, producción audiovisual.',pistas:'¿Qué diferencia a FutureFest de un concierto normal? ¿Qué hace especial cada edición?'},
+    recursos:{hint:'Red de contactos con agencias de artistas, reputación de marca, equipo de producción experto, base de datos de asistentes recurrentes, know-how de logística de masas.',pistas:'¿Qué tiene FutureFest que hace que 80K personas confíen en su experiencia cada edición?'},
+    propuesta:{hint:'Experiencia cultural transformadora que combina música electrónica, arte visual, gastronomía premium y tecnología en un solo evento, generando identidad y pertenencia generacional.',pistas:'¿Un asistente va por el artista o por la experiencia completa? ¿Qué recuerda al día siguiente?'},
+    relaciones:{hint:'Comunidad de "festivaleros" recurrentes, early access para clientes de ediciones anteriores, contenido exclusivo post-evento, app del festival, grupos de WhatsApp/Discord.',pistas:'¿Cómo hace FutureFest para que alguien compre su boleto para la siguiente edición apenas termina la actual?'},
+    canales:{hint:'Venta de boletos online (Ticketmaster/portal propio), Instagram/TikTok (principal canal de hype), boca a boca, alianzas con radios y medios culturales, embajadores de marca.',pistas:'¿Cómo genera FutureFest el "FOMO" que lleva a que los boletos se agoten en horas?'},
+    segmentos:{hint:'Millennials y Gen Z (18-35 años) con poder adquisitivo, turistas culturales, asistentes VIP/corporativos, patrocinadores buscando alcance joven, artistas emergentes.',pistas:'¿Tiene FutureFest clientes de dos tipos (asistentes Y patrocinadores) con necesidades completamente distintas?'},
+    costos:{hint:'Cachets de artistas internacionales (mayor costo), renta de terrenos y producción de escenarios, seguridad y logística, marketing pre-evento, tecnología y streaming.',pistas:'¿Cuáles son los costos que se repiten en cada edición y cuáles son únicos del evento?'},
+    ingresos:{hint:'Boletos generales ($1,200), VIP ($3,500), paquetes camping ($2,800), patrocinios de marcas ($25,000+), transmisiones digitales, venta de merchandise de edición limitada.',pistas:'¿Qué tan vulnerable es FutureFest si una edición se cancela? ¿Debería diversificar más?'}
+  },
+  aquaplex:{
+    socios:{hint:'Operadores de hoteles boutique (si aplica), proveedores de equipos acuáticos, cadenas de restaurantes, agencias de viajes y turismo, gobierno estatal (turismo), seguros especializados.',pistas:'¿Con quién se asocia AquaPlex para convertirse en un destino turístico y no solo un parque acuático?'},
+    actividades:{hint:'Operación diaria del parque y 25 atracciones, gestión del hotel y spa, operación de restaurantes, mantenimiento de instalaciones, organización de eventos privados, marketing turístico.',pistas:'¿Qué hace AquaPlex diferente a un parque local que solo abre fines de semana?'},
+    recursos:{hint:'Infraestructura física valuada en millones (hotel, atracciones, restaurantes), licencias y permisos, personal de servicio entrenado, ubicación estratégica, marca premium.',pistas:'¿Por qué construir un parque como AquaPlex requiere tanta inversión y por qué eso es también una barrera de entrada?'},
+    propuesta:{hint:'Destino turístico familiar todo-incluido que combina diversión acuática, hospedaje, gastronomía y relajación; experiencias únicas para todas las edades en un solo lugar seguro.',pistas:'¿Una familia con niños pequeños qué valora más: el precio o la comodidad de no tener que salir del complejo?'},
+    relaciones:{hint:'Programa de lealtad para visitantes recurrentes, paquetes familiares, grupos y eventos corporativos, alianzas con escuelas, comunicación por email y app, reseñas en TripAdvisor.',pistas:'¿Cómo convierte AquaPlex a un visitante de una vez en un cliente que regresa cada temporada?'},
+    canales:{hint:'Página web y app (reservaciones), agencias de viajes, Google/TripAdvisor (búsqueda directa), redes sociales con contenido de experiencias, alianzas con hoteles cercanos.',pistas:'¿Cómo encuentra una familia de Guadalajara el parque AquaPlex y decide visitarlo en lugar de otro destino?'},
+    segmentos:{hint:'Familias con niños (núcleo principal), grupos de amigos jóvenes, parejas en escapada, corporativos para team building, turistas internacionales de occidente de México.',pistas:'¿Hay algún segmento de AquaPlex que pague más pero represente menos personas? ¿Cuál y por qué?'},
+    costos:{hint:'Mantenimiento y operación de atracciones (muy alto), nómina de 300+ empleados, tratamiento de agua, energía, marketing y publicidad, deuda de construcción (activos fijos enormes).',pistas:'¿Cuáles son los costos variables (dependen de cuántos visitantes hay) vs. fijos (siempre se pagan)?'},
+    ingresos:{hint:'Entradas generales ($450) y VIP ($850), hospedaje en hotel boutique, cabañas privadas ($3,500), consumo en restaurantes ($280 por persona), eventos corporativos y bodas.',pistas:'¿Qué ingreso de AquaPlex depende del clima o temporada? ¿Qué estrategia usa para los meses bajos?'}
+  },
+  vaultar:{
+    socios:{hint:'Desarrolladores de hardware AR/VR (Meta, HTC, Valve), creadores de contenido experiencial, empresas de team building, universidades (formación), distribuidores de tecnología.',pistas:'¿Por qué VaultAR necesita socios tecnológicos más que cualquier otra empresa del grupo?'},
+    actividades:{hint:'Operación de centros AR/VR, desarrollo y curación de experiencias, mantenimiento de equipo tecnológico de alto costo, ventas B2B para corporativos, actualización constante de contenido.',pistas:'¿Qué hace VaultAR que es tecnológicamente diferente a proyectar una película en 3D?'},
+    recursos:{hint:'Equipo AR/VR de última generación (activo clave), acuerdos de exclusividad con desarrolladores de experiencias, personal técnico especializado, ubicaciones premium en 8 ciudades.',pistas:'¿Cuáles son los recursos que VaultAR tiene que renovar constantemente para mantenerse relevante?'},
+    propuesta:{hint:'Experiencias inmersivas únicas que no se pueden vivir en casa, desde entretenimiento y aventura hasta formación empresarial; accesibles, seguras y tecnológicamente de vanguardia.',pistas:'¿Por qué alguien pagaría $350-$5,000 en VaultAR si puede comprar un headset propio?'},
+    relaciones:{hint:'Membresías mensuales, newsletter con nuevas experiencias, programa corporativo B2B, experiencias personalizadas para grupos, soporte técnico antes/durante/después.',pistas:'¿Qué tan diferente es la relación con un cliente corporativo (empresa) vs. un usuario individual?'},
+    canales:{hint:'Centros físicos (canal principal), web y app para reservas, LinkedIn para B2B corporativo, redes sociales con videos de experiencias, alianzas con agencias de eventos.',pistas:'¿Por qué VaultAR no puede vender su servicio principal de manera 100% digital?'},
+    segmentos:{hint:'Consumidores individuales curiosos (18-40 años), grupos de amigos/cumpleaños, empresas para team building y capacitación, colegios y universidades, turistas buscando experiencias únicas.',pistas:'¿Qué segmento de VaultAR es más rentable aunque sea más pequeño en volumen?'},
+    costos:{hint:'Adquisición y mantenimiento de equipos AR/VR (depreciación rápida, mayor costo), renta de locales en ubicaciones premium, personal técnico, licencias de contenido, actualizaciones.',pistas:'¿Cada cuánto tiempo VaultAR necesita renovar su equipo para seguir siendo competitivo?'},
+    ingresos:{hint:'Sesiones AR individuales ($350), sesiones VR grupales ($800), paquetes corporativos ($5,000+), suscripciones mensuales ($699), licenciamiento de experiencias propias a terceros.',pistas:'¿Puede VaultAR tener ingresos pasivos (sin necesitar presencia física) con algún componente de su negocio?'}
+  },
+  ironpulse:{
+    socios:{hint:'Proveedores de suplementos y nutrición deportiva, certificadoras internacionales de fitness (ACE, NASM), desarrolladores de wearables (Apple, Garmin), influencers fitness, propietarios de locales.',pistas:'¿Con quién necesita aliarse IronPulse para garantizar la calidad de sus instructores y sus productos de nutrición?'},
+    actividades:{hint:'Clases HIIT y funcionales diarias, certificación y formación de instructores, gestión de app de seguimiento de rendimiento, venta de suplementos, organización de retos comunitarios.',pistas:'¿Qué es lo que hace que un miembro de IronPulse quiera pagar $899/mes cuando podría ir a un gimnasio normal por $300?'},
+    recursos:{hint:'Red de 18 gimnasios equipados, instructores certificados internacionalmente, tecnología de monitoreo de rendimiento, marca aspiracional, comunidad activa y comprometida.',pistas:'¿Cuál es el recurso más difícil de escalar rápidamente para IronPulse: los locales, los instructores o la comunidad?'},
+    propuesta:{hint:'Transformación física y mental a través de metodología HIIT de alta intensidad con seguimiento tecnológico de progreso, en una comunidad motivadora con instructores de clase mundial.',pistas:'¿Un miembro de IronPulse va "a ejercitarse" o a algo más? ¿Qué promete IronPulse que otros no?'},
+    relaciones:{hint:'Comunidad presencial y app, instructor como coach personal, retos semanales en grupos de WhatsApp, tablero de marcadores, celebración de logros en redes, programa de referidos.',pistas:'¿Por qué los miembros de IronPulse siguen pagando aunque haya meses que van poco?'},
+    canales:{hint:'Sucursales físicas (experiencia principal), app IronPulse (seguimiento y reservas), Instagram/TikTok (transformaciones y comunidad), referencias de miembros, Google Maps.',pistas:'¿Qué porcentaje de nuevos miembros llega por publicidad vs. recomendación de alguien que ya está?'},
+    segmentos:{hint:'Profesionales urbanos 25-40 años con ingreso medio-alto, personas buscando resultados reales con método, mujeres (mayoría del mercado fitness boutique), entusiastas del fitness funcional.',pistas:'¿Tiene sentido que IronPulse tenga el mismo precio para alguien que va 3 veces por semana y uno que va 1 vez?'},
+    costos:{hint:'Renta de 18 locales en ubicaciones comerciales, nómina de instructores certificados, equipamiento especializado, tecnología de wearables y app, certificaciones y capacitaciones continuas.',pistas:'¿Qué costo de IronPulse escala directamente con el número de sucursales abiertas?'},
+    ingresos:{hint:'Membresías mensuales ($899), clases especiales y workshops ($450), venta de suplementos y nutrición ($650 promedio), entrenamiento personal ($1,200), ropa y accesorios de marca.',pistas:'¿Qué ingreso de IronPulse tiene el mayor margen? ¿Cuál lo tiene menor?'}
+  },
+  stardome:{
+    socios:{hint:'Agencias espaciales (NASA, ESA) para contenido educativo, universidades y escuelas (grupos), artistas multimedia para shows, fundaciones culturales, patrocinadores corporativos.',pistas:'¿Con quién trabaja StarDome para que su contenido sea científicamente correcto y culturalmente impactante?'},
+    actividades:{hint:'Producción y programación de shows de planetario 8K, curación de exposiciones interactivas, organización de eventos corporativos y educativos, operación del restaurante temático.',pistas:'¿Qué hace StarDome de manera permanente y qué cambia con cada nueva temporada o exhibición?'},
+    recursos:{hint:'Infraestructura de planetario digital 8K (inversión única), contenido científico y artístico, alianzas con instituciones académicas, staff de comunicadores de ciencia, marca cultural.',pistas:'¿Por qué instalar otro StarDome en una nueva ciudad requiere una inversión enorme antes del primer cliente?'},
+    propuesta:{hint:'Experiencias que hacen la ciencia y el cosmos emocionantes y accesibles, combinando rigor científico con espectáculo visual y sonoro inmersivo; aprendizaje que no se olvida.',pistas:'¿Un maestro que lleva a su clase a StarDome busca lo mismo que una pareja que va un sábado por la noche?'},
+    relaciones:{hint:'Programa educativo para escuelas (suscripciones anuales), membresías familiares, eventos de astrónomo por un día, newsletter de eventos del cosmos, redes sociales divulgativas.',pistas:'¿Cómo convierte StarDome a una visita escolar en un cliente recurrente con membresía familiar?'},
+    canales:{hint:'Instalación física (experiencia central), web para reservaciones grupales y escolares, redes sociales científicas (divulgación), alianzas con secretarías de educación, Google Cultural Institute.',pistas:'¿Por qué el canal digital de StarDome tiene un rol diferente al de FutureFest aunque ambos sean experiencias?'},
+    segmentos:{hint:'Escolares y grupos educativos (K-12 y universidad), familias con niños curiosos, empresas para eventos temáticos únicos, turistas culturales, aficionados a la astronomía y ciencia.',pistas:'¿Cuál segmento representa más ingresos por evento: un grupo escolar o una empresa para evento corporativo?'},
+    costos:{hint:'Depreciación del proyector 8K y sistema de domo (muy costosos), producción de nuevos shows (contenido), nómina de comunicadores y técnicos, operación del restaurante, energía.',pistas:'¿Cómo debe StarDome calcular el costo por visitante dado que sus costos fijos son muy altos?'},
+    ingresos:{hint:'Entradas al planetario ($280), shows inmersivos Premium ($650), eventos corporativos ($8,000+), membresías familiares anuales ($1,200), restaurante temático, tienda de astronomía.',pistas:'¿Qué ingreso de StarDome es el más predecible mes a mes? ¿Cuál es el más variable?'}
+  },
+  racehub:{
+    socios:{hint:'Fabricantes de karts (CRG, Tony Kart), proveedores de simuladores F1, marcas de motorsports (sponsors), federaciones de karting, instructores de conducción certificados.',pistas:'¿Por qué RaceHub necesita socios de la industria real del motorsport para dar credibilidad a su oferta?'},
+    actividades:{hint:'Operación de pistas indoor/outdoor, gestión de simuladores F1, escuela de conducción, eventos privados y cumpleaños, operación del restaurant bar, venta de equipo especializado.',pistas:'¿Qué actividades de RaceHub son puramente recreativas y cuáles tienen un componente de formación real?'},
+    recursos:{hint:'Pistas de karting y simuladores F1 (activos principales), karts de diferentes niveles, instructores de conducción, marca aspiracional ligada al motorsports, sistema de cronometraje.',pistas:'¿Qué hace que las pistas y simuladores de RaceHub sean difíciles de replicar por cualquier emprendedor con capital?'},
+    propuesta:{hint:'Adrenalina y experiencia de conducción real accesible para todos, desde una carrera recreativa hasta formación de piloto, en instalaciones con estándares de la industria del motorsport.',pistas:'¿Una persona que va a RaceHub busca "divertirse" o también busca "sentirse piloto de verdad"?'},
+    relaciones:{hint:'Ranking de tiempos en app (competencia entre clientes), programa de temporadas de karting, newsletter de la comunidad de velocidad, grupos en redes para amantes del motor.',pistas:'¿Cómo hace RaceHub para que un cliente que fue una vez quiera regresar a mejorar su tiempo de vuelta?'},
+    canales:{hint:'Complejo físico (canal central), web y app para reservas, Instagram/YouTube (contenido de carreras y adrenalina), alianzas con empresas para team building, Google Maps.',pistas:'¿Por qué el contenido en video de RaceHub tiene más impacto que el de StarDome para atraer clientes?'},
+    segmentos:{hint:'Adultos jóvenes 20-40 años buscando adrenalina, grupos corporativos para team building, cumpleaños y despedidas de soltero, enthusiasts del motor, familias con hijos mayores de 12.',pistas:'¿Qué segmento de RaceHub tiene el ticket promedio más alto por visita?'},
+    costos:{hint:'Mantenimiento de karts y pistas (constante), seguros especializados en deportes de motor (alto costo), combustible, nómina de instructores y mecánicos, operación del restaurante.',pistas:'¿Cuál es el costo más singular de RaceHub comparado con las otras 7 empresas del grupo?'},
+    ingresos:{hint:'Carreras estándar ($350), carreras premium ($550), simuladores F1 ($800), eventos privados ($12,000+), membresías de temporada, consumo en restaurante bar, venta de equipo.',pistas:'¿Un evento privado de empresa ($12,000) vs. 34 carreras individuales ($350): ¿cuál es más rentable para RaceHub?'}
+  }
+};
+
+function rS1(team,co){
+  const sub=getTeamSub(team.id,1);const done=!!sub;const d=sub?sub.data:{};
+  const ctx=BMC[co.id]||{};
+  var TAQ={'socios':'Netflix: Productoras Hollywood (Disney, Universal, Sony) para licencias, Amazon AWS para infraestructura cloud, fabricantes Smart TV (Samsung/LG) y consolas (Sony/MS), teleoperadoras para bundles (AT&T, Telcel), creadores de contenido independiente.','actividades':'Netflix: Produccion de contenido original ($17B+/anio como Squid Game/Stranger Things), mejora continua del algoritmo de recomendacion, gestion de infraestructura cloud global, negociacion de licencias de terceros, marketing de lanzamientos masivos.','recursos':'Netflix: Catalogo de +15,000 titulos con exclusivos propios, algoritmo de recomendacion entrenado con datos de 260M usuarios, infraestructura AWS en 3 continentes, marca global con 90%+ de reconocimiento, datos de preferencias unicos.','propuesta':'Netflix: Acceso ilimitado a series y peliculas SIN anuncios, en CUALQUIER dispositivo, con recomendaciones ultra-personalizadas, contenido EXCLUSIVO que no existe en otra plataforma, sin contrato (cancela cuando quieras), descarga offline.','relaciones':'Netflix: Suscripcion mensual recurrente sin contrato, algoritmo que aprende tus gustos con cada hora vista, notificaciones push de nuevas temporadas, perfiles separados por miembro (hasta 5), soporte chat 24/7, encuestas integradas.','canales':'Netflix: App iOS/Android/Smart TV/PlayStation/Xbox/PC, preinstalado en Samsung TVs, bundles con Telcel y Movistar, App Store y Google Play, publicidad en YouTube e Instagram para adquisicion de suscriptores.','segmentos':'Netflix: Hogares clase media-alta con internet (masivo), jovenes 18-34 que abandonan TV tradicional, familias con hijos (Kids fuerte), cineofilos y fans de series, mercados emergentes con planes economicos (plan con anuncios $2/mes).','costos':'Netflix: Produccion/adquisicion de contenido ($17B+ anuales = MAYOR COSTO), infraestructura tecnologica AWS ($1B+/anio), marketing global, nómina de 13,000 ingenieros y creativos, impuestos en 190 paises de operacion.','ingresos':'Netflix: Suscripciones en 3 niveles: Basico con anuncios ~$2/mes, Estandar ~$15/mes, Premium 4K ~$22/mes (USA). Licenciamiento de contenido original a terceros. Revenue share con teleoperadoras en bundles.'};
+function bk(key,icon,title,rows){
+    const val=A.inp['s1bmc_'+key]||(d['s1bmc_'+key]||'');
+    const c=ctx[key]||{};
+    var taqEx=TAQ[key]||'';
+    return '<div class="bmc-block" data-bkey="'+key+'">'+
+      '<div class="bmc-block-hdr">'+
+        '<div class="flex g8"><span style="font-size:16px">'+icon+'</span><span class="f11 fw7" style="text-transform:uppercase;letter-spacing:.07em">'+title+'</span></div>'+
+      '</div>'+
+      '<div class="bmc-hint"><div class="f11 fw6" style="color:var(--acc);margin-bottom:3px">¿Qué va aquí?</div>'+
+      '<div class="t2" style="font-size:10px;line-height:1.5">'+c.hint+'</div></div>'+
+      '<div class="bmc-hint" style="background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.2)"><div class="f11 fw6" style="color:var(--yellow);margin-bottom:3px">💡 Pista para '+co.n+'</div>'+
+      '<div style="font-size:10px;line-height:1.5;color:var(--text)">'+c.pistas+'</div></div>'+
+      '<textarea class="inp" id="s1bmc_'+key+'" rows="'+(rows||2)+'" placeholder="Escribe aquí el análisis de '+co.n+'..."></textarea>'+
+    '</div>';}
+  
+  return '<div class="fadein">'+sHdr(1,'Conoce tu Empresa + Business Model Canvas','Analiza el perfil estratégico y construye el modelo de negocio completo de tu empresa.',done)+
+  // COMPANY CARD
+  '<div class="g2 mb12">'+
+    '<div class="glow" style="border-color:'+co.c+'33"><div style="font-size:38px;margin-bottom:10px">'+co.e+'</div><div class="fw7 f15" style="color:'+co.c+'">'+co.n+'</div><div class="t2 f12">'+co.s+'</div><div class="t3 f11 mt8" style="font-style:italic">"'+co.tag+'"</div></div>'+
+    '<div class="card"><div class="lbl">Descripción</div><p class="f12" style="line-height:1.7">'+co.desc+'</p></div>'+
+  '</div>'+
+  '<div class="g2 mb16">'+
+    '<div class="card-s"><div class="f11 fw7 mb8" style="color:var(--p2)">🎯 MISIÓN</div><p class="f12" style="line-height:1.6">'+co.mis+'</p></div>'+
+    '<div class="card-s"><div class="f11 fw7 mb8" style="color:var(--acc)">🔭 VISIÓN</div><p class="f12" style="line-height:1.6">'+co.vis+'</p></div>'+
+  '</div>'+
+  // BRIEF ANALYSIS
+  '<div class="card mb20">'+
+    '<div class="fw7 f13 mb12">📝 Análisis inicial del equipo</div>'+
+    '<div class="g2">'+
+      '<div><div class="lbl">¿Por qué eligieron esta empresa?</div><textarea class="inp" id="s1a" rows="2" placeholder="Elegimos esta empresa porque..."></textarea></div>'+
+      '<div><div class="lbl">Fortalezas que esperan encontrar en sus estados financieros</div><textarea class="inp" id="s1b" rows="2" placeholder="Esperamos encontrar solidez en..."></textarea></div>'+
+    '</div>'+
+  '</div>'+
+  // BMC SECTION
+  '<div class="mb20">'+
+    '<div class="flex g8 mb12">'+
+      '<div style="font-size:22px">🗺️</div>'+
+      '<div><div class="fw7 f15">Business Model Canvas</div>'+
+      '<div class="t2 f12">Completa los 9 bloques del modelo de negocio de '+co.n+'. Cada bloque tiene contexto y pistas específicas.</div></div>'+
+    '</div>'+
+    '<div class="alert ai mb12"><span>ℹ️</span><span><strong>¿Cómo funciona?</strong> El BMC describe cómo una empresa <em>crea</em>, <em>entrega</em> y <em>captura</em> valor. Lee las pistas de cada bloque y piensa desde la perspectiva de '+co.n+'. No hay respuestas únicas — lo importante es la coherencia entre los 9 bloques.</span></div>'+
+    // CANVAS GRID
+    '<div class="canvas-wrap">'+
+      '<div class="canvas-grid">'+
+        '<div class="canvas-area" style="grid-area:sc;border-color:'+co.c+'44">'+bk('socios','🤝','Socios Clave',3)+'</div>'+
+        '<div class="canvas-area" style="grid-area:ac">'+bk('actividades','⚙️','Actividades Clave',2)+'</div>'+
+        '<div class="canvas-area" style="grid-area:pv;border:2px solid '+co.c+'88;background:rgba(108,99,255,.04)">'+bk('propuesta','💎','Propuesta de Valor',4)+'</div>'+
+        '<div class="canvas-area" style="grid-area:rc">'+bk('relaciones','💬','Relaciones con Clientes',2)+'</div>'+
+        '<div class="canvas-area" style="grid-area:seg;border-color:'+co.c+'44">'+bk('segmentos','🎯','Segmentos de Clientes',3)+'</div>'+
+        '<div class="canvas-area" style="grid-area:rk">'+bk('recursos','🔑','Recursos Clave',2)+'</div>'+
+        '<div class="canvas-area" style="grid-area:cn">'+bk('canales','📡','Canales',2)+'</div>'+
+        '<div class="canvas-area" style="grid-area:co2;background:rgba(239,68,68,.04);border-color:rgba(239,68,68,.25)">'+bk('costos','📉','Estructura de Costos',2)+'</div>'+
+        '<div class="canvas-area" style="grid-area:ing;background:rgba(16,185,129,.04);border-color:rgba(16,185,129,.25)">'+bk('ingresos','📈','Fuentes de Ingresos',2)+'</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="fw7 f13 mb8">🧩 Coherencia del modelo: ¿cómo se conectan los bloques?</div>'+
+    '<div class="lbl">Explica cómo la Propuesta de Valor de '+co.n+' está respaldada por sus Recursos, Actividades y Socios Clave</div>'+
+    '<textarea class="inp" id="s1c" rows="3" placeholder="La propuesta de valor de '+co.n+' de \''+co.tag+'\' se sostiene porque sus recursos clave de... permiten las actividades de... lo que hace posible entregar..."></textarea>'+
+    '<div class="sep"></div>'+
+    (done?'<div class="flex g8"><div class="alert aok" style="flex:1;margin:0">✅ Etapa 1 entregada correctamente.</div><button class="btn btn-ok btn-sm" data-rpt="1">📥 PDF</button></div>':'<button class="btn btn-p" id="btnS1">Entregar Etapa 1 →</button>')+
+  '</div></div>';}
+
+
+function rS2(team,co){
+  const sub=getTeamSub(team.id,2);const t=A.tab||'y1';const yi=t==='y2'?1:0;const yr=co.y[yi];const a=co.ans[t];
+  function bl(id,ans,w){const v=A.inp[id];const cl=v!=null&&v!==''?(close(parseFloat(v),ans)?'ok':'err'):'';return '<input type="number" class="blank'+(cl?' '+cl:'')+'" id="'+id+'" value="'+(v!=null?v:'')+'" placeholder="?" data-a="'+ans+'" style="width:'+(w||96)+'px" step="0.01">';}
+  const bg=a.bg,er=a.er;
+  return '<div class="fadein">'+sHdr(2,'Estados Financieros','Completa los campos amarillos. Validación automática en tiempo real.',!!sub)+rGuide(2,co)+'<div class="alert aw mb12">⚠️ Cifras en <strong>miles de pesos MXN</strong>. Campos en amarillo = debes calcularlos.</div><div class="tabs"><div class="tab'+(t==='y1'?' active':'')+'" data-tab="y1">Año '+co.y[0]+'</div><div class="tab'+(t==='y2'?' active':'')+'" data-tab="y2">Año '+co.y[1]+'</div></div><div class="g2"><div class="card"><div class="fw7 f12 mb10">📋 Balance General — '+yr+'</div><div class="ox"><table class="ft"><tr class="sec"><td colspan="2">ACTIVO CIRCULANTE</td></tr><tr><td class="ind">Efectivo y equivalentes</td><td class="r">'+fmt(bg.ef)+'</td></tr><tr><td class="ind">Cuentas por cobrar</td><td class="r">'+fmt(bg.cxc)+'</td></tr><tr><td class="ind">Inventarios</td><td class="r">'+fmt(bg.inv)+'</td></tr><tr><td class="ind">Otros activos circ.</td><td class="r">'+fmt(bg.oc)+'</td></tr><tr class="sub"><td><strong>Total Activo Circulante</strong></td><td class="r">'+bl('s2ac'+t,bg.ac)+'</td></tr><tr class="sec"><td colspan="2">ACTIVO NO CIRCULANTE</td></tr><tr><td class="ind">Equipos / Activos fijos</td><td class="r">'+fmt(bg.eq)+'</td></tr><tr><td class="ind">(-) Dep. acumulada</td><td class="r">('+fmt(Math.abs(bg.dep))+')</td></tr><tr><td class="ind">Otros activos NC</td><td class="r">'+fmt(bg.onc)+'</td></tr><tr class="sub"><td><strong>Total Activo No Circ.</strong></td><td class="r">'+bl('s2anc'+t,bg.anc)+'</td></tr><tr class="tot"><td><strong>TOTAL ACTIVO</strong></td><td class="r">'+bl('s2ta'+t,bg.ta)+'</td></tr><tr class="sec"><td colspan="2">PASIVO CIRCULANTE</td></tr><tr><td class="ind">Cuentas por pagar</td><td class="r">'+fmt(bg.cxp)+'</td></tr><tr><td class="ind">Deuda a corto plazo</td><td class="r">'+fmt(bg.dcp)+'</td></tr><tr><td class="ind">Impuestos por pagar</td><td class="r">'+fmt(bg.imp)+'</td></tr><tr class="sub"><td><strong>Total Pasivo Circulante</strong></td><td class="r">'+bl('s2pc'+t,bg.pc)+'</td></tr><tr><td class="ind">Deuda a largo plazo</td><td class="r">'+fmt(bg.pnc)+'</td></tr><tr class="sub"><td><strong>Total Pasivo</strong></td><td class="r">'+bl('s2tp'+t,bg.tp)+'</td></tr><tr class="sec"><td colspan="2">CAPITAL CONTABLE</td></tr><tr><td class="ind">Capital social</td><td class="r">'+fmt(bg.cs)+'</td></tr><tr><td class="ind">Utilidades retenidas</td><td class="r">'+bl('s2ur'+t,bg.ur)+'</td></tr><tr class="sub"><td><strong>Total Capital</strong></td><td class="r">'+bl('s2cap'+t,bg.cap)+'</td></tr><tr class="tot"><td><strong>TOTAL PASIVO + CAPITAL</strong></td><td class="r">'+bl('s2tpc'+t,bg.ta)+'</td></tr></table></div></div><div class="card"><div class="fw7 f12 mb10">📊 Estado de Resultados — '+yr+'</div><div class="ox"><table class="ft"><tr><td><strong>Ventas netas</strong></td><td class="r">'+fmt(er.v)+'</td></tr><tr><td class="ind">(-) Costo de ventas</td><td class="r">('+fmt(er.cv)+')</td></tr><tr class="sub"><td><strong>Utilidad Bruta</strong></td><td class="r">'+bl('s2ub'+t,er.ub)+'</td></tr><tr class="sec"><td colspan="2">GASTOS OPERATIVOS</td></tr><tr><td class="ind">Gastos de administración</td><td class="r">'+fmt(er.ga)+'</td></tr><tr><td class="ind">Gastos de ventas</td><td class="r">'+fmt(er.gv)+'</td></tr><tr><td class="ind">Depreciación</td><td class="r">'+fmt(er.dep)+'</td></tr><tr class="sub"><td><strong>Total Gastos Operativos</strong></td><td class="r">'+bl('s2tgo'+t,er.tgo)+'</td></tr><tr class="sub"><td><strong>Utilidad Operativa (UAFIR)</strong></td><td class="r">'+bl('s2uo'+t,er.uo)+'</td></tr><tr><td class="ind">(+) Otros ingresos</td><td class="r">'+fmt(er.oi)+'</td></tr><tr><td class="ind">(-) Gastos financieros</td><td class="r">('+fmt(er.gf_)+')</td></tr><tr class="sub"><td><strong>Util. Antes de Impuestos</strong></td><td class="r">'+bl('s2uai'+t,er.uai)+'</td></tr><tr><td class="ind">(-) ISR ('+er.t*100+'%)</td><td class="r">'+bl('s2isr'+t,er.isr)+'</td></tr><tr class="tot"><td><strong>UTILIDAD NETA</strong></td><td class="r">'+bl('s2un'+t,er.un)+'</td></tr></table></div></div></div><div class="mt12">'+(sub?'<div class="flex g8"><div class="alert aok" style="flex:1;margin:0">✅ Etapa 2 entregada.</div><button class="btn btn-ok btn-sm" data-rpt="2">📥 PDF</button></div>':'<button class="btn btn-p" id="btnS2">Validar y Entregar Etapa 2 →</button>')+'</div></div>';}
+
+function rS3(team,co){
+  const sub=getTeamSub(team.id,3);const a=co.ans;
+  const rats=[{id:'ctn',l:'Capital de Trabajo Neto',f:'AC − PC',u:'miles $'},{id:'rc',l:'Razón Corriente',f:'AC / PC',u:'veces'},{id:'pa',l:'Prueba Ácida',f:'(AC−Inv)/PC',u:'veces'},{id:'re',l:'Razón de Efectivo',f:'Efvo/PC',u:'veces'},{id:'rte',l:'Razón de Tesorería',f:'(Efvo+CxC)/PC',u:'veces'}];
+  function bl(id,ans){const v=A.inp[id];const cl=v!=null&&v!==''?(close(parseFloat(v),ans,.015)?'ok':'err'):'';return '<input type="number" class="blank'+(cl?' '+cl:'')+'" id="'+id+'" value="'+(v!=null?v:'')+'" placeholder="?" data-a="'+ans+'" step="0.001" style="width:84px">';}
+  return '<div class="fadein">'+sHdr(3,'Razones de Liquidez','Calcula las 5 razones de liquidez para ambos períodos fiscales.',!!sub)+rGuide(3,co)+'<div class="alert ai mb12">ℹ️ CTN en miles MXN; las demás razones en veces. Usa los datos del Balance General (Etapa 2).</div><div class="card mb12"><div class="ox"><table class="ft" style="min-width:500px"><tr><th style="width:32%">Razón Financiera</th><th>Fórmula</th><th style="text-align:right">'+co.y[0]+'</th><th style="text-align:right">'+co.y[1]+'</th><th>Unidad</th></tr>'+rats.map(r=>'<tr><td class="fw6">'+r.l+'</td><td class="t2 f11" style="font-style:italic">'+r.f+'</td><td class="r">'+bl('s3'+r.id+'y1',a.y1.rat[r.id])+'</td><td class="r">'+bl('s3'+r.id+'y2',a.y2.rat[r.id])+'</td><td class="t2 f11">'+r.u+'</td></tr>').join('')+'</table></div></div><div class="card"><div class="lbl">Interpretación de la posición de liquidez de '+co.n+'</div><textarea class="inp" id="s3i" rows="4" placeholder="Las razones de liquidez muestran que..."></textarea><div class="sep">'+(sub?'<div class="flex g8"><div class="alert aok" style="flex:1;margin:0">✅ Etapa 3 entregada.</div><button class="btn btn-ok btn-sm" data-rpt="3">📥 PDF</button></div>':'<button class="btn btn-p" id="btnS3">Validar y Entregar Etapa 3 →</button>')+'</div></div></div>';}
+
+function rS4(team,co){
+  var sub=getTeamSub(team.id,4);var a=co.ans;
+  var items=[{k:'b_ef',l:'Efectivo'},{k:'b_ac',l:'Total AC'},{k:'b_ta',l:'Total Activo'},{k:'b_pc',l:'Total PC'},{k:'b_tp',l:'Total Pasivo'},{k:'b_cap',l:'Total Capital'},{k:'e_v',l:'Ventas Netas'},{k:'e_cv',l:'Costo Ventas'},{k:'e_ub',l:'Util. Bruta'},{k:'e_uo',l:'Util. Operativa'},{k:'e_un',l:'Util. Neta'}];
+  function getV(k,yr){return a[yr][k.startsWith('b_')?'bg':'er'][k.slice(2)];}
+  function blH(id,ans){var v=A.inp[id];var cl=v!=null&&v!==''?(close(parseFloat(v),ans,.02)?'ok':'err'):'';return'<input type="number" class="blank'+(cl?' '+cl:'')+'\" id="'+id+'" value="'+(v!=null?v:'')+'" placeholder="?" data-a="'+ans+'" step="0.01" style="width:68px">';}
+  // Absolute H values = Y2 - Y1 (pre-computed)
+  var absH={};items.forEach(function(it){absH[it.k]=Math.round((getV(it.k,'y2')-getV(it.k,'y1'))*100)/100;});
+  return '<div class="fadein">'+sHdr(4,'Análisis H y V + Estado de Flujo de Efectivo','Análisis horizontal en términos absolutos y relativos, vertical, y EFE método indirecto.',!!sub)+rGuide(4,co)+
+  // TEACHING NOTE
+  '<div class="glow mb14">'+
+    '<div class="fw7 f13 mb10">&#x1F4D6; ¿Cómo se calcula el análisis horizontal y vertical?</div>'+
+    '<div class="g2">'+
+      '<div class="card-s">'+
+        '<div class="f11 fw7 mb6" style="color:var(--acc)">&#x1F4CF; Análisis HORIZONTAL</div>'+
+        '<div class="f11" style="line-height:1.8">'+
+          '<strong>Variación Absoluta ($)</strong><br>'+
+          '= Valor Año 2 − Valor Año 1<br>'+
+          '<em class="t2">Ej: Ventas: '+fmt(getV('e_v','y2'))+' − '+fmt(getV('e_v','y1'))+' = <strong>'+fmt(absH['e_v'])+'K</strong></em><br><br>'+
+          '<strong>Variación Relativa (%)</strong><br>'+
+          '= (Var. Absoluta ÷ Valor Año 1) × 100<br>'+
+          '<em class="t2">Ej: '+fmt(absH['e_v'])+' ÷ '+fmt(getV('e_v','y1'))+' × 100 = <strong>'+fmt(a.h['e_v'])+'%</strong></em>'+
+        '</div>'+
+      '</div>'+
+      '<div class="card-s">'+
+        '<div class="f11 fw7 mb6" style="color:var(--p2)">&#x1F4CA; Análisis VERTICAL</div>'+
+        '<div class="f11" style="line-height:1.8">'+
+          '<strong>Balance General</strong> → % sobre Total Activo<br>'+
+          '= (Partida ÷ Total Activo) × 100<br>'+
+          '<em class="t2">Ej: AC ÷ TA × 100 = % de activos que son líquidos</em><br><br>'+
+          '<strong>Estado de Resultados</strong> → % sobre Ventas<br>'+
+          '= (Partida ÷ Ventas Netas) × 100<br>'+
+          '<em class="t2">Ej: Utilidad Neta ÷ Ventas = margen neto %</em>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  // H&V TABLE with absolute + relative
+  '<div class="card mb12"><div class="fw7 f13 mb8">Tabla de Análisis H y V</div><div class="ox">'+
+  '<table class="ft" style="min-width:640px">'+
+  '<tr><th style="width:20%">Partida</th><th style="text-align:right">'+co.y[0]+'</th><th style="text-align:right">'+co.y[1]+'</th><th style="text-align:center">Var. Absoluta ($K)</th><th style="text-align:center">Var. Relativa (%)</th><th style="text-align:center">Vert. '+co.y[0]+'%</th><th style="text-align:center">Vert. '+co.y[1]+'%</th></tr>'+
+  items.map(function(it){
+    return'<tr><td class="fw6">'+it.l+'</td>'+
+      '<td class="r">'+fmt(getV(it.k,'y1'))+'</td>'+
+      '<td class="r">'+fmt(getV(it.k,'y2'))+'</td>'+
+      '<td class="r">'+blH('s4abs_'+it.k,absH[it.k])+'</td>'+
+      '<td class="r">'+blH('s4h_'+it.k,a.h[it.k])+'</td>'+
+      '<td class="r">'+blH('s4v1_'+it.k,a.v.y1[it.k])+'</td>'+
+      '<td class="r">'+blH('s4v2_'+it.k,a.v.y2[it.k])+'</td>'+
+    '</tr>';}).join('')+
+  '</table></div></div>'+
+  // EFE
+  rEFE(co)+
+  // INTERPRETATION
+  '<div class="card">'+
+  '<div class="lbl">Interpretación integral: H y V + Flujos de Efectivo</div>'+
+  '<textarea class="inp" id="s4i" rows="4" placeholder="Entre '+co.y[0]+' y '+co.y[1]+', '+co.n+' mostró un crecimiento absoluto de $Xk en ventas (+Y%)... El análisis vertical indica que... El flujo operativo de..."></textarea>'+
+  '<div class="sep">'+(sub?'<div class="flex g8"><div class="alert aok" style="flex:1;margin:0">&#x2705; Etapa 4 entregada.</div><button class="btn btn-ok btn-sm" data-rpt="4">&#x1F4E5; PDF</button></div>':'<button class="btn btn-p" id="btnS4">Validar y Entregar Etapa 4 &#x2192;</button>')+'</div></div></div>';}
+
+
+
+// ================================================================
+// STAGE 5 — PUNTO DE EQUILIBRIO (Pedagogical Journey)
+// ================================================================
+var CAFE={
+  gfo:10000,gno:2000,t:0.30,ue:6000,
+  p:35,cv:8,
+  cm:27,
+  ph:{
+    1:{cm:27,pe:371},
+    2:{num:12000,pe:445},
+    3:{num1_t:0.70,num:8400,pe:312},
+    4:{num:14400,pe:534},
+    5:{mcp:23.7,pe:608}
+  },
+  prods:[
+    {n:'Café Americano',pv:35,cv:8,p:0.60,mc:27,mcp:16.2},
+    {n:'Pay de queso',pv:25,cv:10,p:0.30,mc:15,mcp:4.5},
+    {n:'Jugo natural',pv:45,cv:15,p:0.10,mc:30,mcp:3.0},
+  ]
+};
+
+function blI(id,ans,w,tol){
+  var v=A.inp[id];
+  var err=A.peErr&&A.peErr[id];
+  var ok_=v!=null&&v!==''&&close(parseFloat(v),ans,tol||0.03);
+  var cls=v!=null&&v!==''?(ok_?'ok':'err'):'';
+  if(err&&v==null)cls='err';
+  return'<input type="number" class="blank-inline'+(cls?' '+cls:'')+'" id="'+id+'" value="'+(v!=null?v:'')+'" placeholder="?" data-a="'+ans+'" step="0.01" style="width:'+(w||72)+'px">';}
+
+function pePhaseCard(num,color,rgb,emoji,title,body,phase,isDone){
+  var isOpen=phase>=num,locked=phase<num;
+  return'<div class="pe-phase'+(isDone?' done':isOpen?' open':' locked')+'" style="--phase-color:'+color+';--phase-rgb:'+rgb+'">'+
+    '<div class="pe-phase-hdr">'+
+      '<div class="pe-phase-num" style="background:'+(isDone?'var(--green)':isOpen?color:'var(--t3)')+'">'+( isDone?'&#x2713;':num)+'</div>'+
+      '<div style="flex:1"><div class="fw7 f13">'+emoji+' Paso '+num+': '+title+'</div></div>'+
+      (isDone?'<span class="badge bok f11">&#x2713; Completado</span>':locked?'<span class="badge bmuted f11">&#x1F512; Bloqueado</span>':'')+
+    '</div>'+
+    (isOpen?'<div class="pe-phase-body">'+body+'</div>':'')+
+  '</div>';}
+
+function rS5(team,co){
+  var sub=getTeamSub(team.id,5);var done=!!sub;
+  var phase=A.pePhase||1;
+  var be=co.ans.be;
+
+  // ── PROGRESS BAR ──────────────────────────────────────────────
+  var stepLabels=['','Concepto','Fórmula básica','+ No Operativos','+ ISR (1-T)','+ Utilidad Esp.','Tu empresa'];
+  var progressBar='<div class="pe-progress-bar">';
+  for(var si=1;si<=6;si++){
+    var sdone=phase>si,sactive=phase===si;
+    progressBar+='<div class="pe-dot'+(sdone?' done':sactive?' active':' locked')+'" title="'+stepLabels[si]+'">'+(sdone?'&#x2713;':si)+'</div>';
+    if(si<6)progressBar+='<div class="pe-line'+(sdone?' done':'')+'"></div>';
+  }
+  progressBar+='</div>';
+
+  // ── PHASE 1: QUÉ ES EL PE ─────────────────────────────────────
+  var p1body=(
+    '<div class="alert ai mb10">'+
+      '<div>'+
+      '<div class="fw6 f12 mb4">&#x1F4D6; ¿Qué es el Punto de Equilibrio?</div>'+
+      '<div class="f12" style="line-height:1.8">'+
+        'El <strong>Punto de Equilibrio (PE)</strong> es el número de unidades que debes vender para que tus '+
+        '<strong>ingresos sean exactamente iguales a tus costos</strong>. Ni ganas ni pierdes: estás en "cero".<br>'+
+        '&#128073; Por encima del PE = <span style="color:var(--green)">ganancias</span>. Por debajo = <span style="color:var(--red)">pérdidas</span>.'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="pe-ex-box">'+
+      '<div class="fw7 f12 mb8">&#x2615; Ejercicio: Cafetería "El Rinconcito"</div>'+
+      '<table class="pe-data-table"><tr><td>&#x1F3E0; Renta + servicios (Gastos Fijos)</td><td>$10,000/mes</td></tr>'+
+      '<tr><td>&#x2615; Precio de venta por café</td><td>$35</td></tr>'+
+      '<tr><td>&#x1F33F; Ingredientes por taza (Costo Variable)</td><td>$8</td></tr></table>'+
+      '<div class="f12 mb10">'+
+        '<strong>Contribución Marginal (CM)</strong> = Precio − Costo Variable = $35 − $8 = '+blI('ej_cm',27,60)+' por taza<br>'+
+        '<span class="t2 f11">&#x1F4A1; El CM es lo que "aporta" cada venta a cubrir los costos fijos.</span>'+
+      '</div>'+
+      '<div class="pe-formula">'+
+        '<div class="num">Gastos Fijos Operativos ($10,000)</div><br>'+
+        'Contribuci&oacute;n Marginal (CM)'+
+      '</div>'+
+      '<div class="f12">'+
+        'PE = $10,000 &divide; CM = $10,000 &divide; $27 = '+blI('ej_pe1',371,70)+' tazas<br>'+
+        '<span class="t2 f11">&#x2191; La cafeter&iacute;a necesita vender este n&uacute;mero de caf&eacute;s al mes para no perder ni ganar.</span>'+
+      '</div>'+
+    '</div>'+
+    (A.peErr&&(A.peErr.ej_cm||A.peErr.ej_pe1)?
+      '<div class="alert ae mb8">Revisa los valores en rojo. Recuerda: CM = Precio − Costo Variable, y PE = GFO ÷ CM.</div>':'')+
+    '<div class="flex g8 mt10">'+
+      '<button class="btn btn-p" data-peprog="2">Entend&iacute; el concepto, continuar &#x2192;</button>'+
+      (A.peErr&&A.peErr._p1?'<button class="btn btn-sm btn-warn" data-peforce="2">Ver respuesta y continuar</button>':'')+
+    '</div>'
+  );
+
+  // ── PHASE 2: FÓRMULA BÁSICA + GASTOS NO OPERATIVOS ────────────
+  var p2body=(
+    '<div class="alert ai mb10">'+
+      '<div>'+
+      '<div class="fw7 f12 mb4">Las empresas tienen DOS tipos de gastos:</div>'+
+      '<div class="f12" style="line-height:1.8">'+
+        '&#x2699;&#xFE0F; <strong>Gastos Operativos (GFO)</strong>: los que genera la operaci&oacute;n normal del negocio. '+
+        'Ej: renta, sueldos, servicios, depreciaci&oacute;n.<br>'+
+        '&#x1F4B8; <strong>Gastos No Operativos (GNO)</strong>: externos a la operaci&oacute;n. '+
+        'Ej: intereses bancarios, comisiones financieras, p&eacute;rdidas cambiarias.<br>'+
+        '<span class="t2">Para el PE, ambos deben cubrirse con las ventas.</span>'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="pe-ex-box">'+
+      '<div class="fw7 f12 mb8">&#x2615; La cafeter&iacute;a tiene tambi&eacute;n un pr&eacute;stamo bancario</div>'+
+      '<table class="pe-data-table"><tr><td>&#x2699;&#xFE0F; Gastos Fijos Operativos</td><td>$10,000</td></tr>'+
+      '<tr><td>&#x1F4B8; Gastos No Operativos (intereses)</td><td>$2,000</td></tr></table>'+
+      '<div class="pe-formula">'+
+        '<div class="num">GFO ($10,000) + GNO ($2,000)</div><br>'+
+        'CM ($27)'+
+      '</div>'+
+      '<div class="f12">'+
+        'Numerador = GFO + GNO = $10,000 + $2,000 = '+blI('ej_num2',12000,80)+
+        '<br>PE = '+blI('ej_num2',12000,80)+' &divide; $27 = '+blI('ej_pe2',445,70)+' tazas'+
+      '</div>'+
+    '</div>'+
+    (A.peErr&&(A.peErr.ej_num2||A.peErr.ej_pe2)?
+      '<div class="alert ae mb8">Verifica: numerador = GFO + GNO; PE = numerador ÷ CM.</div>':'')+
+    '<div class="flex g8 mt10">'+
+      '<button class="btn btn-p" data-peprog="3">Entend&iacute;, continuar &#x2192;</button>'+
+      (A.peErr&&A.peErr._p2?'<button class="btn btn-sm btn-warn" data-peforce="3">Ver respuesta y continuar</button>':'')+
+    '</div>'
+  );
+
+  // ── PHASE 3: EL ISR — ¿POR QUÉ (1-T)? ────────────────────────
+  var p3body=(
+    '<div class="alert ai mb10">'+
+      '<div>'+
+      '<div class="fw7 f12 mb6">&#x1F9E0; ¿Por qué multiplicamos por (1 − T)?</div>'+
+      '<div class="f12" style="line-height:1.85">'+
+        'Los gastos que tú pagas (renta, intereses) son deducibles de impuestos. '+
+        'Esto significa que <strong>el fisco comparte parte de esos gastos contigo</strong>.<br><br>'+
+        '&#x1F4A1; <strong>Ejemplo ultra simple</strong>: Necesitas $100 de utilidad NETA (después de ISR del 30%).<br>'+
+        '&emsp;Si ganas $100, pagas $30 de ISR, te quedan $70. &#x274C; No alcanza.<br>'+
+        '&emsp;Si ganas $143, pagas $43 de ISR, te quedan $100. &#x2705; &iexcl;Eso!<br>'+
+        '&emsp;F&oacute;rmula: lo que necesitas &divide; (1 &minus; T) = $100 &divide; 0.70 = $142.86<br><br>'+
+        '&#x2705; Al multiplicar los gastos por <strong>(1 &minus; T)</strong> los ajustamos a su valor fiscal real: '+
+        'lo que la empresa realmente necesita cubrir despu&eacute;s de impuestos.'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="pe-ex-box">'+
+      '<div class="fw7 f12 mb8">&#x2615; La cafeter&iacute;a ahora considera el ISR (T = 30%)</div>'+
+      '<div class="pe-formula">'+
+        '<div class="num">(GFO + GNO) &times; <strong>(1 &minus; T)</strong></div><br>'+
+        'CM'+
+      '</div>'+
+      '<div class="f12">'+
+        'Numerador = ($10,000 + $2,000) &times; (1 &minus; 0.30) = $12,000 &times; 0.70 = '+blI('ej_num3',8400,80)+
+        '<br>PE = '+blI('ej_num3',8400,80)+' &divide; $27 = '+blI('ej_pe3',312,70)+' tazas<br>'+
+        '<span class="t2 f11">&#x2193; El PE baj&oacute; vs. el paso 2 (445 tazas). &#x1F914; ¿Por qu&eacute;? Porque el ISR reduce el costo efectivo.</span>'+
+      '</div>'+
+    '</div>'+
+    (A.peErr&&(A.peErr.ej_num3||A.peErr.ej_pe3)?
+      '<div class="alert ae mb8">Recuerda: multiplicar (GFO+GNO) × 0.70 (que es 1-0.30), luego dividir entre CM.</div>':'')+
+    '<div class="flex g8 mt10">'+
+      '<button class="btn btn-p" data-peprog="4">Entend&iacute; el efecto del ISR, continuar &#x2192;</button>'+
+      (A.peErr&&A.peErr._p3?'<button class="btn btn-sm btn-warn" data-peforce="4">Ver respuesta y continuar</button>':'')+
+    '</div>'
+  );
+
+  // ── PHASE 4: + UTILIDAD ESPERADA ──────────────────────────────
+  var p4body=(
+    '<div class="alert ai mb10">'+
+      '<div>'+
+      '<div class="fw7 f12 mb4">&#x1F3AF; Agregar la Utilidad Esperada (UE)</div>'+
+      '<div class="f12" style="line-height:1.8">'+
+        'Hasta ahora solo cubr&iacute;amos costos = equilibrio en $0. Pero las empresas no nacen para llegar a cero, '+
+        '¡quieren ganar! La <strong>Utilidad Esperada</strong> es la ganancia m&iacute;nima que quieren lograr.<br>'+
+        'Se suma al numerador (ya ajustado por ISR) porque representa una meta adicional a cubrir con las ventas.<br>'+
+        '<span class="t2 f11">&#x1F4AD; Think of it as: necesito cubrir costos + generar al menos $X para mis inversionistas.</span>'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="pe-ex-box">'+
+      '<div class="fw7 f12 mb8">&#x2615; La cafeter&iacute;a quiere ganar $6,000 netos este mes</div>'+
+      '<div class="pe-formula">'+
+        '<div class="num">(GFO + GNO) &times; (1 &minus; T) <strong>+ UE</strong></div><br>'+
+        'CM'+
+      '</div>'+
+      '<div class="f12 mb8">'+
+        'Numerador = $8,400 + $6,000 = '+blI('ej_num4',14400,80)+
+        '<br>PE = '+blI('ej_num4',14400,80)+' &divide; $27 = '+blI('ej_pe4',534,70)+' tazas<br>'+
+        '<span class="t2 f11">Para cubrir todos los costos Y ganar $6,000, necesita vender 534 caf&eacute;s al mes.</span>'+
+      '</div>'+
+      '<div class="alert aw">'+
+        '<span>&#x1F914;</span>'+
+        '<span><strong>Resumen hasta aqu&iacute;:</strong><br>'+
+        'Paso 1: 371 tazas (solo GFO)<br>'+
+        'Paso 2: 445 tazas (+ GNO)<br>'+
+        'Paso 3: 312 tazas (ajuste ISR &darr;)<br>'+
+        'Paso 4: 534 tazas (+ meta de ganancia &uarr;)<br>'+
+        '<strong>&#x274C; L&aacute;stima... esta f&oacute;rmula tiene un problema grave:</strong> asume que solo vendemos UNA cosa.</span>'+
+      '</div>'+
+    '</div>'+
+    (A.peErr&&(A.peErr.ej_num4||A.peErr.ej_pe4)?
+      '<div class="alert ae mb8">Revisa: numerador = 8,400 (de paso 3) + UE de 6,000.</div>':'')+
+    '<div class="flex g8 mt10">'+
+      '<button class="btn btn-p" data-peprog="5">Ver c&oacute;mo funciona en la realidad &#x2192;</button>'+
+      (A.peErr&&A.peErr._p4?'<button class="btn btn-sm btn-warn" data-peforce="5">Ver respuesta y continuar</button>':'')+
+    '</div>'
+  );
+
+  // ── PHASE 5: WEIGHTED PE INTRO ────────────────────────────────
+  var p5body=(
+    '<div class="alert ae mb10">'+
+      '<span style="font-size:18px">&#x1F6A8;</span>'+
+      '<div>'+
+      '<div class="fw7 f12 mb4">La realidad: ninguna empresa vende UN solo producto</div>'+
+      '<div class="f12" style="line-height:1.7">'+
+        'La cafeter&iacute;a no solo vende caf&eacute; &mdash; tambi&eacute;n vende pay y jugos, cada uno con distinto precio y costo.<br>'+
+        'Si usamos CM de solo el caf&eacute;, el c&aacute;lculo ser&aacute; <strong>incorrecto</strong>. '+
+        'Necesitamos un CM que represente el <em>portafolio completo</em> seg&uacute;n cu&aacute;nto se vende de cada producto.<br>'+
+        '&#x2192; Eso se llama <strong>Margen de Contribuci&oacute;n Ponderado (MCP)</strong>.'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="pe-ex-box">'+
+      '<div class="fw7 f12 mb8">&#x2615; &#x1F370; &#x1F35D; Ahora la cafeter&iacute;a vende 3 productos</div>'+
+      '<div class="ox"><table class="ft" style="min-width:460px;font-size:12px">'+
+        '<tr><th>Producto</th><th style="text-align:right">P. Venta</th><th style="text-align:right">Costo Var.</th><th style="text-align:right">MC Unit.</th><th style="text-align:right">% de ventas</th><th style="text-align:right">MC Pond.</th></tr>'+
+        CAFE.prods.map(function(p,i){
+          return'<tr><td>'+p.n+'</td><td class="r">$'+p.pv+'</td><td class="r">$'+p.cv+'</td>'+
+            '<td class="r">'+blI('ej5_mc'+i,p.mc,56)+'</td>'+
+            '<td class="r">'+(p.p*100).toFixed(0)+'%</td>'+
+            '<td class="r">'+blI('ej5_mcp'+i,p.mcp,60)+'</td>'+
+          '</tr>';}).join('')+
+        '<tr style="font-weight:700;border-top:1px solid var(--border)"><td colspan="5">MCP Total</td>'+
+        '<td class="r">'+blI('ej5_mcpt',23.7,60)+'</td></tr>'+
+      '</table></div>'+
+      '<div class="f12 mt8">'+
+        '<div class="t2 f11 mb4">MC Ponderado = suma de (MC Unit. &times; % de ventas) de cada producto</div>'+
+        'PE Ponderado = Numerador ($14,400) &divide; MCP = '+blI('ej5_pe',608,72)+' unidades ponderadas<br>'+
+        '<span class="t2 f11">Comparado con 534 (pe un producto): el PE subi&oacute; porque el MCP real es menor que el CM del caf&eacute;.</span>'+
+      '</div>'+
+    '</div>'+
+    (A.peErr&&A.peErr._p5?
+      '<div class="alert ae mb8">Verifica los MCs (Precio-Costo), luego MC×% para cada ponderado, suma total y PE final.</div>':'')+
+    '<div class="flex g8 mt10">'+
+      '<button class="btn btn-p" data-peprog="6">&#x1F3AF; &iexcl;Ahora s&iacute;! Calcular el PE de '+co.n+' &#x2192;</button>'+
+      (A.peErr&&A.peErr._p5?'<button class="btn btn-sm btn-warn" data-peforce="6">Ver respuesta y continuar</button>':'')+
+    '</div>'
+  );
+
+  // ── PHASE 6: ACTUAL COMPANY PE ────────────────────────────────
+  function bl6(id,ans,w){var v=A.inp[id];var cl=v!=null&&v!==''?(close(parseFloat(v),ans,.02)?'ok':'err'):'';return'<input type="number" class="blank'+(cl?' '+cl:'')+'" id="'+id+'" value="'+(v!=null?v:'')+'" placeholder="?" data-a="'+ans+'" step="0.01" style="width:'+(w||90)+'px">';}
+  var p6body='<div class="alert aok mb10"><span>&#x1F4CA;</span>'+
+    '<span>Ya entiendes el PE ponderado. Ahora aplica todo lo aprendido con los datos reales de <strong>'+co.n+'</strong>.</span></div>'+
+    '<div class="card-s mb10">'+
+      '<div class="fw7 f12 mb8">Datos de '+co.n+':</div>'+
+      '<div class="g4c">'+
+        '<div class="metric"><div class="metric-l">Gastos Op. (miles)</div><div class="metric-v f15">$'+fmt(be.gf.op)+'</div></div>'+
+        '<div class="metric"><div class="metric-l">Gastos No Op. (miles)</div><div class="metric-v f15">$'+fmt(be.gf.nop)+'</div></div>'+
+        '<div class="metric"><div class="metric-l">Utilidad Esperada (miles)</div><div class="metric-v f15">$'+fmt(be.gf.ue)+'</div></div>'+
+        '<div class="metric"><div class="metric-l">ISR (T)</div><div class="metric-v f15">'+be.t*100+'%</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="pe-formula" style="margin-bottom:14px">'+
+      '<div class="num">(GFO + GNO) &times; (1 &minus; T) + UE</div><br>'+
+      'MC Ponderado (MCP)'+
+    '</div>'+
+    '<div class="lbl mb8">Calcula el numerador:</div>'+
+    '<div class="f12 mb12">'+
+      'Numerador = ($'+fmt(be.gf.op)+'K + $'+fmt(be.gf.nop)+'K) &times; (1 &minus; '+be.t+') + $'+fmt(be.gf.ue)+'K = '+bl6('s5num',be.num/1000,110)+' miles $'+
+    '</div>'+
+    '<div class="fw7 f12 mb8">Portafolio de productos de '+co.n+':</div>'+
+    '<div class="ox mb10"><table class="ft" style="min-width:500px">'+
+    '<tr><th>Producto/Servicio</th><th style="text-align:right">P. Venta</th><th style="text-align:right">Costo Var.</th><th style="text-align:center">MC Unit.</th><th style="text-align:center">% Ventas</th><th style="text-align:center">MC Pond.</th></tr>'+
+    be.pr.map(function(p,i){
+      return'<tr><td class="fw6">'+p.n+'</td><td class="r">$'+fmt(p.pv,0)+'</td><td class="r">$'+fmt(p.cv,0)+'</td>'+
+        '<td class="r">'+bl6('s5mc'+i,p.pv-p.cv,72)+'</td>'+
+        '<td class="r">'+(p.p*100).toFixed(0)+'%</td>'+
+        '<td class="r">'+bl6('s5mcp'+i,Math.round((p.pv-p.cv)*p.p*100)/100,72)+'</td>'+
+      '</tr>';}).join('')+
+    '<tr class="tot"><td colspan="5"><strong>MC Ponderado Total</strong></td><td class="r">'+bl6('s5mcpt',be.mc)+'</td></tr>'+
+    '</table></div>'+
+    '<div class="g2 mb12">'+
+      '<div class="metric"><div class="metric-l">Punto de Equilibrio Ponderado</div>'+bl6('s5pe',be.pe,110)+'<div class="t2 f11 mt4">= Numerador &divide; MCP Total</div></div>'+
+      '<div class="card-s"><div class="lbl">Interpreta el resultado</div>'+
+      '<textarea class="inp" id="s5i" rows="4" placeholder="Para cubrir todos sus costos y obtener $'+be.gf.ue+'K de utilidad, '+co.n+' necesita vender... El PE ponderado es mayor/menor que si solo vendiera su producto principal porque..."></textarea></div>'+
+    '</div>'+
+    (done?
+      '<div class="flex g8"><div class="alert aok" style="flex:1;margin:0">&#x1F389; &iexcl;An&aacute;lisis completo! Etapa 5 entregada.</div><button class="btn btn-ok btn-sm" data-rpt="5">&#x1F4E5; PDF</button></div>'+
+      '<div class="alert ai mt8">&#x2705; PE = '+fmt(be.pe,0)+' unidades &middot; MCP = $'+fmt(be.mc)+' &middot; Numerador = $'+fmt(be.num/1000)+'K</div>'
+    :'<button class="btn btn-p" id="btnS5">Validar y Entregar Etapa 5 &#x2192;</button>')+
+    '</div>';
+
+  return'<div class="fadein">'+
+    sHdr(5,'Punto de Equilibrio Ponderado','Aprende el PE desde cero y aplícalo a tu empresa paso a paso.',done)+
+    rGuide(5,co)+
+    progressBar+
+    pePhaseCard(1,'#6c63ff','108 99 255','&#x1F4A1;','¿Qué es el Punto de Equilibrio?',p1body,phase,phase>1)+
+    pePhaseCard(2,'#3b82f6','59 130 246','&#x1F4B8;','Gastos Operativos + No Operativos',p2body,phase,phase>2)+
+    pePhaseCard(3,'#f59e0b','245 158 11','&#x1F9FE;','El ISR y el factor (1 − T)',p3body,phase,phase>3)+
+    pePhaseCard(4,'#10b981','16 185 129','&#x1F3AF;','La Utilidad Esperada',p4body,phase,phase>4)+
+    pePhaseCard(5,'#ef4444','239 68 68','&#x1F465;','El PE Ponderado (múltiples productos)',p5body,phase,phase>5)+
+    (phase>=6?pePhaseCard(6,'#00d4aa','0 212 170','&#x1F4CA;','Calcula el PE de '+co.n,p6body,phase,false):'')+
+  '</div>';}
+
+function doPEProgress(nextPhase){
+  var prev=nextPhase-1;var errs={};
+  var checks={
+    1:[{id:'ej_cm',ans:27},{id:'ej_pe1',ans:371}],
+    2:[{id:'ej_num2',ans:12000},{id:'ej_pe2',ans:445}],
+    3:[{id:'ej_num3',ans:8400},{id:'ej_pe3',ans:312}],
+    4:[{id:'ej_num4',ans:14400},{id:'ej_pe4',ans:534}],
+    5:[{id:'ej5_mc0',ans:27},{id:'ej5_mc1',ans:15},{id:'ej5_mc2',ans:30},
+       {id:'ej5_mcp0',ans:16.2},{id:'ej5_mcp1',ans:4.5},{id:'ej5_mcp2',ans:3.0},
+       {id:'ej5_mcpt',ans:23.7},{id:'ej5_pe',ans:608}],
+  };
+  var thisChecks=checks[prev]||[];
+  var wrong=0;
+  thisChecks.forEach(function(c){
+    var v=parseFloat(A.inp[c.id]||'');
+    if(isNaN(v)||!close(v,c.ans,.04)){errs[c.id]=true;wrong++;}
+  });
+  if(wrong>0){
+    errs['_p'+prev]=true;
+    ss({peErr:errs});
+    msg('Hay '+(wrong===1?'1 valor incorrecto':wrong+' valores incorrectos')+'. Revísalos o usa el botón de ayuda.','warn');
+  } else {
+    ss({pePhase:nextPhase,peErr:{}});
+  }}
+
+
+
+function rCoeval(team,co){
+  const others=DB.getTeams().filter(t=>t.companyId&&t.id!==team.id);
+  const myEvals=DB.getEvals().filter(e=>e.evalId===A.user.id);
+  const tgt=A.evalTarget||(others[0]?.id);
+  const etm=DB.getTeams().find(t=>t.id===tgt);const eco=etm?getC(etm.companyId):null;
+  const stages=etm?[1,2,3,4,5].filter(s=>getTeamSub(etm.id,s)):[];
+  const alreadyEval=myEvals.some(e=>e.teamId===tgt);
+  function starRow(id,label){const cur=parseInt(A.inp['ev_'+id])||0;return '<div class="fbet mb8"><span class="f12">'+label+'</span><div class="stars" data-sid="'+id+'">'+[1,2,3,4,5].map(n=>'<span class="star" data-sv="'+n+'" data-sid="'+id+'">'+(n<=cur?'⭐':'☆')+'</span>').join('')+'</div></div>';}
+  return '<div class="fadein"><h2 class="f20 mb4">Coevaluación Individual</h2><p class="t2 f12 mb16">Evalúa el trabajo de otros equipos. Tu <em>certeza</em> se califica comparando tu evaluación con el desempeño real.</p><div class="g2"><div><div class="lbl mb8">Equipos con entregas</div>'+(others.length?others.map(t=>{const tc=getC(t.companyId);const evd=myEvals.some(e=>e.teamId===t.id);return '<div class="coc'+(t.id===tgt?' sel':'')+' mb8" data-et="'+t.id+'"><div class="fbet"><div class="flex g8"><span class="f18">'+( tc?tc.e:'?')+'</span><div><div class="fw6 f13">'+t.name+'</div><div class="t2 f11">'+(tc?tc.n:'?')+'</div></div></div>'+(evd?'<span class="badge bok">✓</span>':'<span class="badge bwarn">'+teamProg(t.id)+'/5</span>')+'</div></div>';}).join(''):'<p class="t2 f12">Sin equipos con entregas aún.</p>')+'</div><div>'+(etm&&eco&&stages.length?'<div class="card"><div class="flex g10 mb12"><span style="font-size:22px">'+eco.e+'</span><div><div class="fw7">'+etm.name+'</div><div class="t2 f12">'+eco.n+' · '+stages.length+' etapas</div></div></div>'+(alreadyEval?'<div class="alert aok mb12">✅ Ya evaluaste a este equipo.</div>':'')+starRow('rigor','Rigor y precisión en cálculos')+starRow('comp','Completitud del análisis')+starRow('interp','Calidad de interpretación')+starRow('pres','Presentación y claridad')+'<div class="lbl mt12">Comentario constructivo *</div><textarea class="inp mb12" id="ev_comment" rows="3" placeholder="El equipo demostró fortaleza en... Podría mejorar en..."></textarea><button class="btn btn-p" id="btnEval" data-tid="'+tgt+'">'+(alreadyEval?'Actualizar evaluación':'Enviar evaluación →')+'</button></div>':'<div class="card-ghost" style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">👆</div><p class="t2 f12">Selecciona un equipo para evaluar</p></div>')+'</div></div></div>';}
+
+// ================================================================
+// RANKING
+// ================================================================
+function rRanking(team,co){
+  const allT=DB.getTeams().filter(t=>t.companyId);
+  const rows=allT.map(t=>{const tc=getC(t.companyId);const score=calcTeamScore(t.id);const eacc=calcEvalAcc(t);return{t,tc,score,eacc,total:Math.round((score+eacc)/2),prog:teamProg(t.id)};}).sort((a,b)=>b.total-a.total);
+  const me=rows.find(r=>r.t.id===team.id);const myR=rows.findIndex(r=>r.t.id===team.id)+1;
+  return '<div class="fadein"><h2 class="f20 mb4">Ranking Global</h2><p class="t2 f12 mb16">Precisión de cálculos (50%) + certeza de coevaluación (50%)</p>'+(me?'<div class="alert ai mb12">Tu equipo está en el puesto <strong>#'+myR+'</strong> · Score combinado: <strong>'+me.total+'%</strong></div>':'')+'<div class="g4c mb16"><div class="metric"><div class="metric-l">Tu posición</div><div class="metric-v">#'+myR+'</div></div><div class="metric"><div class="metric-l">Score trabajo</div><div class="metric-v">'+(me?me.score:0)+'%</div></div><div class="metric"><div class="metric-l">Certeza coe.</div><div class="metric-v">'+(me?me.eacc:50)+'%</div></div><div class="metric"><div class="metric-l">Equipos totales</div><div class="metric-v">'+allT.length+'</div></div></div><div class="card">'+rows.map((r,i)=>{const medal=['🥇','🥈','🥉'][i]||'#'+(i+1);const isMe=r.t.id===team.id;return '<div class="rr'+(isMe?' me':'')+' mb4"><div style="width:30px;text-align:center;font-size:14px">'+medal+'</div><span style="font-size:20px">'+(r.tc?r.tc.e:'?')+'</span><div style="flex:1"><div class="fw6 f13">'+r.t.name+(isMe?' <span class="badge bp f11">Tú</span>':'')+'</div><div class="t2 f11">'+(r.tc?r.tc.n:'?')+' · '+r.prog+'/5</div></div><div style="text-align:right"><div class="fw7 f15">'+r.total+'%</div><div class="t3 f11">Trab:'+r.score+'% Coe:'+r.eacc+'%</div></div></div>';}).join('')+'</div></div>';}
+
+// ================================================================
+// TEACHER DASHBOARD
+// ================================================================
+
+// ================================================================
+// TEACHER — FULL DETAIL VIEW (sin restricciones)
+// ================================================================
+function rTeamDetail(tid){
+  var t=DB.getTeams().find(function(t){return t.id===tid;});if(!t)return'';
+  var co=getC(t.companyId);if(!co)return'';
+  var subs=DB.getSubs()[tid]||{};
+  var mems=teamMembers(tid);var teamMemberNames=getMemberNames(t);
+  var sLabels=['','Empresa y Canvas','Estados Financieros','Razones Liquidez+Operativas','Análisis H y V','Punto de Equilibrio'];
+  var guideKeys={2:['s2g1','s2g2','s2g3','s2g4'],3:['s3g1','s3g2','s3g3'],4:['s4g1','s4g2','s4g3'],5:['s5g1','s5g2','s5g3']};
+  var canvasKeys=['socios','actividades','recursos','propuesta','relaciones','canales','segmentos','costos','ingresos'];
+  var canvasLabels={socios:'Socios Clave',actividades:'Actividades Clave',recursos:'Recursos Clave',propuesta:'Propuesta de Valor',relaciones:'Relaciones c/Clientes',canales:'Canales',segmentos:'Segmentos de Clientes',costos:'Estructura de Costos',ingresos:'Fuentes de Ingresos'};
+  var out='<div>';
+  out+='<div class="fbet mb16">';
+  out+='<div class="flex g10"><button class="btn btn-sm" id="btnBackTeacher">&#8592; Volver al panel</button>';
+  out+='<div><div class="fw7 f18">'+t.name+' &#8212; Trabajo Completo</div>';
+  out+='<div class="t2 f12">'+co.e+' '+co.n+' &#183; '+mems.length+' miembros &#183; '+teamProg(tid)+'/5 etapas &#183; Score: '+calcTeamScore(tid)+'%</div></div></div>';
+  out+='<div class="flex g8">';
+  for(var si=1;si<=5;si++){if(subs[si])out+='<button class="btn btn-ok btn-sm" data-treport="'+si+'" data-ttid="'+tid+'">&#x1F4E5; E'+si+'</button>';}
+  out+='</div></div>';
+  // Stage 1 Canvas
+  if(subs[1]){
+    out+='<div class="team-stage-card"><div class="fbet mb10"><div class="flex g8"><span class="badge bp">Etapa 1</span><span class="fw6">'+sLabels[1]+'</span></div><span class="badge bok">'+subs[1].score+'%</span></div>';
+    if(subs[1].data.s1a)out+='<div class="mb8"><div class="lbl">Por qué eligieron esta empresa</div><div class="f12" style="line-height:1.6">'+subs[1].data.s1a+'</div></div>';
+    if(subs[1].data.s1b)out+='<div class="mb8"><div class="lbl">Fortalezas financieras esperadas</div><div class="f12" style="line-height:1.6">'+subs[1].data.s1b+'</div></div>';
+    if(subs[1].data.s1c)out+='<div class="mb8"><div class="lbl">Coherencia del modelo de negocio</div><div class="f12" style="line-height:1.6">'+subs[1].data.s1c+'</div></div>';
+    var filledCanvas=canvasKeys.filter(function(k){return subs[1].data['s1bmc_'+k];});
+    if(filledCanvas.length){
+      out+='<div class="lbl mt8">Business Model Canvas ('+filledCanvas.length+'/9 bloques)</div>';
+      out+='<div class="g2 mt4">';
+      for(var ci=0;ci<filledCanvas.length;ci++){var ck=filledCanvas[ci];out+='<div style="padding:6px 8px;background:var(--s1);border-radius:6px;border:1px solid var(--border)"><div class="t3 f11">'+canvasLabels[ck]+'</div><div class="f11 mt4" style="line-height:1.5">'+subs[1].data['s1bmc_'+ck]+'</div></div>';}
+      out+='</div>';
+    }
+    out+='</div>';
+  } else out+='<div class="team-stage-card t2 f12">Etapa 1 sin entregar</div>';
+  // Stages 2-5
+  for(var s=2;s<=5;s++){
+    if(!subs[s]){out+='<div class="team-stage-card t2 f12">Etapa '+s+': sin entregar</div>';continue;}
+    var gkeys=(guideKeys[s]||[]).filter(function(id){return subs[s].data[id];});
+    out+='<div class="team-stage-card"><div class="fbet mb10"><div class="flex g8"><span class="badge bp">Etapa '+s+'</span><span class="fw6">'+sLabels[s]+'</span></div>';
+    out+='<div class="flex g8"><span class="badge bok">'+subs[s].score+'%</span><span class="t2 f11">'+new Date(subs[s].submittedAt).toLocaleString('es-MX')+'</span></div></div>';
+    if(gkeys.length){
+      out+='<div class="lbl mb8">&#x1F4DA; Análisis guiado ('+gkeys.length+' respuestas):</div>';
+      for(var gi=0;gi<gkeys.length;gi++){
+        var gid=gkeys[gi];var qobj=getGuide(s,co).find(function(q){return q.id===gid;});
+        out+='<div style="margin-bottom:8px;padding:6px 10px;background:rgba(108,99,255,.06);border-radius:6px;border-left:3px solid var(--p)">';
+        out+='<div class="f11 fw6 mb2">'+(qobj?qobj.ttl:'Pregunta '+(gi+1))+'</div>';
+        out+='<div class="f11" style="line-height:1.55">'+subs[s].data[gid]+'</div></div>';
+      }
+    } else out+='<div class="alert aw mb8">Sin respuestas de an&#225;lisis guiado.</div>';
+    if(s===3&&subs[s].data.s3opi)out+='<div class="mb8"><div class="lbl">Interpretaci\u00f3n operativa</div><div class="f12">'+subs[s].data.s3opi+'</div></div>';
+    if(s===3&&subs[s].data.s3i)out+='<div class="mb8"><div class="lbl">Interpretaci\u00f3n liquidez</div><div class="f12">'+subs[s].data.s3i+'</div></div>';
+    if(s===4&&subs[s].data.s4i)out+='<div class="mb8"><div class="lbl">Interpretaci\u00f3n H&V</div><div class="f12">'+subs[s].data.s4i+'</div></div>';
+    if(s===5&&subs[s].data.s5i)out+='<div class="mb8"><div class="lbl">Interpretaci\u00f3n P.E.</div><div class="f12">'+subs[s].data.s5i+'</div></div>';
+    out+='</div>';
+  }
+  out+='</div>';
+  return out;
+}
+
+function rTeacher(){
+  if(A.teacherTeam)return rTeamDetail(A.teacherTeam);
+  const users=DB.getUsers().filter(u=>u.role==='student');
+  const teams=DB.getTeams();const activeT=teams.filter(t=>t.companyId);const lobbyT=teams.filter(t=>!t.companyId);
+  const subs=DB.getSubs();const totalSubs=Object.values(subs).reduce((s,t)=>s+Object.keys(t).length,0);
+  const sLabels=['','Empresa','E. Financieros','Razones Liq.','An. H y V','Pto. Equil.'];
+  return '<div style="padding:1.5rem;max-width:1100px"><div class="fbet mb16 no-print"><div><h1 class="f18">Panel Docente — FinAcademy v2</h1><p class="t2 f12">'+users.length+' alumnos · '+teams.length+' equipos ('+activeT.length+' activos, '+lobbyT.length+' en lobby) · '+totalSubs+' entregas</p></div><div class="flex g8"><button class="btn btn-sm" id="btnExport">📤 Exportar</button><button class="btn btn-sm" id="btnImport">📥 Importar</button><button class="btn btn-danger btn-sm" id="btnReset">🗑 Reiniciar</button><button class="btn btn-sm" id="btnLogout">🚪 Salir</button></div></div>'+(A.msg?rMsg():'')+'<div class="g4c mb16"><div class="metric"><div class="metric-l">Alumnos</div><div class="metric-v">'+users.length+'</div></div><div class="metric"><div class="metric-l">Equipos activos</div><div class="metric-v">'+activeT.length+'</div></div><div class="metric"><div class="metric-l">En lobby</div><div class="metric-v">'+lobbyT.length+'</div></div><div class="metric"><div class="metric-l">Total entregas</div><div class="metric-v">'+totalSubs+'</div></div></div><div class="g2 mb16"><div class="card"><div class="fw7 f13 mb12">🏆 Ranking de Equipos</div>'+(activeT.length?activeT.sort((a,b)=>calcTeamScore(b.id)-calcTeamScore(a.id)).map((t,i)=>{const co=getC(t.companyId);const score=calcTeamScore(t.id);const med=['🥇','🥈','🥉'][i]||'#'+(i+1);return '<div class="rr mb4"><div style="width:24px;text-align:center">'+med+'</div><span>'+(co?co.e:'?')+'</span><div style="flex:1"><div class="fw6 f12">'+t.name+'</div><div class="t2 f11">'+(co?co.n:'?')+' · '+teamProg(t.id)+'/5</div></div><span class="badge bp">'+score+'%</span></div>';}).join(''):'<p class="t2 f12">Sin equipos activos.</p>')+'</div><div class="card"><div class="fw7 f13 mb12">⏳ Equipos en Lobby</div>'+(lobbyT.length?lobbyT.map(t=>{const mems=teamMembers(t.id);const pend=pendingReqs(t.id).length;return '<div class="card-s mb8"><div class="fbet"><div class="fw6 f12">'+t.name+'</div><div class="flex g4">'+(pend?'<span class="badge berr">'+pend+' sol.</span>':'')+'<span class="badge bmuted">'+mems.length+'/'+t.maxMembers+'</span></div></div><div class="flex g4 mt4">'+mems.slice(0,5).map(m=>av(m.name,m.id,'sm')).join('')+'</div></div>';}).join(''):'<p class="t2 f12">Sin equipos en lobby.</p>')+'</div></div><div class="card mb16"><div class="fw7 f13 mb12">📊 Progreso Detallado</div><div class="ox"><table class="ft"><tr><th>Equipo</th><th>Empresa</th><th>Miembros</th><th style="text-align:center">E1</th><th style="text-align:center">E2</th><th style="text-align:center">E3</th><th style="text-align:center">E4</th><th style="text-align:center">E5</th><th style="text-align:center">Score</th></tr>'+activeT.map(t=>{const co=getC(t.companyId);function sc(s){const sub=getTeamSub(t.id,s);return sub?'<span class="badge bok f11">'+sub.score+'%</span>':'<span class="t3">—</span>';}return '<tr><td class="fw6">'+t.name+'</td><td>'+(co?co.e+' '+co.n:'—')+'</td><td class="t2 f11">'+t.members.length+'</td><td style="text-align:center">'+sc(1)+'</td><td style="text-align:center">'+sc(2)+'</td><td style="text-align:center">'+sc(3)+'</td><td style="text-align:center">'+sc(4)+'</td><td style="text-align:center">'+sc(5)+'</td><td style="text-align:center"><strong>'+calcTeamScore(t.id)+'%</strong></td></tr>';}).join('')||'<tr><td colspan="9" class="t2">Sin equipos activos.</td></tr>'+'</table></div></div><div class="card"><div class="fw7 f13 mb12">👥 Alumnos Registrados</div><div class="ox"><table class="ft"><tr><th>Nombre</th><th>Correo</th><th>Equipo</th><th>Estado</th><th>Registro</th></tr>'+users.map(u=>{const t=DB.getTeams().find(t=>t.members&&t.members.includes(u.id));const co=t?getC(t.companyId):null;const pend=getPendingReq(u.id);const status=t?(co?'<span class="badge bok">Activo</span>':'<span class="badge bwarn">Sin empresa</span>'):(pend?'<span class="badge bblue">Solicitud enviada</span>':'<span class="badge bmuted">Sin equipo</span>');return '<tr><td><div class="flex g8">'+av(u.name,u.id,'sm')+'<span class="fw6">'+u.name+'</span></div></td><td class="t2 f11">'+u.email+'</td><td>'+(t?t.name+(t.leaderId===u.id?' 👑':''):'—')+'</td><td>'+status+'</td><td class="t2 f11">'+new Date(u.createdAt).toLocaleDateString('es-MX')+'</td></tr>';}).join('')||'<tr><td colspan="5" class="t2">Sin alumnos.</td></tr>'+'</table></div></div><input type="file" id="importFile" accept=".json" style="display:none"></div>';}
+
+// ================================================================
+// SCORE CALC
+// ================================================================
+function calcScore(stage,tid,data){
+  const t=DB.getTeams().find(t=>t.id===tid);if(!t||!t.companyId)return 0;
+  const a=getC(t.companyId).ans;let tot=0,ok=0;
+  function chk(v,ans){tot++;if(close(parseFloat(v),ans))ok++;}
+  if(stage===1)return 100;
+  if(stage===2){['y1','y2'].forEach(yr=>{const bg=a[yr].bg,er=a[yr].er;chk(data['s2ac'+yr],bg.ac);chk(data['s2anc'+yr],bg.anc);chk(data['s2ta'+yr],bg.ta);chk(data['s2pc'+yr],bg.pc);chk(data['s2tp'+yr],bg.tp);chk(data['s2ur'+yr],bg.ur);chk(data['s2cap'+yr],bg.cap);chk(data['s2tpc'+yr],bg.ta);chk(data['s2ub'+yr],er.ub);chk(data['s2tgo'+yr],er.tgo);chk(data['s2uo'+yr],er.uo);chk(data['s2uai'+yr],er.uai);chk(data['s2isr'+yr],er.isr);chk(data['s2un'+yr],er.un);});}
+  else if(stage===3){['y1','y2'].forEach(yr=>{const r=a[yr].rat;['ctn','rc','pa','re','rte'].forEach(k=>chk(data['s3'+k+yr],r[k]));});}
+  else if(stage===4){['b_ef','b_ac','b_ta','b_pc','b_tp','b_cap','e_v','e_cv','e_ub','e_uo','e_un'].forEach(k=>{chk(data['s4h_'+k],a.h[k]);chk(data['s4v1_'+k],a.v.y1[k]);chk(data['s4v2_'+k],a.v.y2[k]);});}
+  else if(stage===5){const be=a.be;chk(data.s5num,be.num/1000);be.pr.forEach((p,i)=>{chk(data['s5mc'+i],p.pv-p.cv);chk(data['s5mcp'+i],Math.round((p.pv-p.cv)*p.p*100)/100);});chk(data.s5mcpt,be.mc);chk(data.s5pe,be.pe);}
+  return tot?Math.round(ok/tot*100):0;}
+
+// ================================================================
+// REPORT GENERATION
+// ================================================================
+function generateReport(stage,team,co){
+  const sub=getTeamSub(team.id,stage);if(!sub)return;
+  const a=co.ans;const labels=['','Perfil de Empresa','Estados Financieros','Razones de Liquidez','Análisis H y V','Punto de Equilibrio'];
+  let body='';
+  if(stage===1){body='<h3>Razón de selección</h3><p>'+(sub.data.s1a||'N/A')+'</p><h3>Entorno externo</h3><p>'+(sub.data.s1b||'N/A')+'</p><h3>Fortalezas esperadas</h3><p>'+(sub.data.s1c||'N/A')+'</p>';}
+  else if(stage===2){['y1','y2'].forEach((yr,yi)=>{const y=co.y[yi],bg=a[yr].bg,er=a[yr].er;body+='<h3>Balance General '+y+'</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th colspan="2">Miles MXN</th></tr><tr><td>Total Activo Circulante</td><td align="right">'+fmt(bg.ac)+'</td></tr><tr><td>Total Activo No Circulante</td><td align="right">'+fmt(bg.anc)+'</td></tr><tr style="font-weight:bold;background:#ddd"><td>TOTAL ACTIVO</td><td align="right">'+fmt(bg.ta)+'</td></tr><tr><td>Total Pasivo Circulante</td><td align="right">'+fmt(bg.pc)+'</td></tr><tr><td>Deuda LP</td><td align="right">'+fmt(bg.pnc)+'</td></tr><tr style="font-weight:bold"><td>TOTAL PASIVO</td><td align="right">'+fmt(bg.tp)+'</td></tr><tr><td>Capital Social</td><td align="right">'+fmt(bg.cs)+'</td></tr><tr><td>Utilidades Retenidas</td><td align="right">'+fmt(bg.ur)+'</td></tr><tr style="font-weight:bold;background:#ddd"><td>TOTAL P+C</td><td align="right">'+fmt(bg.ta)+'</td></tr></table><h3>Estado de Resultados '+y+'</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th colspan="2">Miles MXN</th></tr><tr><td>Ventas Netas</td><td align="right">'+fmt(er.v)+'</td></tr><tr><td>(-) Costo de Ventas</td><td align="right">('+fmt(er.cv)+')</td></tr><tr style="font-weight:bold"><td>Utilidad Bruta</td><td align="right">'+fmt(er.ub)+'</td></tr><tr><td>(-) Gastos Operativos</td><td align="right">('+fmt(er.tgo)+')</td></tr><tr style="font-weight:bold"><td>Utilidad Operativa</td><td align="right">'+fmt(er.uo)+'</td></tr><tr style="font-weight:bold;background:#d0f0d0"><td>UTILIDAD NETA</td><td align="right">'+fmt(er.un)+'</td></tr></table>';});}
+  else if(stage===3){['y1','y2'].forEach((yr,yi)=>{const r=a[yr].rat;body+='<h3>Razones Año '+co.y[yi]+'</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:60%;margin-bottom:16px"><tr><td>CTN</td><td>'+fmt(r.ctn)+' miles</td></tr><tr><td>Razón Corriente</td><td>'+fmt(r.rc,3)+'x</td></tr><tr><td>Prueba Ácida</td><td>'+fmt(r.pa,3)+'x</td></tr><tr><td>Razón Efectivo</td><td>'+fmt(r.re,3)+'x</td></tr><tr><td>Razón Tesorería</td><td>'+fmt(r.rte,3)+'x</td></tr></table>';});body+='<h3>Interpretación</h3><p>'+(sub.data.s3i||'—')+'</p>';}
+  else if(stage===4){const its=[['b_ef','Efectivo'],['b_ac','Total AC'],['b_ta','Total Activo'],['b_pc','Total PC'],['b_tp','Total Pasivo'],['b_cap','Capital'],['e_v','Ventas'],['e_ub','Util. Bruta'],['e_uo','Util. Operativa'],['e_un','Util. Neta']];body='<h3>Análisis H y V</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th>Partida</th><th>Var. Hor. %</th><th>Vert. '+co.y[0]+'%</th><th>Vert. '+co.y[1]+'%</th></tr>'+its.map(([k,l])=>'<tr><td>'+l+'</td><td>'+pct(a.h[k])+'</td><td>'+pct(a.v.y1[k])+'</td><td>'+pct(a.v.y2[k])+'</td></tr>').join('')+'</table><h3>Interpretación</h3><p>'+(sub.data.s4i||'—')+'</p>';}
+  else if(stage===5){const be=a.be;body='<h3>Datos del P.E.</h3><table border="1" cellpadding="5" style="border-collapse:collapse;margin-bottom:16px"><tr><td>Gastos Operativos</td><td>$'+fmt(be.gf.op)+'K</td></tr><tr><td>Gastos No Op.</td><td>$'+fmt(be.gf.nop)+'K</td></tr><tr><td>Util. Esperada</td><td>$'+fmt(be.gf.ue)+'K</td></tr><tr><td>ISR</td><td>'+be.t*100+'%</td></tr><tr style="font-weight:bold"><td>Numerador</td><td>$'+fmt(be.num/1000)+'K</td></tr></table><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th>Producto</th><th>MC Unit.</th><th>% Ventas</th><th>MC Pond.</th></tr>'+be.pr.map(p=>'<tr><td>'+p.n+'</td><td>$'+fmt(p.pv-p.cv,0)+'</td><td>'+(p.p*100).toFixed(0)+'%</td><td>$'+fmt(Math.round((p.pv-p.cv)*p.p*100)/100)+'</td></tr>').join('')+'<tr style="font-weight:bold"><td colspan="3">MCP Total</td><td>$'+fmt(be.mc)+'</td></tr></table><div style="background:#d0f0d0;border:1px solid #4caf50;padding:10px;border-radius:6px;font-weight:bold">PE PONDERADO: '+fmt(be.pe,0)+' unidades</div><h3>Interpretación</h3><p>'+(sub.data.s5i||'—')+'</p>';}
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte '+labels[stage]+' — '+team.name+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;color:#222;line-height:1.6}h1{color:#6c63ff;border-bottom:3px solid #6c63ff;padding-bottom:8px}h3{color:#555;margin-top:14px}.score{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:10px 14px;margin:14px 0;font-weight:bold;font-size:16px}.nop{margin-bottom:18px}@media print{.nop{display:none}}</style></head><body><div class="nop"><button onclick="window.print()" style="padding:8px 18px;background:#6c63ff;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px">🖨️ Imprimir/PDF</button><button onclick="window.close()" style="padding:8px 16px;border:1px solid #ccc;border-radius:6px;cursor:pointer">✕</button></div><h1>FinAcademy · '+labels[stage]+'</h1><p><strong>Empresa:</strong> '+co.e+' '+co.n+' &nbsp;·&nbsp; <strong>Equipo:</strong> '+team.name+' &nbsp;·&nbsp; <strong>Fecha:</strong> '+new Date(sub.submittedAt).toLocaleString('es-MX')+'</p><div class="score">Score de precisión: '+sub.score+'% correcto</div>'+body+'</body></html>');
+  w.document.close();}
+
+// ================================================================
+// EVENTS
+// ================================================================
+document.addEventListener('click',e=>{
+  const el=e.target;const id=el.id||el.closest('[id]')?.id||'';
+  function closest(attr){return el.closest('['+attr+']')?.getAttribute(attr);}
+  if(id==='btnLogin')return doLogin();
+  if(id==='btnGoReg')return ss({screen:'register'});
+  if(id==='btnReg')return doRegister();
+  if(id==='btnGoLogin')return ss({screen:'login'});
+  if(id==='btnLogout'||el.closest('#btnLogout'))return doLogout();
+  if(id==='btnCreateTeam')return doCreateTeam();
+  if(id==='btnRefreshLobby'||id==='btnRefreshTeam')return ss({});
+  const jt=closest('data-jointeam');if(jt)return doJoinRequest(jt);
+  if(id==='btnCancelReq'){const tid=el.dataset.tid||el.closest('[data-tid]')?.dataset.tid;return doCancelReq(tid);}
+  const tsv=closest('data-tsv');if(tsv)return ss({tsv});
+  const approveEl=el.closest('[data-approve]');if(approveEl)return doApproveReq(approveEl.dataset.tid,approveEl.dataset.approve);
+  const rejectEl=el.closest('[data-reject]');if(rejectEl)return doRejectReq(rejectEl.dataset.tid,rejectEl.dataset.reject);
+  const kickEl=el.closest('[data-kick]');if(kickEl)return doKick(kickEl.dataset.tid,kickEl.dataset.kick);
+  if(id==='btnLeaveTeam'||el.closest('#btnLeaveTeam')){const tid=el.dataset.tid||el.closest('[data-tid]')?.dataset.tid;return doLeaveTeam(tid);}
+  const selco=el.closest('[data-selco]');if(selco)return doSelectCo(selco.dataset.tid,selco.dataset.selco);
+  const ns=el.closest('[data-ns]')?.dataset.ns;if(ns){const n=parseInt(ns);const team=getUserTeam(A.user.id);if(team&&!stageOk(n,team.id)){msg('Completa las etapas anteriores primero.','warn');return;}return ss({view:'stages',stage:n});}
+  const nv=el.closest('[data-nv]')?.dataset.nv;if(nv)return ss({view:nv,tsv:'members'});
+  const tab=el.closest('[data-tab]')?.dataset.tab;if(tab)return ss({tab});
+  const et=el.closest('[data-et]')?.dataset.et;if(et)return ss({evalTarget:et});
+  if(id==='btnS1')return doSubmit(1);if(id==='btnS2')return doSubmit(2);if(id==='btnS3')return doSubmit(3);if(id==='btnS4')return doSubmit(4);if(id==='btnS5')return doSubmit(5);
+  if(id==='btnEval'||el.closest('#btnEval'))return doEval();
+  const sv=el.closest('[data-sv]');if(sv){A.inp['ev_'+sv.dataset.sid]=parseInt(sv.dataset.sv);render();return;}
+  const rpt=el.closest('[data-rpt]')?.dataset.rpt;if(rpt){const team=getUserTeam(A.user.id);if(team)generateReport(parseInt(rpt),team,getC(team.companyId));return;}
+  if(id==='btnExport')return doExport();
+  if(id==='btnImport')return document.getElementById('importFile')?.click();
+  var democoid=el.closest('[data-democoid]')?.dataset.democoid;if(democoid!==undefined){return ss({demoCoId:democoid===''?null:democoid,demoStage:1});}
+var demostage=el.closest('[data-demostage]')?.dataset.demostage;if(demostage)return ss({demoStage:parseInt(demostage)});
+if(el.closest('[data-toteacher]'))return ss({screen:'teacher'});
+var tview=el.closest('[data-tview]')?.dataset.tview;if(tview)return ss({teacherTeam:tview});
+if(id==='btnBackTeacher')return ss({teacherTeam:null});
+var treportS=el.closest('[data-treport]')?.dataset.treport;var treportTid=el.closest('[data-ttid]')?.dataset.ttid;if(treportS&&treportTid){var _tt=DB.getTeams().find(function(t){return t.id===treportTid;});if(_tt)generateReport(parseInt(treportS),_tt,getC(_tt.companyId));return;}
+if(id==='btnReset'){if(confirm('¿Borrar TODOS los datos?')){['fa2_users','fa2_teams','fa2_subs','fa2_evals'].forEach(k=>localStorage.removeItem(k));msg('Datos reiniciados.','ok');ss({});}}
+});
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(el.classList.contains('blank')&&el.dataset.a){A.inp[el.id]=el.value;const v=parseFloat(el.value),ans=parseFloat(el.dataset.a);if(el.value!==''){el.classList.remove('ok','err');el.classList.add(close(v,ans)?'ok':'err');}else el.classList.remove('ok','err');}
+  if(el.tagName==='TEXTAREA'||['text','email','password'].includes(el.type||'')){A.inp[el.id]=el.value;if(el.id==='lUser'){var v=el.value.trim().toLowerCase();if(v==='profesor'||v==='')render();}}
+});
+
+// ================================================================
+// ACTIONS
+// ================================================================
+
+
+function doLogin(){
+  var mode=A.loginMode||'individual';
+  var email=(A.inp.lEmail||document.getElementById('lEmail')?.value||'').trim().toLowerCase();
+  var pass=A.inp.lPass||document.getElementById('lPass')?.value||'';
+  if(!email||!email.includes('@')){msg('Ingresa tu correo EBC v&aacute;lido.','warn');return;}
+  if(!pass||pass.length<4){msg('La contrase&ntilde;a debe tener m&iacute;nimo 4 caracteres.','warn');return;}
+  // TEACHER
+  if(email==='profe@ebc.mx'||email==='profesor@ebc.mx'){
+    if(pass!=='2024'){msg('Contrase&ntilde;a incorrecta.','err');return;}
+    var tu={id:'teacher',name:'Docente EBC',email:email,role:'teacher'};
+    DB.saveSession(tu);ss({user:tu,screen:'teacher'});return;}
+  // DEMO ADMIN
+  if(email==='demo@ebc.mx'){
+    if(pass!=='demo2024'){msg('Contrase&ntilde;a incorrecta.','err');return;}
+    var du={id:'demo',name:'Demo Admin',email:email,role:'admin'};
+    DB.saveSession(du);ss({user:du,screen:'demo'});return;}
+  // TEAM MODE
+  if(mode==='team'){
+    var teamName=(document.getElementById('tName')?.value||'').trim();
+    var mc=Math.max(2,Math.min(6,parseInt(A.inp.memberCount||'2')));
+    var mnames=[];
+    for(var i=0;i<mc;i++){var mn=(document.getElementById('m'+i)?.value||'').trim();if(mn)mnames.push(mn);}
+    var users=DB.getUsers();
+    var u=users.find(function(x){return x.email===email;});
+    if(!u){
+      if(!teamName){msg('Escribe el nombre del equipo.','warn');return;}
+      if(mnames.length<1){msg('Agrega al menos 1 integrante.','warn');return;}
+      u={id:uid(),name:teamName,teamName:teamName,email:email,password:pass,
+         role:'team',memberNames:mnames,createdAt:Date.now()};
+      users.push(u);DB.saveUsers(users);
+    } else {
+      if(u.password&&u.password!==pass){msg('Contrase&ntilde;a incorrecta.','err');return;}
+      if(!u.password){u.password=pass;}
+      if(mnames.length>0){u.memberNames=mnames;u.teamName=teamName||u.teamName;}
+      DB.saveUsers(users);
+    }
+    ensureTeamForUser(u);
+    DB.saveSession(u);var t=getUserTeam(u.id);
+    ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});return;}
+  // INDIVIDUAL MODE
+  var users=DB.getUsers();
+  var u=users.find(function(x){return x.email===email;});
+  if(!u){
+    var rawN=email.split('@')[0].replace(/[._-]/g,' ');
+    var dispN=rawN.replace(/\b\w/g,function(c){return c.toUpperCase();});
+    u={id:uid(),name:dispN,email:email,password:pass,role:'student',
+       memberNames:[dispN],createdAt:Date.now()};
+    users.push(u);DB.saveUsers(users);
+  } else {
+    if(u.password&&u.password!==pass){msg('Contrase&ntilde;a incorrecta.','err');return;}
+    if(!u.password){u.password=pass;DB.saveUsers(users);}
+  }
+  ensureTeamForUser(u);
+  DB.saveSession(u);var t=getUserTeam(u.id);
+  ss({user:u,screen:t&&t.companyId?'student':'lobby',inp:{}});}
+
+function doRegister(){doLogin();}
+
+function doLogout(){DB.clearSession();ss({user:null,screen:'login',inp:{},view:'home',stage:1,tsv:'members'});}
+
+function doCreateTeam(){
+  const name=(A.inp.ct_name||document.getElementById('ct_name')?.value||'').trim();
+  const desc=(A.inp.ct_desc||document.getElementById('ct_desc')?.value||'').trim();
+  const max=parseInt(A.inp.ct_max||document.getElementById('ct_max')?.value||'4');
+  if(!name){msg('El nombre del equipo es obligatorio.','warn');return;}
+  const teams=DB.getTeams();
+  if(teams.find(t=>t.name.toLowerCase()===name.toLowerCase())){msg('Ya existe un equipo con ese nombre.','err');return;}
+  if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
+  const t={id:uid(),name,desc,leaderId:A.user.id,members:[A.user.id],requests:[],companyId:null,maxMembers:max,status:'open',createdAt:Date.now()};
+  teams.push(t);DB.saveTeams(teams);ss({screen:'lobby',inp:{},tsv:'members'});}
+
+function doJoinRequest(teamId){
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);
+  if(!t){msg('Equipo no encontrado.','err');return;}
+  if(t.members.length>=t.maxMembers){msg('El equipo está lleno.','err');return;}
+  if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
+  const alreadyPending=teams.some(t=>t.requests&&t.requests.some(r=>r.userId===A.user.id&&r.status==='pending'));
+  if(alreadyPending){msg('Ya tienes una solicitud pendiente.','warn');return;}
+  if(!t.requests)t.requests=[];
+  t.requests.push({userId:A.user.id,requestedAt:Date.now(),status:'pending'});
+  DB.saveTeams(teams);ss({screen:'lobby'});}
+
+function doCancelReq(teamId){const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;t.requests=(t.requests||[]).filter(r=>r.userId!==A.user.id);DB.saveTeams(teams);ss({screen:'lobby'});}
+
+function doApproveReq(teamId,userId){
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
+  if(t.members.length>=t.maxMembers){msg('El equipo está lleno.','err');return;}
+  const req=t.requests.find(r=>r.userId===userId);if(req)req.status='accepted';
+  if(!t.members.includes(userId))t.members.push(userId);
+  if(t.members.length>=t.maxMembers)t.status='full';
+  DB.saveTeams(teams);ss({tsv:'requests'});msg('✓ Miembro aprobado.','ok');}
+
+function doRejectReq(teamId,userId){const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;const req=t.requests.find(r=>r.userId===userId);if(req)req.status='rejected';DB.saveTeams(teams);ss({tsv:'requests'});msg('Solicitud rechazada.','warn');}
+
+function doKick(teamId,userId){
+  if(!confirm('¿Expulsar a este miembro?'))return;
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
+  t.members=t.members.filter(id=>id!==userId);t.status='open';DB.saveTeams(teams);ss({tsv:'members'});}
+
+function doLeaveTeam(teamId){
+  if(!confirm('¿Salir del equipo?'))return;
+  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
+  if(t.leaderId===A.user.id){teams.splice(teams.findIndex(x=>x.id===teamId),1);msg('Equipo disuelto.','warn');}
+  else{t.members=t.members.filter(id=>id!==A.user.id);t.status='open';}
+  DB.saveTeams(teams);ss({screen:'lobby'});}
+
+function doSelectCo(teamId,coId){
+  const teams=DB.getTeams();const taken=teams.some(t=>t.companyId===coId&&t.id!==teamId);
+  if(taken){msg('Esa empresa ya fue elegida por otro equipo.','err');return;}
+  const t=teams.find(t=>t.id===teamId);if(!t)return;
+  t.companyId=coId;t.status='active';DB.saveTeams(teams);ss({screen:'student',view:'home',stage:1});}
+
+function doSubmit(stage){
+  document.querySelectorAll('textarea,input[type=text],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
+  const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
+  if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
+  if(stage>=2&&(!A.user||A.user.role!=='admin')){var gqs=getGuide(stage,co);var gAnswered=gqs.filter(function(q){return(A.inp[q.id]||'').trim().length>=30;});if(gAnswered.length<2){msg('Responde al menos 2 preguntas del Análisis Guiado (30+ caracteres c/u) antes de entregar.','warn');return;}}
+if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[team.id][1]={data:{...A.inp},score:100,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);ss({view:'stages',stage:2});msg('✅ Etapa 1 entregada.','ok');return;}
+  const score=calcScore(stage,team.id,A.inp);
+  if(score<25){msg('Score de '+score+'%. Revisa tus cálculos (mínimo 25%).','warn');return;}
+  const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
+  subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);
+  if(stage<5)ss({view:'stages',stage:stage+1});else ss({view:'home'});
+  msg('✅ Etapa '+stage+' entregada. Score: '+score+'%','ok');}
+
+function doEval(){
+  const tid=A.evalTarget;if(!tid){msg('Selecciona un equipo.','warn');return;}
+  const comment=document.getElementById('ev_comment')?.value||'';
+  if(!comment.trim()){msg('Escribe un comentario constructivo.','warn');return;}
+  const scores={rigor:parseInt(A.inp['ev_rigor'])||0,comp:parseInt(A.inp['ev_comp'])||0,interp:parseInt(A.inp['ev_interp'])||0,pres:parseInt(A.inp['ev_pres'])||0};
+  if(scores.rigor+scores.comp+scores.interp+scores.pres<4){msg('Califica todas las dimensiones (1-5 estrellas).','warn');return;}
+  const evs=DB.getEvals();const idx=evs.findIndex(e=>e.evalId===A.user.id&&e.teamId===tid);
+  const ev={id:uid(),evalId:A.user.id,evalName:A.user.name,teamId:tid,scores,comment,createdAt:Date.now()};
+  if(idx>=0)evs[idx]=ev;else evs.push(ev);
+  DB.saveEvals(evs);['rigor','comp','interp','pres'].forEach(k=>delete A.inp['ev_'+k]);
+  msg('✅ Evaluación enviada.','ok');ss({});}
+
+function doExport(){const d={users:DB.getUsers(),teams:DB.getTeams(),subs:DB.getSubs(),evals:DB.getEvals(),at:new Date().toISOString()};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download='finacademy_'+new Date().toLocaleDateString('es-MX').replace(/\//g,'-')+'.json';a.click();}
+function doImport(f){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.users)DB.saveUsers(d.users);if(d.teams)DB.saveTeams(d.teams);if(d.subs)DB.saveSubs(d.subs);if(d.evals)DB.saveEvals(d.evals);msg('✅ Datos importados.','ok');ss({});}catch{msg('Error al importar el archivo.','err');}};r.readAsText(f);}
+
+// ================================================================
+// INIT
+// ================================================================
+
+window.onerror = function(msg,src,line,col,err){
+  var app=document.getElementById('app');
+  if(app) app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#0b0e1a;min-height:100vh"><h2>Error JS:</h2><pre>'+msg+'\n\nLine: '+line+'\nCol: '+col+'\n\n'+(err?err.stack:'')+'</pre></div>';
+  return false;};
+(function init(){
+  const ses=DB.getSession();
+  if(ses){A.user=ses;if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);if(ses.role==='teacher')A.screen='teacher';else{const t=getUserTeam(ses.id);A.screen=t&&t.companyId?'student':'lobby';}}
+  render();
+})();
 const RUBRICS={
   1:{name:'Empresa & Canvas',weight:10,criteria:[
     {id:'r1_1',name:'Justificacion de la seleccion',desc:'La justificacion es clara, argumentada y conecta con el sector?',
@@ -892,21 +1827,16 @@ function rLobby(){
   var myTeam=getUserTeam(A.user.id);
   if(!myTeam)return rLobbyMain();
   if(myTeam.companyId)return rStudent();
-  // Team with company selection in progress → team room
-  if((myTeam.members||[]).length>1||myTeam.isTeamAccount)return rTeamRoom(myTeam);
-  // Solo auto-team with no company → show lobby to find a team
-  return rLobbyMain();
+  if(myTeam.rolesConfirmed)return rCoSelectFull(myTeam);
+  return rTeamWaiting(myTeam);
 }
+
 
 
 // ================================================================
 // COMPANY SELECTION — Full screen after login
 // ================================================================
 function rCoSelectFull(team){
-  // If team has members but no roles confirmed yet, show role assignment
-  if(team.leaderId===A.user.id&&(team.members||[]).length>1&&!team.rolesConfirmed){
-    return rRoleAssignment(team,null);
-  }
 
   var mnames=getMemberNames(team);
   var allTeams=DB.getTeams();
@@ -949,6 +1879,93 @@ function rCoSelectFull(team){
 
 
 
+
+
+function rTeamWaiting(team){
+  var myUid=A.user.id;
+  var isCapitan=team.leaderId===myUid;
+  var members=(team.members||[]);
+  var users=DB.getUsers();
+  var max=team.maxMembers||4;
+
+  return'<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;'+
+    'background:radial-gradient(ellipse at 30% 20%,rgba(108,99,255,.12) 0%,transparent 60%)">'+
+    '<div style="max-width:560px;width:100%">'+
+
+    // Header
+    '<div style="text-align:center;margin-bottom:28px">'+
+      '<div style="font-size:42px;margin-bottom:10px">🏆</div>'+
+      '<h2 style="font-size:22px;font-weight:700;margin:0 0 6px">'+team.name+'</h2>'+
+      '<p class="t2 f12">'+members.length+' de '+max+' integrantes</p>'+
+    '</div>'+
+
+    // Members grid
+    '<div class="card mb16">'+
+      '<div class="fw7 f12 mb12">Integrantes del equipo</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:12px">'+
+        members.map(function(mid){
+          var u=users.find(function(u){return u.id===mid;});
+          var isLdr=team.leaderId===mid;
+          var role=team.roles&&Object.keys(team.roles).find(function(r){return team.roles[r]===mid;});
+          var roleInfo=role?TEAM_ROLES.find(function(r){return r.id===role;}):null;
+          return'<div style="text-align:center;padding:12px 8px;background:var(--s1);border-radius:10px;border:1px solid '+(isLdr?'rgba(108,99,255,.4)':'var(--border)')+'">'+
+            '<div style="font-size:26px;margin-bottom:6px">'+(roleInfo?roleInfo.emoji:(isLdr?'👑':'👤'))+'</div>'+
+            '<div class="fw6 f12">'+(u?u.name.split(' ')[0]:'?')+'</div>'+
+            '<div class="t3 f10 mt2">'+(isLdr?'Capitán':'')+'</div>'+
+            (roleInfo?'<div style="font-size:10px;color:'+roleInfo.color+';margin-top:3px">'+roleInfo.title.split('—')[0].trim()+'</div>':'')+
+          '</div>';
+        }).join('')+
+        // Empty slots
+        Array(Math.max(0,max-members.length)).fill('').map(function(){
+          return'<div style="text-align:center;padding:12px 8px;background:var(--s1);border-radius:10px;border:1px dashed var(--border);opacity:.4">'+
+            '<div style="font-size:26px;margin-bottom:6px">➕</div>'+
+            '<div class="t3 f11">Libre</div>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+      (members.length<max?
+        '<p class="t3 f11" style="text-align:center">Comparte el nombre del equipo para que se unan: <strong>'+team.name+'</strong></p>':
+        '<div class="alert aok f11" style="text-align:center">✅ Equipo completo</div>')+
+    '</div>'+
+
+    // Actions
+    (isCapitan?
+      '<div class="card">'+
+        '<div class="fw7 f13 mb4">👑 Panel del Capitán</div>'+
+        (members.length<2?
+          '<div class="alert ai f12 mb10">'+
+            '<span>⏳</span>'+
+            '<span>Esperando que se unan tus compañeros. Cuando tengas al menos 2 personas puedes asignar roles.</span>'+
+          '</div>'+
+          '<button class="btn btn-p btn-w" onclick="A.inp.skipRoles=true;doConfirmRoles()" style="opacity:.6">'+
+            'Continuar solo (sin roles) →'+
+          '</button>'
+        :
+          '<p class="t2 f12 mb12">Asigna un rol a cada integrante antes de elegir la empresa. Cada rol define qué análisis lidera cada persona.</p>'+
+          '<button class="btn btn-p btn-w btn-lg" onclick="ss({screen:\'lobby\'})">'+
+            '🎭 Asignar roles al equipo →'+
+          '</button>'+
+          '<button class="btn btn-sm btn-w mt8" style="opacity:.5" onclick="if(confirm(\'¿Saltar asignación de roles?\'))doConfirmRoles()">'+
+            'Saltar y elegir empresa directamente'+
+          '</button>'
+        )+
+      '</div>'
+    :
+      '<div class="card" style="text-align:center;padding:20px">'+
+        '<div style="font-size:32px;margin-bottom:10px">⏳</div>'+
+        '<div class="fw6 f13 mb4">Esperando al capitán</div>'+
+        '<p class="t2 f12">'+
+          (function(){var ldr=users.find(function(u){return u.id===team.leaderId;});return ldr?ldr.name:'El capitán';})()+ 
+          ' está configurando el equipo y asignando roles.</p>'+
+        '<button class="btn btn-sm mt12" onclick="render()">🔄 Actualizar</button>'+
+        '<button class="btn btn-sm mt8 btn-danger" onclick="doLeaveTeam()">Salir del equipo</button>'+
+      '</div>'
+    )+
+
+    '<div style="text-align:center;margin-top:12px">'+
+      '<button class="btn btn-sm" style="color:var(--t3);background:transparent;border:none" id="btnLogout">🚪 Cerrar sesión</button>'+
+    '</div>'+
+  '</div></div>';}
 
 function rLobbyMain(){
   var myUid=A.user.id;
@@ -1105,9 +2122,11 @@ function doKick(teamId,userId){
 
 function doLeaveTeam(teamId){
   if(!confirm('¿Salir del equipo?'))return;
-  const teams=DB.getTeams();const t=teams.find(t=>t.id===teamId);if(!t)return;
+  var teams=DB.getTeams();
+  var t=teamId?teams.find(function(x){return x.id===teamId;}):teams.find(function(x){return(x.members||[]).includes(A.user.id);});
+  if(!t)return;
   if(t.leaderId===A.user.id){teams.splice(teams.findIndex(x=>x.id===teamId),1);msg('Equipo disuelto.','warn');}
-  else{t.members=t.members.filter(id=>id!==A.user.id);t.status='open';}
+  else{t.members=t.members.filter(function(id){return id!==A.user.id;});t.status='open';SYNC.pushTeam(t);}
   DB.saveTeams(teams);ss({screen:'lobby'});}
 
 function generateCorteReport(corteNum,team,co){
@@ -1500,6 +2519,7 @@ function rRoleAssignment(team,co){
   var myRole=Object.keys(roles).find(function(rid){return roles[rid]===myUid;});
 
   return'<div class="fadein" style="max-width:800px;margin:0 auto;padding:1.5rem">'+
+    '<button class="btn btn-sm mb12" data-golobby="1" style="color:var(--t3)">← Volver al equipo</button>'+
     '<div class="mb16">'+
       '<h2 class="f18 mb4">🎭 Asignación de Roles del Equipo</h2>'+
       '<p class="t2 f12 mb4">Cada integrante tiene un rol estratégico en el equipo financiero. '+
@@ -1614,7 +2634,7 @@ function doConfirmRoles(){
   if(!t)return;
   t.rolesConfirmed=true;
   DB.saveTeams(teams);SYNC.pushTeam(t);
-  ss({screen:'student',view:'stages'});}
+  ss({screen:'lobby'});}
 
 
 // ================================================================
@@ -1817,6 +2837,7 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
         var jointeam=el.closest&&el.closest('[data-jointeam]');
     if(jointeam){doJoinRequest(jointeam.dataset.jointeam);return;}
     var ainp=el.closest&&el.closest('[data-ainp]');if(ainp){var parts=ainp.dataset.ainp.split('=');A.inp[parts[0]]=parts[1];render();return;}
+    if(el.dataset&&el.dataset.golobby){A.screen='lobby';render();return;}
     if(id==='btnMoveUser')return doMoveUser();
     if(id==='btnExcelExport'||el.closest&&el.closest('#btnExcelExport')){doExcelExport();return;}
     if(id==='btnReset'){if(confirm('Borrar TODOS los datos?'))doReset();return;}
