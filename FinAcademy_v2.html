@@ -1101,7 +1101,17 @@ function doEval(){
           fieldEvals:{},scores:{},comment:comment,createdAt:Date.now()};
   if(idx>=0)evs[idx]=ev;else evs.push(ev);
   DB.saveEvals(evs);
-  try{SYNC.pushEval(ev);}catch(se){console.warn('[SYNC]',se);}
+  console.log('[FA] Eval guardada localmente. Enviando a Supabase...',ev);
+  SYNC.pushEval(ev).then(function(){
+    console.log('[FA] ✅ Coevaluación en Supabase exitosa');
+  }).catch(function(se){
+    console.error('[FA] ❌ Error Supabase pushEval:',se);
+    // Save to pending queue for retry
+    var pending=JSON.parse(localStorage.getItem('fa2_pending_evals')||'[]');
+    pending.push(ev);
+    localStorage.setItem('fa2_pending_evals',JSON.stringify(pending));
+    msg('⚠️ Coevaluación guardada localmente. Sin conexión a Supabase.','warn');
+  });
   rubric.criteria.forEach(function(c){delete A.inp['ev_'+tid+'_'+stage+'_'+c.id];});
   delete A.inp['ev_comment_'+tid+'_'+stage];
   var tname=(DB.getTeams().find(function(t){return t.id===tid;})||{name:'equipo'}).name;
@@ -1422,13 +1432,13 @@ const SYNC={
       .subscribe();
     console.log('[SYNC] Suscripción en tiempo real activa');
   },
-  async pushUser(u){if(!this.sb)return;
+  async pushUser(u){if(!this.sb)return Promise.resolve();
     await this.sb.from('fa_users').upsert({
       id:u.id,name:u.name,email:u.email||u.id,password:u.password||'',
       role:u.role||'student',team_name:u.teamName||'',student_code:u.studentCode||'',
       member_names:u.memberNames||[u.name],created_at:u.createdAt||Date.now()
     },{onConflict:'id'});},
-  async pushTeam(t){if(!this.sb)return;
+  async pushTeam(t){if(!this.sb)return Promise.resolve();
     await this.sb.from('fa_teams').upsert({
       id:t.id,name:t.name,description:t.desc||'',
       leader_id:t.leaderId||null,members:t.members||[],
@@ -1445,7 +1455,7 @@ const SYNC={
       data:sub.data,score:sub.score,submitted_by:sub.submittedBy,submitted_at:sub.submittedAt
     },{onConflict:'id'});
   },
-  async pushEval(ev){if(!this.sb)return;
+  async pushEval(ev){if(!this.sb)return Promise.resolve();
     await this.sb.from('fa_evals').upsert({
       id:ev.id,eval_id:ev.evalId,eval_name:ev.evalName||'',
       team_id:ev.teamId,stage:ev.stage||1,
@@ -1453,14 +1463,14 @@ const SYNC={
       field_evals:ev.fieldEvals||{},scores:ev.scores||{},
       comment:ev.comment||'',created_at:ev.createdAt||Date.now()
     },{onConflict:'id'});},
-  async deleteTeam(tid){if(!this.sb)return;await this.sb.from('fa_teams').delete().eq('id',tid);await this.sb.from('fa_subs').delete().eq('team_id',tid);await this.sb.from('fa_evals').delete().eq('team_id',tid);},
-  async deleteUser(uid_){if(!this.sb)return;await this.sb.from('fa_users').delete().eq('id',uid_);},
-  async deleteTeamSubs(tid){if(!this.sb)return;await this.sb.from('fa_subs').delete().eq('team_id',tid);},
+  async deleteTeam(tid){if(!this.sb)return Promise.resolve();await this.sb.from('fa_teams').delete().eq('id',tid);await this.sb.from('fa_subs').delete().eq('team_id',tid);await this.sb.from('fa_evals').delete().eq('team_id',tid);},
+  async deleteUser(uid_){if(!this.sb)return Promise.resolve();await this.sb.from('fa_users').delete().eq('id',uid_);},
+  async deleteTeamSubs(tid){if(!this.sb)return Promise.resolve();await this.sb.from('fa_subs').delete().eq('team_id',tid);},
   async pushAllUsers(users){if(!this.sb)return;for(var u of users){await this.pushUser(u);}},
   async pushAllTeams(teams){if(!this.sb)return;for(var t of teams){await this.pushTeam(t);}},
   async pushAllSubs(subs){if(!this.sb)return;for(var tid in subs){for(var s in subs[tid]){await this.sb.from('fa_subs').upsert({id:tid+'_'+s,team_id:tid,stage:parseInt(s),data:subs[tid][s].data,score:subs[tid][s].score,submitted_by:subs[tid][s].submittedBy,submitted_at:subs[tid][s].submittedAt},{onConflict:'id'});}}},
   async pushAllEvals(evs){if(!this.sb)return;for(var ev of evs){await this.pushEval(ev);}},
-  async pushTeacherEval(ev){if(!this.sb)return;await this.sb.from('fa_teacher_evals').upsert({id:ev.id,team_id:ev.teamId,stage:ev.stage,grade:ev.grade||0,scores:ev.scores||{},feedback:ev.feedback||'',created_at:ev.createdAt},{onConflict:'id'});},
+  async pushTeacherEval(ev){if(!this.sb)return Promise.resolve();await this.sb.from('fa_teacher_evals').upsert({id:ev.id,team_id:ev.teamId,stage:ev.stage,grade:ev.grade||0,scores:ev.scores||{},feedback:ev.feedback||'',created_at:ev.createdAt},{onConflict:'id'});},
   // Save config to localStorage
   saveConfig(url,key){
     localStorage.setItem('fa2_sb_url',url||'https://gfogifozhhbzxhcbecgf.supabase.co');
@@ -2719,7 +2729,19 @@ function rTCoevals(){
     avgRubric=cnt?Math.round(total/cnt*10)/10:0;
   }
 
+  var localEvs=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
+  var pendingEvs=JSON.parse(localStorage.getItem('fa2_pending_evals')||'[]');
   return'<div>'+
+  '<div class="fbet mb10 flex-wrap">'+
+  '<div>'+
+    '<span class="badge bok f11 mr6">📊 '+localEvs.length+' eval en sistema</span>'+
+    (pendingEvs.length?'<span class="badge bwarn f11">⏳ '+pendingEvs.length+' pendientes de sync</span>':'<span class="badge bok f11">☁️ Todo sincronizado</span>')+
+  '</div>'+
+  '<div class="flex g8">'+
+    '<button class="btn btn-sm btn-ok" onclick="doRetryPendingEvals()">🔄 Reintentar Sync</button>'+
+    '<button class="btn btn-sm" onclick="SYNC.pull().then(function(){render();msg(\'✅ Datos actualizados\',\'ok\');})">⬇️ Jalar Supabase</button>'+
+  '</div>'+
+  '</div>'+
     '<div class="g4c mb14">'+
       '<div class="metric"><div class="metric-l">Total coevaluaciones</div><div class="metric-v">'+totalEvs+'</div></div>'+
       '<div class="metric"><div class="metric-l">Evaluadores activos</div><div class="metric-v">'+uniqueEvaluators+'</div></div>'+
@@ -2792,6 +2814,24 @@ function rTCoevals(){
     '</div>'+
   '</div>';}
 
+
+function doRetryPendingEvals(){
+  var pending=JSON.parse(localStorage.getItem('fa2_pending_evals')||'[]');
+  if(!pending.length){msg('No hay evaluaciones pendientes.','ok');return;}
+  if(!SYNC.enabled){msg('Sin conexión a Supabase. Verifica la configuración.','warn');return;}
+  var done=0;
+  Promise.all(pending.map(function(ev){
+    return SYNC.pushEval(ev).then(function(){done++;}).catch(function(e){console.warn(e);});
+  })).then(function(){
+    if(done===pending.length){
+      localStorage.removeItem('fa2_pending_evals');
+      msg('✅ '+done+' coevaluaciones sincronizadas con Supabase.','ok');
+    } else {
+      msg('Parcial: '+done+'/'+pending.length+' sincronizadas.','warn');
+    }
+    render();
+  });}
+
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
   function handleClick(e){
@@ -2832,7 +2872,10 @@ function rTCoevals(){
     if(id==='btnExport')return doExport();
     if(id==='btnImport')return document.getElementById('importFile')?.click();
     if(id==='btnSBConnect'||el.closest&&el.closest('#btnSBConnect'))return doSBConnect();
-    if(id==='btnSyncNow'||el.closest&&el.closest('#btnSyncNow')){SYNC.pull().then(function(){msg('Datos sincronizados.','ok');});return;}
+    if(id==='btnSyncNow'||el.closest&&el.closest('#btnSyncNow')){
+      msg('Sincronizando...','ok');
+      SYNC.pull().then(function(){render();msg('✅ Datos actualizados desde Supabase.','ok');});
+      return;}
     if(id==='btnSBExportAll'||el.closest&&el.closest('#btnSBExportAll'))return doSBExportAll();
     var democoid=el.closest&&el.closest('[data-democoid]');if(democoid!==undefined&&democoid!==null)return ss({demoCoId:democoid.dataset.democoid===''?null:democoid.dataset.democoid,demoStage:1});
     var demostage=el.closest&&el.closest('[data-demostage]');if(demostage)return ss({demoStage:parseInt(demostage.dataset.demostage)});
