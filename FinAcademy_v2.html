@@ -1739,38 +1739,32 @@ function rCoSelectFull(team){
 function rTeamWaiting(team){
   var myUid=A.user.id;
   var isCapitan=team.leaderId===myUid;
-  var members=(team.members||[]);
+  var members=team.members||[];
   var users=DB.getUsers();
   var max=team.maxMembers||4;
 
   return'<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;'+
     'background:radial-gradient(ellipse at 30% 20%,rgba(108,99,255,.12) 0%,transparent 60%)">'+
-    '<div style="max-width:560px;width:100%">'+
+    '<div style="max-width:540px;width:100%">'+
 
-    // Header
-    '<div style="text-align:center;margin-bottom:28px">'+
+    '<div style="text-align:center;margin-bottom:24px">'+
       '<div style="font-size:42px;margin-bottom:10px">🏆</div>'+
       '<h2 style="font-size:22px;font-weight:700;margin:0 0 6px">'+team.name+'</h2>'+
       '<p class="t2 f12">'+members.length+' de '+max+' integrantes</p>'+
     '</div>'+
 
-    // Members grid
-    '<div class="card mb16">'+
+    '<div class="card mb14">'+
       '<div class="fw7 f12 mb12">Integrantes del equipo</div>'+
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:12px">'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:10px">'+
         members.map(function(mid){
           var u=users.find(function(u){return u.id===mid;});
           var isLdr=team.leaderId===mid;
-          var role=team.roles&&Object.keys(team.roles).find(function(r){return team.roles[r]===mid;});
-          var roleInfo=role?TEAM_ROLES.find(function(r){return r.id===role;}):null;
-          return'<div style="text-align:center;padding:12px 8px;background:var(--s1);border-radius:10px;border:1px solid '+(isLdr?'rgba(108,99,255,.4)':'var(--border)')+'">'+
-            '<div style="font-size:26px;margin-bottom:6px">'+(roleInfo?roleInfo.emoji:(isLdr?'👑':'👤'))+'</div>'+
+          return'<div style="text-align:center;padding:12px 8px;background:var(--s1);border-radius:10px;border:1px solid '+(isLdr?'rgba(108,99,255,.5)':'var(--border)')+';position:relative">'+
+            '<div style="font-size:26px;margin-bottom:6px">'+(isLdr?'👑':'👤')+'</div>'+
             '<div class="fw6 f12">'+(u?u.name.split(' ')[0]:'?')+'</div>'+
-            '<div class="t3 f10 mt2">'+(isLdr?'Capitán':'')+'</div>'+
-            (roleInfo?'<div style="font-size:10px;color:'+roleInfo.color+';margin-top:3px">'+roleInfo.title.split('—')[0].trim()+'</div>':'')+
+            (isLdr?'<div class="t3 f10 mt2">Capitán</div>':'')+
           '</div>';
         }).join('')+
-        // Empty slots
         Array(Math.max(0,max-members.length)).fill('').map(function(){
           return'<div style="text-align:center;padding:12px 8px;background:var(--s1);border-radius:10px;border:1px dashed var(--border);opacity:.4">'+
             '<div style="font-size:26px;margin-bottom:6px">➕</div>'+
@@ -1779,41 +1773,27 @@ function rTeamWaiting(team){
         }).join('')+
       '</div>'+
       (members.length<max?
-        '<p class="t3 f11" style="text-align:center">Comparte el nombre del equipo para que se unan: <strong>'+team.name+'</strong></p>':
-        '<div class="alert aok f11" style="text-align:center">✅ Equipo completo</div>')+
+        '<p class="t3 f11" style="text-align:center">Comparte el nombre del equipo: <strong>'+team.name+'</strong></p>':
+        '<div class="alert aok f11 mt6" style="text-align:center">✅ Equipo completo</div>')+
     '</div>'+
 
-    // Actions
     (isCapitan?
       '<div class="card">'+
-        '<div class="fw7 f13 mb4">👑 Panel del Capitán</div>'+
-        (members.length<2?
-          '<div class="alert ai f12 mb10">'+
-            '<span>⏳</span>'+
-            '<span>Esperando que se unan tus compañeros. Cuando tengas al menos 2 personas puedes asignar roles.</span>'+
-          '</div>'+
-          '<button class="btn btn-p btn-w" onclick="A.inp.skipRoles=true;doConfirmRoles()" style="opacity:.6">'+
-            'Continuar solo (sin roles) →'+
-          '</button>'
-        :
-          '<p class="t2 f12 mb12">Asigna un rol a cada integrante antes de elegir la empresa. Cada rol define qué análisis lidera cada persona.</p>'+
-          '<button class="btn btn-p btn-w btn-lg" onclick="ss({screen:\'lobby\'})">'+
-            '🏢 Elegir empresa →'+
-          '</button>'+
-          '<button class="btn btn-sm btn-w mt8" style="opacity:.5" onclick="if(confirm(\'¿Saltar asignación de roles?\'))doConfirmRoles()">'+
-            'Saltar y elegir empresa directamente'+
-          '</button>'
-        )+
+        '<div class="fw7 f13 mb4">👑 Eres el capitán</div>'+
+        '<p class="t2 f12 mb14">Cuando tu equipo esté listo, elige la empresa que van a analizar durante el semestre.</p>'+
+        '<button class="btn btn-p btn-w btn-lg" id="btnGoSelectCo" style="font-size:15px;padding:14px">'+
+          '🏢 Elegir empresa →'+
+        '</button>'+
       '</div>'
     :
-      '<div class="card" style="text-align:center;padding:20px">'+
+      '<div class="card" style="text-align:center;padding:24px">'+
         '<div style="font-size:32px;margin-bottom:10px">⏳</div>'+
         '<div class="fw6 f13 mb4">Esperando al capitán</div>'+
-        '<p class="t2 f12">'+
-          (function(){var ldr=users.find(function(u){return u.id===team.leaderId;});return ldr?ldr.name:'El capitán';})()+ 
-          ' está configurando el equipo y asignando roles.</p>'+
-        '<button class="btn btn-sm mt12" onclick="render()">🔄 Actualizar</button>'+
-        '<button class="btn btn-sm mt8 btn-danger" onclick="doLeaveTeam()">Salir del equipo</button>'+
+        '<p class="t2 f12 mb12">'+
+          (function(){var ldr=users.find(function(u){return u.id===team.leaderId;});return(ldr?ldr.name:'El capitán');})()+ 
+          ' elegirá la empresa para comenzar.</p>'+
+        '<button class="btn btn-sm mt4" onclick="render()">🔄 Actualizar</button>'+
+        '<button class="btn btn-sm mt6 btn-danger" onclick="doLeaveTeam()">Salir del equipo</button>'+
       '</div>'
     )+
 
@@ -1821,6 +1801,7 @@ function rTeamWaiting(team){
       '<button class="btn btn-sm" style="color:var(--t3);background:transparent;border:none" id="btnLogout">🚪 Cerrar sesión</button>'+
     '</div>'+
   '</div></div>';}
+
 
 function rLobbyMain(){
   var myUid=A.user.id;
@@ -2858,6 +2839,7 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     if(jointeam){doJoinRequest(jointeam.dataset.jointeam);return;}
     var ainp=el.closest&&el.closest('[data-ainp]');if(ainp){var parts=ainp.dataset.ainp.split('=');A.inp[parts[0]]=parts[1];render();return;}
     if(el.dataset&&el.dataset.golobby){A.screen='lobby';render();return;}
+    if(id==='btnGoSelectCo'){var myT=getUserTeam(A.user.id);if(myT&&myT.leaderId===A.user.id){var ts=DB.getTeams();var tf=ts.find(function(x){return x.id===myT.id;});if(tf){tf.rolesConfirmed=true;DB.saveTeams(ts);SYNC.pushTeam(tf);}A.screen='lobby';render();}return;}
     if(id==='btnMoveUser')return doMoveUser();
     if(id==='btnExcelExport'||el.closest&&el.closest('#btnExcelExport')){doExcelExport();return;}
     if(id==='btnReset'){if(confirm('Borrar TODOS los datos?'))doReset();return;}
