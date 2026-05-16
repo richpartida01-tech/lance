@@ -1683,6 +1683,7 @@ function rLobby(){
   var myTeam=getUserTeam(A.user.id);
   if(!myTeam)return rLobbyMain();
   if(myTeam.companyId)return rStudent();
+  if(myTeam.rolesConfirmed)return rCoSelectFull(myTeam);
   return rTeamWaiting(myTeam);
 }
 
@@ -2839,7 +2840,16 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     if(jointeam){doJoinRequest(jointeam.dataset.jointeam);return;}
     var ainp=el.closest&&el.closest('[data-ainp]');if(ainp){var parts=ainp.dataset.ainp.split('=');A.inp[parts[0]]=parts[1];render();return;}
     if(el.dataset&&el.dataset.golobby){A.screen='lobby';render();return;}
-    if(id==='btnGoSelectCo'){var myT=getUserTeam(A.user.id);if(myT&&myT.leaderId===A.user.id){var ts=DB.getTeams();var tf=ts.find(function(x){return x.id===myT.id;});if(tf){tf.rolesConfirmed=true;DB.saveTeams(ts);SYNC.pushTeam(tf);}A.screen='lobby';render();}return;}
+    if(id==='btnGoSelectCo'){
+      var myT=getUserTeam(A.user.id);
+      if(myT&&myT.leaderId===A.user.id){
+        var ts=DB.getTeams();
+        var tf=ts.find(function(x){return x.id===myT.id;});
+        if(tf){tf.rolesConfirmed=true;DB.saveTeams(ts);SYNC.pushTeam(tf);}
+        var app=document.getElementById('app');
+        if(app)app.innerHTML=rCoSelectFull(tf||myT);
+        postRender();
+      }return;}
     if(id==='btnMoveUser')return doMoveUser();
     if(id==='btnExcelExport'||el.closest&&el.closest('#btnExcelExport')){doExcelExport();return;}
     if(id==='btnReset'){if(confirm('Borrar TODOS los datos?'))doReset();return;}
