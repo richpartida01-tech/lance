@@ -4788,8 +4788,46 @@ window.onerror = function(msg,src,line,col,err){
   if(app) app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#0b0e1a;min-height:100vh"><h2>Error JS:</h2><pre>'+msg+'\n\nLine: '+line+'\nCol: '+col+'\n\n'+(err?err.stack:'')+'</pre></div>';
   return false;};
 (function init(){
-  const ses=DB.getSession();
-  if(ses){A.user=ses;if(ses.role!=='teacher'&&ses.role!=='admin')ensureTeamForUser(ses);if(ses.role==='teacher')A.screen='teacher';else{const t=getUserTeam(ses.id);A.screen=t&&t.companyId?'student':'lobby';}}
+  // ── 1. Connect Supabase (https only) ─────────────────────────
+  if(location.protocol!=='file:'){
+    try{
+      var cfg=SYNC.loadConfig();
+      if(cfg.url&&cfg.key){
+        var ok=SYNC.init(cfg.url,cfg.key);
+        if(ok&&SYNC.enabled){
+          try{SYNC.subscribe();}catch(se){console.warn('[SYNC subscribe]',se);}
+          SYNC.pull().then(function(){
+            render();
+            console.log('[FA] ✅ Sincronizado con Supabase');
+          }).catch(function(pe){console.warn('[SYNC pull]',pe);});
+        }
+      }
+    }catch(e){console.warn('[SYNC init error]',e);}
+  }
+  // ── 2. Restore session ────────────────────────────────────────
+  var ses=DB.getSession();
+  if(ses){
+    A.user=ses;
+    if(ses.role==='teacher')A.screen='teacher';
+    else if(ses.role==='admin')A.screen='demo';
+    else{
+      var t=getUserTeam(ses.id);
+      A.screen=t&&t.companyId?'student':'lobby';
+    }
+  }
+  // ── 3. Pre-load students if first run ─────────────────────────
+  var existingStudents=DB.getUsers().filter(function(u){return u.role==='student';});
+  if(existingStudents.length===0&&typeof PRELOADED_STUDENTS!=='undefined'){
+    var allU=DB.getUsers();
+    PRELOADED_STUDENTS.forEach(function(s){
+      if(!allU.find(function(u){return u.email===s.email||u.studentCode===s.studentCode;})){
+        allU.push(s);
+      }
+    });
+    DB.saveUsers(allU);
+    console.log('[FA] '+PRELOADED_STUDENTS.length+' alumnos pre-cargados');
+  }
+  // ── 4. Render ─────────────────────────────────────────────────
   render();
 })();
 </script>
