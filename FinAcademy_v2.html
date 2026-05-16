@@ -2754,6 +2754,64 @@ function doAddStudentManual(){
   A.inp.new_email='';A.inp.new_code='';
   ss({teacherTab:'alumnos'});}
 
+
+
+function rTEmpresas(teams){
+  return'<div class="card">'+
+    '<div class="fw7 f13 mb4">&#x1F3E2; Estado de Empresas</div>'+
+    '<p class="t2 f12 mb14">Gestiona qué empresas están disponibles. "Liberar" quita la empresa del equipo para que otro pueda tomarla.</p>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">'+
+    COS.map(function(co){
+      var owner=teams.find(function(t){return t.companyId===co.id;});
+      return'<div class="card-s" style="border-color:'+(owner?'rgba(239,68,68,.3)':'rgba(16,185,129,.3)')+';background:'+(owner?'rgba(239,68,68,.05)':'rgba(16,185,129,.05)')+'">'+
+        '<div class="flex g8 mb8">'+
+          '<span style="font-size:22px">'+co.e+'</span>'+
+          '<div><div class="fw6 f12">'+co.n+'</div>'+
+          '<div class="t2 f11">'+co.s+'</div></div>'+
+        '</div>'+
+        (owner?
+          '<div class="alert ae mb8" style="padding:4px 8px"><div class="f11 fw6">&#x1F465; '+owner.name+'</div>'+
+          '<div class="t2 f11">'+teamProg(owner.id)+'/5 etapas · '+calcTeamScore(owner.id)+'%</div></div>'+
+          '<div class="flex g6">'+
+            '<button class="btn btn-xs btn-warn" data-tview="'+owner.id+'">Ver trabajo</button>'+
+            '<button class="btn btn-xs btn-danger" data-unlockco="'+co.id+'">&#x1F513; Liberar empresa</button>'+
+          '</div>'
+        :
+          '<div class="alert aok" style="padding:4px 8px"><span class="f11 fw6">&#x2705; Disponible</span></div>'+
+          (teams.find(function(t){return!t.companyId;})?
+            '<button class="btn btn-xs btn-p mt6" data-assignco="'+co.id+'">Asignar a equipo</button>':
+            ''
+          )
+        )+
+      '</div>';}).join('')+
+    '</div>'+
+  '</div>';}
+
+
+function rTEquipos(teams){
+  return'<div class="card">'+
+    '<div class="fbet mb10"><div class="fw7 f13">Gestión de Equipos</div></div>'+
+    (teams.length?'<div class="ox"><table class="ft"><tr>'+
+      '<th>Equipo</th><th>Empresa</th><th>Integrantes</th><th style="text-align:center">Prog.</th>'+
+      '<th style="text-align:center">Score</th><th>Acciones</th></tr>'+
+      teams.map(function(t){
+        var co=getC(t.companyId);var mems=getMemberNames(t);
+        return'<tr>'+
+          '<td><div class="fw6 f12">'+t.name+'</div></td>'+
+          '<td class="f12">'+(co?co.e+' '+co.n:'<span class="t3">Sin empresa</span>')+'</td>'+
+          '<td class="t2 f11">'+mems.slice(0,3).join(', ')+(mems.length>3?' +'+( mems.length-3):'')+'</td>'+
+          '<td style="text-align:center"><span class="badge '+(teamProg(t.id)===5?'bok':'bp')+'">'+teamProg(t.id)+'/5</span></td>'+
+          '<td style="text-align:center"><span class="badge bp">'+calcTeamScore(t.id)+'%</span></td>'+
+          '<td><div class="flex g4">'+
+            '<button class="btn btn-xs btn-acc" data-tview="'+t.id+'">&#x1F441;</button>'+
+            '<button class="btn btn-xs btn-warn" data-changeco="'+t.id+'">Empresa</button>'+
+            '<button class="btn btn-xs btn-warn" data-resetteam="'+t.id+'">Reset</button>'+
+            '<button class="btn btn-xs btn-danger" data-delteam="'+t.id+'">Borrar</button>'+
+          '</div></td>'+
+        '</tr>';}).join('')+
+      '</table></div>':'<p class="t2 f12">Sin equipos.</p>')+
+  '</div>';}
+
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
   function handleClick(e){
