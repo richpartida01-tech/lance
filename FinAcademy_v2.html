@@ -1041,7 +1041,7 @@ function rCoeval(team,co){
             var stateKey='ev_'+tgt+'_'+evalStage+'_'+c.id;
             // Load existing eval if any
             var existingEv=myEvs.find(function(e){return e.teamId===tgt&&e.stage===evalStage;});
-            var cur=parseInt(A.inp[stateKey]||(existingEv&&existingEv.rubricScores&&existingEv.rubricScores[c.id])||0);
+            var cur=parseInt(A.inp[stateKey]||sessionStorage.getItem(stateKey)||(existingEv&&existingEv.rubricScores&&existingEv.rubricScores[c.id])||0);
             var labels={4:'Excelente',3:'Bueno',2:'Regular',1:'Insuf.'};
             return'<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">'+
               '<div class="fw6 f12 mb2">'+c.name+'</div>'+
@@ -1049,7 +1049,9 @@ function rCoeval(team,co){
               '<div class="flex g6 mb6">'+
               [4,3,2,1].map(function(v){
                 var sel=cur===v;
-                return'<button onclick="A.inp[\''+stateKey+'\']='+v+';render()" '+
+                return'<button onclick="A.inp[\''+stateKey+'\']='+v+';'+
+               'sessionStorage.setItem(\''+stateKey+'\','+v+');'+
+               'render()" '+
                   'style="flex:1;padding:8px 4px;border-radius:6px;border:2px solid '+(sel?'var(--p)':'var(--border)')+';'+
                   'background:'+(sel?'var(--p)':'var(--s1)')+';color:'+(sel?'#fff':'var(--t2)')+';'+
                   'font-size:12px;cursor:pointer;text-align:center">'+
@@ -1064,7 +1066,7 @@ function rCoeval(team,co){
           '<div class="lbl mt10">Comentario general (mín. 20 caracteres)</div>'+
           '<textarea class="inp mb12" id="ev_comment_'+tgt+'_'+evalStage+'" rows="3" '+
             'oninput="A.inp[\'ev_comment_'+tgt+'_'+evalStage+'\']=this.value" '+
-            'placeholder="El equipo demostró... Sin embargo debería mejorar en...">'+(A.inp['ev_comment_'+tgt+'_'+evalStage]||''+(myEvs.find(function(e){return e.teamId===tgt&&e.stage===evalStage;})||{}).comment||'')+'</textarea>'+
+            'placeholder="El equipo demostró... Sin embargo debería mejorar en...">'+(A.inp['ev_comment_'+tgt+'_'+evalStage]||sessionStorage.getItem('ev_comment_'+tgt+'_'+evalStage)||''+(myEvs.find(function(e){return e.teamId===tgt&&e.stage===evalStage;})||{}).comment||'')+'</textarea>'+
           '<button class="btn btn-p btn-w" onclick="doEval()">'+
             (alreadyEval?'🔄 Actualizar evaluación':'✅ Enviar evaluación')+
           '</button>'+
@@ -1112,8 +1114,12 @@ function doEval(){
     localStorage.setItem('fa2_pending_evals',JSON.stringify(pending));
     msg('⚠️ Coevaluación guardada localmente. Sin conexión a Supabase.','warn');
   });
-  rubric.criteria.forEach(function(c){delete A.inp['ev_'+tid+'_'+stage+'_'+c.id];});
-  delete A.inp['ev_comment_'+tid+'_'+stage];
+  rubric.criteria.forEach(function(c){
+    var k='ev_'+tid+'_'+stage+'_'+c.id;
+    delete A.inp[k];sessionStorage.removeItem(k);
+  });
+  var ck='ev_comment_'+tid+'_'+stage;
+  delete A.inp[ck];sessionStorage.removeItem(ck);
   var tname=(DB.getTeams().find(function(t){return t.id===tid;})||{name:'equipo'}).name;
   msg('✅ Coevaluación E'+stage+' de '+tname+' guardada en la base de datos.','ok');
   ss({});}
@@ -1434,8 +1440,16 @@ const SYNC={
         // Debounce: only pull once per 3 seconds
         clearTimeout(pullTimer);
         pullTimer=setTimeout(function(){
-          self.pull().then(function(){render();});
-        },3000);
+          self.pull().then(function(){
+            // Don't re-render if user is actively filling a form
+            var hasFormData=Object.keys(A.inp).some(function(k){
+              return k.startsWith('ev_')||k.startsWith('s1')||k.startsWith('s2')||
+                     k.startsWith('s3')||k.startsWith('s4')||k.startsWith('s5');
+            });
+            if(!hasFormData){render();}
+            else{console.log('[SYNC] Datos actualizados en background (sin re-render, formulario activo)');}
+          });
+        },10000);
       })
       .subscribe();
     console.log('[SYNC] Suscripción en tiempo real activa');
