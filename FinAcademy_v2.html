@@ -1064,6 +1064,7 @@ function generateReport(stage,team,co){
   else if(stage===4){const its=[['b_ef','Efectivo'],['b_ac','Total AC'],['b_ta','Total Activo'],['b_pc','Total PC'],['b_tp','Total Pasivo'],['b_cap','Capital'],['e_v','Ventas'],['e_ub','Util. Bruta'],['e_uo','Util. Operativa'],['e_un','Util. Neta']];body='<h3>Análisis H y V</h3><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th>Partida</th><th>Var. Hor. %</th><th>Vert. '+co.y[0]+'%</th><th>Vert. '+co.y[1]+'%</th></tr>'+its.map(([k,l])=>'<tr><td>'+l+'</td><td>'+pct(a.h[k])+'</td><td>'+pct(a.v.y1[k])+'</td><td>'+pct(a.v.y2[k])+'</td></tr>').join('')+'</table><h3>Interpretación</h3><p>'+(sub.data.s4i||'—')+'</p>';}
   else if(stage===5){const be=a.be;body='<h3>Datos del P.E.</h3><table border="1" cellpadding="5" style="border-collapse:collapse;margin-bottom:16px"><tr><td>Gastos Operativos</td><td>$'+fmt(be.gf.op)+'K</td></tr><tr><td>Gastos No Op.</td><td>$'+fmt(be.gf.nop)+'K</td></tr><tr><td>Util. Esperada</td><td>$'+fmt(be.gf.ue)+'K</td></tr><tr><td>ISR</td><td>'+be.t*100+'%</td></tr><tr style="font-weight:bold"><td>Numerador</td><td>$'+fmt(be.num/1000)+'K</td></tr></table><table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr style="background:#eee"><th>Producto</th><th>MC Unit.</th><th>% Ventas</th><th>MC Pond.</th></tr>'+be.pr.map(p=>'<tr><td>'+p.n+'</td><td>$'+fmt(p.pv-p.cv,0)+'</td><td>'+(p.p*100).toFixed(0)+'%</td><td>$'+fmt(Math.round((p.pv-p.cv)*p.p*100)/100)+'</td></tr>').join('')+'<tr style="font-weight:bold"><td colspan="3">MCP Total</td><td>$'+fmt(be.mc)+'</td></tr></table><div style="background:#d0f0d0;border:1px solid #4caf50;padding:10px;border-radius:6px;font-weight:bold">PE PONDERADO: '+fmt(be.pe,0)+' unidades</div><h3>Interpretación</h3><p>'+(sub.data.s5i||'—')+'</p>';}
   const w=window.open('','_blank','width=900,height=700');
+  if(!w){alert('Activa los popups en tu navegador para ver el PDF.');return;}
   w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte '+labels[stage]+' — '+team.name+'</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;color:#222;line-height:1.6}h1{color:#6c63ff;border-bottom:3px solid #6c63ff;padding-bottom:8px}h3{color:#555;margin-top:14px}.score{background:#e8f5e9;border:1px solid #4caf50;border-radius:6px;padding:10px 14px;margin:14px 0;font-weight:bold;font-size:16px}.nop{margin-bottom:18px}@media print{.nop{display:none}}</style></head><body><div class="nop"><button onclick="window.print()" style="padding:8px 18px;background:#6c63ff;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px">🖨️ Imprimir/PDF</button><button onclick="window.close()" style="padding:8px 16px;border:1px solid #ccc;border-radius:6px;cursor:pointer">✕</button></div><h1>FinAcademy · '+labels[stage]+'</h1><p><strong>Empresa:</strong> '+co.e+' '+co.n+' &nbsp;·&nbsp; <strong>Equipo:</strong> '+team.name+' &nbsp;·&nbsp; <strong>Fecha:</strong> '+new Date(sub.submittedAt).toLocaleString('es-MX')+'</p><div class="score">Score de precisión: '+sub.score+'% correcto</div>'+body+'</body></html>');
   w.document.close();}
 
@@ -2157,6 +2158,7 @@ function generateCorteReport(corteNum,team,co){
     (openFields[s]||[]).forEach(function(k){if(d[k])body+='<div class="lbl">'+(labels[k]||k)+'</div><div class="ans">'+d[k]+'</div>';});
   });
   var w=window.open('','_blank','width=950,height=750');
+  if(!w){alert('Permite ventanas emergentes en tu navegador para ver el reporte PDF.');return;}
   w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>'+corte.name+' — '+team.name+'</title><style>'+css+'</style></head><body>'+
     '<div class="no-print"><button onclick="window.print()" style="padding:8px 20px;background:'+c+';color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px">Guardar PDF</button><button onclick="window.close()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer">Cerrar</button></div>'+
     '<div class="cover"><h1>'+co.e+' '+co.n+'</h1><p><strong>'+corte.name+'</strong></p><p style="font-size:15px;font-weight:700;margin-top:8px">Equipo: '+team.name+'</p><p>'+members+'</p></div>'+
@@ -3332,6 +3334,7 @@ function generateReport(stage,team,co){
 
   // === RENDER WINDOW ===
   var w=window.open('','_blank','width=980,height=800');
+  if(!w){alert('Activa los popups en tu navegador para ver el PDF.');return;}
   var dateStr=new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
   w.document.write([
     '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">',
