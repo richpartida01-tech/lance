@@ -1727,20 +1727,16 @@ function doLogin(){
   var code=(A.inp.lCode||document.getElementById('lCode')?.value||'').trim().replace(/[^0-9]/g,'');
   if(!email){msg('Ingresa tu correo institucional.','warn');return;}
   if(!email.includes('@')){msg('Correo inválido. Ej: nombre@ebc.edu.mx','warn');return;}
-  if(!code||code.length<6){msg('Ingresa tu clave de estudiante (solo los números después de la M).','warn');return;}
+  if(!code||code.length<5){msg('Ingresa tu clave (los números después de la M).','warn');return;}
   var studentCode='M'+code;
   var users=DB.getUsers();
-  // Find by email OR by student code
-  var u=users.find(function(x){return x.email===email||x.studentCode===studentCode;});
+  // SOLO alumnos pre-registrados pueden entrar
+  var u=users.find(function(x){
+    return x.role==='student'&&(x.email===email||x.studentCode===studentCode);
+  });
   if(!u){
-    // New student
-    u={id:uid(),name:email.split('@')[0].replace(/\./g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}),
-       email:email,studentCode:studentCode,role:'student',
-       memberNames:[],createdAt:Date.now()};
-    users.push(u);DB.saveUsers(users);SYNC.pushUser(u);
-  } else {
-    // Update code if changed
-    if(!u.studentCode){u.studentCode=studentCode;DB.saveUsers(users);SYNC.pushUser(u);}
+    msg('No estás registrado en la plataforma. Verifica tu correo y clave con tu docente.','err');
+    return;
   }
   DB.saveSession(u);
   var t=getUserTeam(u.id);
