@@ -3235,9 +3235,12 @@ function doEditUser(){
   var users=DB.getUsers();
   var u=users.find(function(x){return x.id===uid_;});
   if(!u){msg('Usuario no encontrado.','err');return;}
-  var name=(document.getElementById('eu_name')?.value||A.inp.eu_name||u.name).trim();
-  var email=(document.getElementById('eu_email')?.value||A.inp.eu_email||u.email).trim().toLowerCase();
-  var codeRaw=(document.getElementById('eu_code')?.value||A.inp.eu_code||'').trim().replace(/[^0-9]/g,'');
+  var nameEl=document.getElementById('eu_name');
+  var emailEl=document.getElementById('eu_email');
+  var codeEl=document.getElementById('eu_code');
+  var name=(A.inp.eu_name!==undefined?A.inp.eu_name:(nameEl?nameEl.value:u.name)).trim();
+  var email=(A.inp.eu_email!==undefined?A.inp.eu_email:(emailEl?emailEl.value:u.email)).trim().toLowerCase();
+  var codeRaw=(A.inp.eu_code!==undefined?A.inp.eu_code:(codeEl?codeEl.value:'')).trim().replace(/[^0-9]/g,'');
   var code=codeRaw?'M'+codeRaw:u.studentCode;
   if(!name){msg('El nombre es obligatorio.','warn');return;}
   if(!email.includes('@')){msg('Correo inválido.','warn');return;}
@@ -3304,6 +3307,8 @@ function doEditUser(){
     if(id==='btnBackTeacher')return ss({teacherTeam:null});
     var ttab=el.closest&&el.closest('[data-ttab]');if(ttab)return ss({teacherTab:ttab.dataset.ttab});
     var delteam=el.closest&&el.closest('[data-delteam]');if(delteam){if(confirm('Borrar equipo y sus entregas?'))doDeleteTeam(delteam.dataset.delteam);return;}
+    var edituser=el.closest&&el.closest('[data-edituser]');
+    if(edituser){A.inp.editUserId=edituser.dataset.edituser;A.inp.eu_name=undefined;A.inp.eu_email=undefined;A.inp.eu_code=undefined;ss({teacherTab:'alumnos'});return;}
     var deluser=el.closest&&el.closest('[data-deluser]');if(deluser){if(confirm('Borrar usuario?'))doDeleteUser(deluser.dataset.deluser);return;}
     var resetteam=el.closest&&el.closest('[data-resetteam]');if(resetteam){if(confirm('Reiniciar entregas?'))doResetTeam(resetteam.dataset.resetteam);return;}
     var changeco=el.closest&&el.closest('[data-changeco]');if(changeco){doChangeCompany(changeco.dataset.changeco);return;}
