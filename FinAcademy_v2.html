@@ -1408,14 +1408,18 @@ const SYNC={
         this.sb.from('fa_subs').select('*'),
         this.sb.from('fa_evals').select('*'),
       ]);
-      // ── Users: snake_case → camelCase ──
+      // ── Users: merge Supabase with local (never overwrite pre-loaded students) ──
       if(u.data){
-        var users=u.data.map(function(r){return{
+        var sbUsers=u.data.map(function(r){return{
           id:r.id,name:r.name,email:r.email||'',password:r.password||'',
           role:r.role||'student',studentCode:r.student_code||'',
           teamName:r.team_name||'',memberNames:r.member_names||[r.name],
           createdAt:r.created_at};});
-        localStorage.setItem('fa2_users',JSON.stringify(users));}
+        var localUsers=JSON.parse(localStorage.getItem('fa2_users')||'[]');
+        // Add local users not yet in Supabase
+        var sbIds=new Set(sbUsers.map(function(u){return u.id;}));
+        localUsers.forEach(function(lu){if(!sbIds.has(lu.id))sbUsers.push(lu);});
+        if(sbUsers.length>0)localStorage.setItem('fa2_users',JSON.stringify(sbUsers));}
       // ── Teams: snake_case → camelCase ──
       if(t.data){
         var teams=t.data.map(function(r){return{
@@ -1426,7 +1430,10 @@ const SYNC={
           memberNames:r.member_names||[],isTeamAccount:r.is_team_account||false,
           roles:r.roles||{},rolesConfirmed:r.roles_confirmed||false,
           createdAt:r.created_at};});
-        localStorage.setItem('fa2_teams',JSON.stringify(teams));}
+        var localTeams=JSON.parse(localStorage.getItem('fa2_teams')||'[]');
+        var stIds=new Set(teams.map(function(t){return t.id;}));
+        localTeams.forEach(function(lt){if(!stIds.has(lt.id))teams.push(lt);});
+        if(teams.length>0)localStorage.setItem('fa2_teams',JSON.stringify(teams));}
       // ── Subs: merge Supabase with local (keep local if not in Supabase) ──
       if(s.data){
         var subsFromSB={};
@@ -1730,6 +1737,11 @@ function doLogin(){
   if(!code||code.length<5){msg('Ingresa tu clave (los números después de la M).','warn');return;}
   var studentCode='M'+code;
   var users=DB.getUsers();
+  // If localStorage is empty (first load), check PRELOADED_STUDENTS directly
+  if(!users.length&&typeof PRELOADED_STUDENTS!=='undefined'){
+    users=PRELOADED_STUDENTS;
+    DB.saveUsers(users);
+  }
   // SOLO alumnos pre-registrados pueden entrar
   var u=users.find(function(x){
     return x.role==='student'&&(x.email===email||x.studentCode===studentCode);
@@ -4610,7 +4622,7 @@ function rStudent(){
   '<div class="t3 f11" style="padding:8px 10px 4px;text-transform:uppercase;letter-spacing:.06em;font-size:10px;font-weight:600">Análisis</div>'+
   [1,2,3,4,5].map(s=>{const done=!!getTeamSub(team.id,s);const locked=!stageOk(s,team.id);const active=view==='stages'&&A.stage===s;const cls=locked?'locked':done?'done':active?'active':'';return '<div class="ni '+cls+'" data-ns="'+s+'"><span class="ninum">'+(done?'✓':s)+'</span><span class="f12">'+sLabels[s]+'</span></div>';}).join('')+
   '<div class="t3 f11" style="padding:8px 10px 4px;text-transform:uppercase;letter-spacing:.06em;font-size:10px;font-weight:600">Social</div>'+
-  ni('team',view,'👥','Mi Equipo',myPending)+ni('reports',view,'📄','Reportes')+ni('coeval',view,'⭐','Coevaluación')+ni('ranking',view,'🏆','Ranking')+
+  ni('team',view,'👥','Mi Equipo',myPending)+ni('reports',view,'📄','Reportes')+ni('ranking',view,'🏆','Ranking')+
   '</div><div class="sbf">'+ni('profile',view,'👤','Mi Perfil')+'<div class="ni" id="btnLogout"><span>🚪</span><span class="f12">Salir</span></div></div></nav><main style="flex:1;padding:1.5rem;overflow-y:auto;max-width:920px">'+(A.msg?rMsg():'')+main+'</main></div>';}
 
 
