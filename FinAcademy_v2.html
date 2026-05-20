@@ -1015,6 +1015,18 @@ function rCoeval(team,co){
     '</div>'+
     // RIGHT: eval form
     '<div>'+
+    // Show completed evals summary
+    (myEvs.length?
+      '<div class="card-s mb10" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">'+
+        '<div class="fw7 f12 mb8" style="color:var(--acc)">✅ Evaluaciones completadas ('+myEvs.length+')</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+        myEvs.map(function(ev){
+          var et=DB.getTeams().find(function(t){return t.id===ev.teamId;});
+          var ec=et?getC(et.companyId):null;
+          return'<span class="badge bok f11">'+(ec?ec.e+' ':'')+(et?et.name.split(' ')[0]:'?')+' E'+ev.stage+'</span>';
+        }).join('')+
+        '</div>'+
+      '</div>':'')+
     (etm&&eco?
       '<div class="card mb10">'+
         '<div class="flex g10 mb10">'+
@@ -1042,7 +1054,7 @@ function rCoeval(team,co){
       '</div>'+
       // Rubric
       (etmSub&&rubric?
-        '<div class="card">'+
+        '<div class="card" data-rubric-form>'+
           '<div class="fw7 f13 mb4">Rúbrica de evaluación — Etapa '+evalStage+'</div>'+
           (alreadyEval?'<div class="alert aok mb12" style="align-items:center">'+
           '<span style="font-size:28px">✅</span>'+
@@ -1055,10 +1067,11 @@ function rCoeval(team,co){
             var existingEv=myEvs.find(function(e){return e.teamId===tgt&&e.stage===evalStage;});
             var cur=parseInt(A.inp[stateKey]||sessionStorage.getItem(stateKey)||(existingEv&&existingEv.rubricScores&&existingEv.rubricScores[c.id])||0);
             var labels={4:'Excelente',3:'Bueno',2:'Regular',1:'Insuf.'};
-            return'<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">'+
+            return'<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px" '+
+              'data-rubric-row data-stage="'+evalStage+'" data-cid="'+c.id+'" data-skey="'+stateKey+'">'+
               '<div class="fw6 f12 mb2">'+c.name+'</div>'+
               '<div class="t2 f11 mb8">'+c.desc+'</div>'+
-              '<div class="flex g6 mb6">'+
+              '<div class="flex g6 mb6"'+
               [4,3,2,1].map(function(v){
                 var sel=cur===v;
                 return'<button onclick="A.inp[\''+stateKey+'\']='+v+';'+
@@ -1072,7 +1085,7 @@ function rCoeval(team,co){
                 '</button>';
               }).join('')+
               '</div>'+
-              (cur?'<div style="font-size:11px;color:var(--yellow);font-style:italic">'+c.lvl[cur]+'</div>':'')+
+              '<div data-rubric-desc style="font-size:11px;color:var(--yellow);font-style:italic;'+(cur?'':'display:none')+'">'+( cur&&c.lvl&&c.lvl[cur]?c.lvl[cur]:' ')+'</div>'+
             '</div>';
           }).join('')+
           '<div class="lbl mt10 fbet"><span>Comentario general</span><span class="t3 f10">(mín. 5 caracteres)</span></div>'+
@@ -1133,7 +1146,8 @@ function doEval(){
   var ck='ev_comment_'+tid+'_'+stage;
   delete A.inp[ck];sessionStorage.removeItem(ck);
   var tname=(DB.getTeams().find(function(t){return t.id===tid;})||{name:'equipo'}).name;
-  msg('✅ Coevaluación E'+stage+' de '+tname+' guardada en la base de datos.','ok');
+  var tco=getC((DB.getTeams().find(function(t){return t.id===tid;})||{}).companyId);
+  showEvalConfirm(tname,tco,stage);
   ss({});}
 
 // Check if user has co-evaluated all teams for a given stage
@@ -1413,16 +1427,24 @@ const SYNC={
           roles:r.roles||{},rolesConfirmed:r.roles_confirmed||false,
           createdAt:r.created_at};});
         localStorage.setItem('fa2_teams',JSON.stringify(teams));}
-      // ── Subs: snake_case → camelCase ──
+      // ── Subs: merge Supabase with local (keep local if not in Supabase) ──
       if(s.data){
-        var subs={};
+        var subsFromSB={};
         s.data.forEach(function(r){
-          if(!subs[r.team_id])subs[r.team_id]={};
-          subs[r.team_id][r.stage]={
+          if(!subsFromSB[r.team_id])subsFromSB[r.team_id]={};
+          subsFromSB[r.team_id][r.stage]={
             data:r.data||{},score:r.score||0,
             submittedBy:r.submitted_by||'',submittedAt:r.submitted_at||0};
         });
-        localStorage.setItem('fa2_subs',JSON.stringify(subs));}
+        // Merge with local subs
+        var localSubs=JSON.parse(localStorage.getItem('fa2_subs')||'{}');
+        Object.keys(localSubs).forEach(function(tid){
+          if(!subsFromSB[tid])subsFromSB[tid]={};
+          Object.keys(localSubs[tid]).forEach(function(st){
+            if(!subsFromSB[tid][st])subsFromSB[tid][st]=localSubs[tid][st];
+          });
+        });
+        localStorage.setItem('fa2_subs',JSON.stringify(subsFromSB));}
       // ── Evals: snake_case → camelCase, MERGE with local ──
       if(ev.data){
         var fromSupabase=ev.data.map(function(r){return{
@@ -1906,10 +1928,11 @@ function rLobbyMain(){
         '<div class="lbl">Nombre del equipo</div>'+
         '<input class="inp mb8" id="ct_name" oninput="A.inp.ct_name=this.value" '+
           'placeholder="Ej. Los Analistas del Mercado" value="'+(A.inp.ct_name||'')+'">'+
-        '<div class="lbl">Máximo de integrantes</div>'+
-        '<select class="inp mb12" id="ct_max" onchange="A.inp.ct_max=this.value">'+
-          [2,3,4,5].map(function(n){return'<option value="'+n+'"'+(parseInt(A.inp.ct_max||4)===n?' selected':'')+'>'+n+' personas</option>';}).join('')+
-        '</select>'+
+        '<div class="lbl">Tus compañeros de equipo (nombres, opcional)</div>'+
+        '<input class="inp mb4" id="ct_m1" oninput="A.inp.ct_m1=this.value" placeholder="Compañero 1" value="'+(A.inp.ct_m1||'')+'">'+
+        '<input class="inp mb4" id="ct_m2" oninput="A.inp.ct_m2=this.value" placeholder="Compañero 2" value="'+(A.inp.ct_m2||'')+'">'+
+        '<input class="inp mb12" id="ct_m3" oninput="A.inp.ct_m3=this.value" placeholder="Compañero 3 (opcional)" value="'+(A.inp.ct_m3||'')+'">'+
+        '<p class="t3 f11 mb10">Solo tú iniciarás sesión. Los nombres son para mostrar el equipo completo.</p>'+
         '<button class="btn btn-p btn-w" id="btnCreateTeam">✨ Crear equipo →</button>'+
       '</div>'+
 
@@ -1978,14 +2001,20 @@ function doCancelJoinRequest(tid){
 
 
 function doCreateTeam(){
-  const name=(A.inp.ct_name||document.getElementById('ct_name')?.value||'').trim();
-  const desc=(A.inp.ct_desc||document.getElementById('ct_desc')?.value||'').trim();
-  const max=parseInt(A.inp.ct_max||document.getElementById('ct_max')?.value||'4');
+  var name=(A.inp.ct_name||document.getElementById('ct_name')?.value||'').trim();
+  var max=4;
   if(!name){msg('El nombre del equipo es obligatorio.','warn');return;}
-  const teams=DB.getTeams();
-  if(teams.find(t=>t.name.toLowerCase()===name.toLowerCase())){msg('Ya existe un equipo con ese nombre.','err');return;}
+  var teams=DB.getTeams();
+  if(teams.find(function(t){return t.name.toLowerCase()===name.toLowerCase();})){msg('Ya existe un equipo con ese nombre.','err');return;}
+  // Collect teammate names
+  var mates=[];
+  ['ct_m1','ct_m2','ct_m3'].forEach(function(k){
+    var v=(A.inp[k]||'').trim();if(v)mates.push(v);
+  });
+  var allNames=[A.user.name].concat(mates);
+  var desc='';
   if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
-  const t={id:uid(),name,desc,leaderId:A.user.id,members:[A.user.id],memberNames:[A.user.name||''],requests:[],companyId:null,maxMembers:max,status:'open',createdAt:Date.now()};
+  const t={id:uid(),name:name,desc:desc||'',leaderId:A.user.id,members:[A.user.id],memberNames:allNames,requests:[],companyId:null,maxMembers:max||4,status:'open',rolesConfirmed:false,createdAt:Date.now()};
   teams.push(t);DB.saveTeams(teams);SYNC.pushTeam(t);ss({screen:'lobby',inp:{},tsv:'members'});}
 
 
@@ -3084,6 +3113,69 @@ async function doForceSyncAll(){
   msg('\u2705 '+ok+' registros subidos a Supabase. '+err+' errores.','ok');
   ss({teacherTab:'testing'});}
 
+
+function setRubricScore(stateKey,val,btn){
+  A.inp[stateKey]=val;
+  sessionStorage.setItem(stateKey,val);
+  // Update buttons in the same row without full re-render
+  var row=btn.closest?btn.closest('[data-rubric-row]'):null;
+  if(row){
+    row.querySelectorAll('button').forEach(function(b){
+      var bv=parseInt(b.dataset.rval);
+      var sel=bv===val;
+      b.style.border='2px solid '+(sel?'var(--p)':'var(--border)');
+      b.style.background=sel?'var(--p)':'var(--s1)';
+      b.style.color=sel?'#fff':'var(--t2)';
+      b.style.fontWeight=sel?'700':'400';
+    });
+    // Update level description
+    var desc=row.querySelector('[data-rubric-desc]');
+    if(desc){
+      var rubric=RUBRICS[parseInt(row.dataset.stage)||1];
+      var crit=rubric&&rubric.criteria.find(function(c){return c.id===row.dataset.cid;});
+      desc.textContent=crit&&crit.lvl&&crit.lvl[val]?crit.lvl[val]:'';
+      desc.style.display=crit&&crit.lvl&&crit.lvl[val]?'block':'none';
+    }
+    // Update rubric complete counter
+    updateRubricCounter(row.closest('[data-rubric-form]'));
+  }
+}
+
+function updateRubricCounter(form){
+  if(!form)return;
+  var rows=form.querySelectorAll('[data-rubric-row]');
+  var total=rows.length;
+  var done=0;
+  rows.forEach(function(r){
+    var key=r.dataset.skey;
+    if(key&&(A.inp[key]||sessionStorage.getItem(key)))done++;
+  });
+  var counter=form.querySelector('[data-rubric-counter]');
+  if(counter){
+    counter.textContent='Rúbrica '+(done===total?'completa':'incompleta')+' ('+done+'/'+total+')';
+    counter.style.background=done===total?'rgba(16,185,129,.15)':'rgba(239,68,68,.1)';
+    counter.style.borderColor=done===total?'rgba(16,185,129,.4)':'rgba(239,68,68,.3)';
+    counter.style.color=done===total?'var(--green)':'var(--red)';
+  }
+}
+
+
+function showEvalConfirm(teamName,co,stage){
+  var snames=['','Empresa','Est.Fin.','Razones','H+V+EFE','P.Equilibrio'];
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=
+    '<div style="background:#12141e;border:1px solid rgba(16,185,129,.4);border-radius:16px;padding:32px 28px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)">'+
+    '<div style="font-size:56px;margin-bottom:12px">✅</div>'+
+    '<div style="font-size:20px;font-weight:700;color:#10b981;margin-bottom:8px">¡Coevaluación enviada!</div>'+
+    '<div style="font-size:14px;color:#a0aec0;margin-bottom:4px">Evaluaste la Etapa '+stage+' ('+snames[stage]+')</div>'+
+    '<div style="font-size:16px;font-weight:600;color:#e2e8f0;margin:12px 0">'+(co?co.e+' ':'')+teamName+'</div>'+
+    '<div style="font-size:12px;color:#6b7280;margin-bottom:20px">Guardada correctamente en el sistema</div>'+
+    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:var(--p);color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%">Continuar evaluando →</button>'+
+    '</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){if(overlay.parentNode)overlay.remove();},4000);}
+
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
   function handleClick(e){
@@ -3290,22 +3382,9 @@ function doPEProgress(nextPhase){
 
 
 function doSubmit(stage){
-  var team0=getUserTeam(A.user.id);
-  if(team0&&team0.leaderId!==A.user.id&&A.user.role!=='admin'){
-    msg('Solo el capitán del equipo puede enviar las etapas.','warn');return;
-  }
   document.querySelectorAll('textarea,input[type=text],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
   const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
-  // Coeval gate: must eval ≥2 teams in previous stage
-  if(stage>1&&A.user&&A.user.role!=='admin'){
-    var prevStage=stage-1;
-    var evCount=DB.getEvals().filter(function(e){return e.evalId===A.user.id&&e.stage===prevStage;}).length;
-    if(evCount<2){
-      msg('Debes coevaluar al menos 2 equipos en la Etapa '+prevStage+' antes de enviar la Etapa '+stage+'. Llevas '+evCount+'/2.','warn');
-      return;
-    }
-  }
   if(stage>=2&&(!A.user||A.user.role!=='admin')){var gqs=getGuide(stage,co);var gAnswered=gqs.filter(function(q){return(A.inp[q.id]||'').trim().length>=30;});if(gAnswered.length<2){msg('Responde al menos 2 preguntas del Análisis Guiado (30+ caracteres c/u) antes de entregar.','warn');return;}}
 if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[team.id][1]={data:{...A.inp},score:100,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);ss({view:'stages',stage:2});msg('✅ Etapa 1 entregada.','ok');return;}
   const score=calcScore(stage,team.id,A.inp);
