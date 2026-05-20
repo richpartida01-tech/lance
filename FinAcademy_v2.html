@@ -4767,6 +4767,7 @@ function rTeacher(){
       '<div class="tab'+(tab==='empresas'?' active':'')+'" data-ttab="empresas">&#x1F3E2; Empresas</div>'+
       '<div class="tab'+(tab==='scores'?' active':'')+'" data-ttab="scores">&#x270F;&#xFE0F; Calificaciones</div>'+
       '<div class="tab'+(tab==='coevs'?' active':'')+'" data-ttab="coevs">&#x2B50; Coevaluaciones</div>'+
+    '<div class="tab'+(tab==='testing'?' active':'')+'" data-ttab="testing" style="color:#f59e0b">&#x1F9EA; Testing</div>'+
     '<div class="tab'+(tab==='limpiar'?' active':'')+'" data-ttab="limpiar" style="color:var(--red)">&#x1F9F9; Limpiar</div>'+
       '<div class="tab'+(tab==='supabase'?' active':'')+'" data-ttab="supabase">&#x1F5C4;&#xFE0F; Supabase</div>'+
     '</div>'+
@@ -4778,8 +4779,7 @@ function rTeacher(){
     (tab==='scores'?rTScores(teams):'')+
     (tab==='evaluar'?rTeacherEvalPanel():'')+
     (tab==='evaluar'?rTeacherEvalPanel():'')+
-    (tab==='coevs'?rTCoevals():'')+(tab==='limpiar'?rTLimpiar(teams,users,subs):'')+
-    (tab==='supabase'?rSupabasePanel():'')+
+    (tab==='coevs'?rTCoevals():'')+(tab==='testing'?rTTesting():'')+(tab==='limpiar'?rTLimpiar(teams,users,subs):'')+(tab==='supabase'?rSupabasePanel():'')+
     '<input type="file" id="importFile" accept=".json" style="display:none">'+
   '</div>';}
 
