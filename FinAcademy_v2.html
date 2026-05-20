@@ -3228,6 +3228,30 @@ function rTeamDetail(tid){
     '</div>'+
   '</div>';}
 
+
+function doEditUser(){
+  var uid_=A.inp.editUserId;
+  if(!uid_)return;
+  var users=DB.getUsers();
+  var u=users.find(function(x){return x.id===uid_;});
+  if(!u){msg('Usuario no encontrado.','err');return;}
+  var name=(document.getElementById('eu_name')?.value||A.inp.eu_name||u.name).trim();
+  var email=(document.getElementById('eu_email')?.value||A.inp.eu_email||u.email).trim().toLowerCase();
+  var codeRaw=(document.getElementById('eu_code')?.value||A.inp.eu_code||'').trim().replace(/[^0-9]/g,'');
+  var code=codeRaw?'M'+codeRaw:u.studentCode;
+  if(!name){msg('El nombre es obligatorio.','warn');return;}
+  if(!email.includes('@')){msg('Correo inválido.','warn');return;}
+  // Check duplicate email
+  var dup=users.find(function(x){return x.id!==uid_&&x.email===email;});
+  if(dup){msg('Ese correo ya está registrado en otro alumno.','warn');return;}
+  u.name=name;u.email=email;u.studentCode=code;
+  u.memberNames=[name];
+  DB.saveUsers(users);
+  SYNC.pushUser(u);
+  msg('✅ Alumno actualizado: '+name,'ok');
+  A.inp.editUserId=null;A.inp.eu_name=undefined;A.inp.eu_email=undefined;A.inp.eu_code=undefined;
+  ss({teacherTab:'alumnos'});}
+
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
   function handleClick(e){
@@ -4694,10 +4718,40 @@ function rTAlumnos(users,teams){
             '<td class="fw6 f12">'+u.name+'</td>'+
             '<td class="f11">'+(t?t.name:'<span class="t3">Sin equipo</span>')+'</td>'+
             '<td class="f11">'+(co?co.e+' '+co.n:'—')+'</td>'+
-            '<td><button class="btn btn-xs btn-danger" data-deluser="'+u.id+'">🗑️</button></td>'+
+            '<td class="flex g4">'+
+              '<button class="btn btn-xs btn-p" data-edituser="'+u.id+'">✏️</button>'+
+              '<button class="btn btn-xs btn-danger" data-deluser="'+u.id+'">🗑️</button>'+
+            '</td>'+
           '</tr>';}).join('')+
       '</table></div>'+
     '</div>'+
+
+    (A.inp.editUserId?
+      '<div class="card mt12" style="border-color:var(--p)">'+
+        '<div class="fw7 f13 mb10">✏️ Editar alumno</div>'+
+        (function(){
+          var eu=DB.getUsers().find(function(u){return u.id===A.inp.editUserId;});
+          if(!eu)return '';
+          return'<div class="g2">'+
+            '<div>'+
+              '<div class="lbl">Nombre</div>'+
+              '<input class="inp mb8" id="eu_name" oninput="A.inp.eu_name=this.value" value="'+(A.inp.eu_name!==undefined?A.inp.eu_name:eu.name)+'">'+
+              '<div class="lbl">Correo institucional</div>'+
+              '<input class="inp mb8" id="eu_email" type="email" oninput="A.inp.eu_email=this.value" value="'+(A.inp.eu_email!==undefined?A.inp.eu_email:eu.email)+'">'+
+              '<div class="lbl">Clave (M + números)</div>'+
+              '<div class="flex g8">'+
+                '<div style="background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.4);border-radius:8px;padding:7px 12px;font-weight:700;color:var(--p2)">M</div>'+
+                '<input class="inp" id="eu_code" oninput="A.inp.eu_code=this.value" value="'+(A.inp.eu_code!==undefined?A.inp.eu_code:(eu.studentCode||'').replace(/^M/,''))+'">'+
+              '</div>'+
+            '</div>'+
+            '<div style="align-self:end">'+
+              '<button class="btn btn-p btn-w mb8" onclick="doEditUser()">💾 Guardar cambios</button>'+
+              '<button class="btn btn-sm btn-w" onclick="A.inp.editUserId=null;A.inp.eu_name=undefined;A.inp.eu_email=undefined;A.inp.eu_code=undefined;render()">✕ Cancelar</button>'+
+            '</div>'+
+          '</div>';
+        })()+
+      '</div>'
+    :'')+
   '</div>';}
 
 
