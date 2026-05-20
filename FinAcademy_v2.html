@@ -2923,6 +2923,124 @@ async function doForceAllEvals(){
   alert('Resultado: '+ok+' subidas, '+err+' errores. Revisa la consola para detalles.');
   doDiagnosticEvals();}
 
+
+function rTTesting(){
+  var teams=DB.getTeams().filter(function(t){return t.companyId;});
+  var evsLocal=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
+  return'<div>'+
+    '<div class="alert aw mb14"><span>&#x1F9EA;</span>'+
+    '<div><div class="fw7 f13">Modo Testing</div>'+
+    '<div class="f12 t2">Herramientas para simular el flujo completo sin cuentas reales.</div></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
+
+    '<div class="card">'+
+      '<div class="fw7 f13 mb4">&#x2B50; Simular Coevaluación</div>'+
+      '<p class="t2 f12 mb10">Crea una coevaluación entre dos equipos reales. Verifica que llegue al panel.</p>'+
+      (teams.length>=2?
+        '<div class="lbl">Equipo que evalúa</div>'+
+        '<select class="inp mb6" id="test_from" onchange="A.inp.test_from=this.value"><option value="">--</option>'+
+        teams.map(function(t){return'<option value="'+t.id+'">'+t.name+'</option>';}).join('')+'</select>'+
+        '<div class="lbl">Equipo evaluado</div>'+
+        '<select class="inp mb6" id="test_to" onchange="A.inp.test_to=this.value"><option value="">--</option>'+
+        teams.map(function(t){return'<option value="'+t.id+'">'+t.name+'</option>';}).join('')+'</select>'+
+        '<div class="lbl">Etapa</div>'+
+        '<select class="inp mb10" id="test_stage" onchange="A.inp.test_stage=this.value">'+
+        [1,2,3,4,5].map(function(s){return'<option value="'+s+'">E'+s+'</option>';}).join('')+'</select>'+
+        '<button class="btn btn-warn btn-w" onclick="doTestEval()">&#x1F9EA; Crear coevaluación test</button>'
+      :'<div class="alert ai f12">Necesitas 2 equipos con empresa.</div>')+
+    '</div>'+
+
+    '<div class="card">'+
+      '<div class="fw7 f13 mb4">&#x1F4DD; Simular Entrega</div>'+
+      '<p class="t2 f12 mb10">Marca una etapa como entregada con datos de prueba.</p>'+
+      (teams.length?
+        '<select class="inp mb6" id="test_team_sub" onchange="A.inp.test_team_sub=this.value"><option value="">-- Equipo --</option>'+
+        teams.map(function(t){var co=getC(t.companyId);return'<option value="'+t.id+'">'+(co?co.e+' ':'')+t.name+'</option>';}).join('')+'</select>'+
+        '<select class="inp mb6" id="test_stage_sub" onchange="A.inp.test_stage_sub=this.value">'+
+        [1,2,3,4,5].map(function(s){return'<option value="'+s+'">Etapa '+s+'</option>';}).join('')+'</select>'+
+        '<input type="number" class="inp mb10" id="test_score" value="85" min="0" max="100" oninput="A.inp.test_score=this.value" placeholder="Score 0-100">'+
+        '<button class="btn btn-p btn-w" onclick="doTestSub()">&#x1F4DD; Crear entrega test</button>'
+      :'<p class="t2 f12">Sin equipos.</p>')+
+    '</div>'+
+
+    '<div class="card">'+
+      '<div class="fw7 f13 mb4">&#x1F464; Alumno Prueba Rápido</div>'+
+      '<button class="btn btn-p btn-w mb8" onclick="doTestStudent()">&#x1F464; Crear alumno test</button>'+
+      '<button class="btn btn-sm btn-w" onclick="doTestTeam()">&#x1F3C6; Crear equipo test completo</button>'+
+    '</div>'+
+
+    '<div class="card">'+
+      '<div class="fw7 f13 mb4">&#x1F504; Sync Forzado</div>'+
+      '<div class="t2 f11 mb8">&#x1F4CA; '+evsLocal.length+' coevaluaciones en localStorage | SYNC: '+(SYNC.enabled?'&#x2705; activo':'&#x274C; inactivo')+'</div>'+
+      '<button class="btn btn-ok btn-w mb6" onclick="doForceSyncAll()">&#x2B06;&#xFE0F; Subir TODO a Supabase</button>'+
+      '<button class="btn btn-sm btn-w mb6" id="btnPullSupa2">&#x2B07;&#xFE0F; Descargar de Supabase</button>'+
+      '<button class="btn btn-sm btn-warn btn-w" onclick="doDiagnosticEvals()">&#x1F52C; Diagnóstico detallado</button>'+
+    '</div>'+
+  '</div></div>';}
+
+async function doTestEval(){
+  var fromId=A.inp.test_from||document.getElementById('test_from')&&document.getElementById('test_from').value;
+  var toId=A.inp.test_to||document.getElementById('test_to')&&document.getElementById('test_to').value;
+  var stage=parseInt(A.inp.test_stage||1);
+  if(!fromId||!toId||fromId===toId){msg('Selecciona equipos distintos.','warn');return;}
+  var fromTeam=DB.getTeams().find(function(t){return t.id===fromId;});
+  var captainId=fromTeam&&fromTeam.leaderId;
+  var capUser=DB.getUsers().find(function(u){return u.id===captainId;});
+  var rubric=RUBRICS[stage];
+  var rubricScores={};
+  if(rubric)rubric.criteria.forEach(function(c){rubricScores[c.id]=Math.floor(Math.random()*2)+3;});
+  var ev={id:uid(),evalId:captainId||'test_user',evalName:(capUser&&capUser.name)||'Test',
+    teamId:toId,stage:stage,rubricScores:rubricScores,fieldEvals:{},scores:{},
+    comment:'Evaluacion de prueba automatica. El equipo muestra un analisis coherente con los estados financieros presentados.',
+    createdAt:Date.now()};
+  var evs=DB.getEvals();evs.push(ev);DB.saveEvals(evs);
+  SYNC.pushEval(ev).then(function(){
+    msg('\u2705 Coevaluacion de prueba creada y subida a Supabase. Ve a Coevaluaciones para verla.','ok');
+    ss({teacherTab:'coevs'});
+  }).catch(function(e){msg('\u26A0\uFE0F Local OK. Error Supabase: '+e.message,'warn');ss({teacherTab:'coevs'});});}
+
+function doTestSub(){
+  var tid=A.inp.test_team_sub||document.getElementById('test_team_sub')&&document.getElementById('test_team_sub').value;
+  var stage=parseInt(A.inp.test_stage_sub||1);
+  var score=parseInt(A.inp.test_score||85);
+  if(!tid){msg('Selecciona un equipo.','warn');return;}
+  var subs=DB.getSubs();if(!subs[tid])subs[tid]={};
+  subs[tid][stage]={data:{s1a:'Analisis de prueba generado',s1b:'Entorno competitivo evaluado correctamente',s1c:'Modelo de negocio coherente con los datos'},
+    score:score,submittedBy:'test',submittedAt:Date.now()};
+  DB.saveSubs(subs);SYNC.pushSub(tid,stage,subs[tid][stage]);
+  msg('\u2705 Entrega E'+stage+' creada con '+score+'%.','ok');ss({teacherTab:'testing'});}
+
+function doTestStudent(){
+  var n=Math.floor(Math.random()*9000)+1000;
+  var u={id:uid(),name:'Test Alumno '+n,email:'test'+n+'@ebc.edu.mx',
+    studentCode:'M999'+n,role:'student',memberNames:['Test Alumno '+n],password:'',createdAt:Date.now()};
+  var users=DB.getUsers();users.push(u);DB.saveUsers(users);SYNC.pushUser(u);
+  msg('\u2705 '+u.name+' | '+u.studentCode+' | clave: M999'+n,'ok');ss({teacherTab:'testing'});}
+
+function doTestTeam(){
+  var n=Math.floor(Math.random()*9000)+1000;
+  var u={id:uid(),name:'Test Cap '+n,email:'testcap'+n+'@ebc.edu.mx',
+    studentCode:'M888'+n,role:'student',memberNames:['Test Cap '+n],password:'',createdAt:Date.now()};
+  var users=DB.getUsers();users.push(u);DB.saveUsers(users);SYNC.pushUser(u);
+  var co=COS[Math.floor(Math.random()*COS.length)];
+  var t={id:uid(),name:'Equipo Test '+n,leaderId:u.id,members:[u.id],
+    memberNames:[u.name],requests:[],companyId:co.id,maxMembers:4,status:'active',
+    rolesConfirmed:true,desc:'',createdAt:Date.now()};
+  var teams=DB.getTeams();teams.push(t);DB.saveTeams(teams);SYNC.pushTeam(t);
+  msg('\u2705 Equipo Test '+n+' creado con '+co.n,'ok');ss({teacherTab:'testing'});}
+
+async function doForceSyncAll(){
+  if(!SYNC.enabled){msg('\u274C Supabase no conectado.','warn');return;}
+  msg('Subiendo todo...','ok');
+  var users=DB.getUsers(),teams=DB.getTeams(),subs=DB.getSubs(),evs=DB.getEvals();
+  var ok=0,err=0;
+  for(var u of users){try{await SYNC.pushUser(u);ok++;}catch(e){err++;console.error(e);}}
+  for(var t of teams){try{await SYNC.pushTeam(t);ok++;}catch(e){err++;console.error(e);}}
+  for(var tid in subs){for(var s in subs[tid]){try{await SYNC.pushSub(tid,parseInt(s),subs[tid][s]);ok++;}catch(e){err++;}}}
+  for(var ev of evs){try{await SYNC.pushEval(ev);ok++;}catch(e){err++;console.error(e);}}
+  msg('\u2705 '+ok+' registros subidos a Supabase. '+err+' errores.','ok');
+  ss({teacherTab:'testing'});}
+
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
   function handleClick(e){
@@ -3001,6 +3119,7 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     if(jointeam){doJoinRequest(jointeam.dataset.jointeam);return;}
     var ainp=el.closest&&el.closest('[data-ainp]');if(ainp){var parts=ainp.dataset.ainp.split('=');A.inp[parts[0]]=parts[1];render();return;}
     if(el.dataset&&el.dataset.golobby){A.screen='lobby';render();return;}
+    if(id==='btnPullSupa'||id==='btnPullSupa2'){SYNC.pull().then(function(){render();msg('✅ Descargado de Supabase','ok');});return;}
     if(id==='btnGoSelectCo'){
       var myT=getUserTeam(A.user.id);
       if(myT&&myT.leaderId===A.user.id){
