@@ -1926,13 +1926,14 @@ function rLobbyMain(){
         '<div class="fw7 f14 mb6">👑 Crear equipo</div>'+
         '<p class="t2 f12 mb14">Crea tu equipo y conviértete en capitán. Tus compañeros podrán unirse directamente.</p>'+
         '<div class="lbl">Nombre del equipo</div>'+
-        '<input class="inp mb8" id="ct_name" oninput="A.inp.ct_name=this.value" '+
-          'placeholder="Ej. Los Analistas del Mercado" value="'+(A.inp.ct_name||'')+'">'+
-        '<div class="lbl">Tus compañeros de equipo (nombres, opcional)</div>'+
-        '<input class="inp mb4" id="ct_m1" oninput="A.inp.ct_m1=this.value" placeholder="Compañero 1" value="'+(A.inp.ct_m1||'')+'">'+
-        '<input class="inp mb4" id="ct_m2" oninput="A.inp.ct_m2=this.value" placeholder="Compañero 2" value="'+(A.inp.ct_m2||'')+'">'+
-        '<input class="inp mb12" id="ct_m3" oninput="A.inp.ct_m3=this.value" placeholder="Compañero 3 (opcional)" value="'+(A.inp.ct_m3||'')+'">'+
-        '<p class="t3 f11 mb10">Solo tú iniciarás sesión. Los nombres son para mostrar el equipo completo.</p>'+
+        '<input class="inp mb10" id="ct_name" oninput="A.inp.ct_name=this.value" '+
+          'placeholder="Ej. Los Analistas" value="'+(A.inp.ct_name||'')+'">'+
+        '<div class="lbl">Integrantes del equipo</div>'+
+        '<p class="t3 f11 mb8">Escribe el nombre completo de cada integrante. Solo tú inicias sesión — los nombres aparecerán en los reportes PDF.</p>'+
+        '<input class="inp mb4" id="ct_m1" oninput="A.inp.ct_m1=this.value" placeholder="Integrante 1 (obligatorio)" value="'+(A.inp.ct_m1||'')+'">'+
+        '<input class="inp mb4" id="ct_m2" oninput="A.inp.ct_m2=this.value" placeholder="Integrante 2" value="'+(A.inp.ct_m2||'')+'">'+
+        '<input class="inp mb4" id="ct_m3" oninput="A.inp.ct_m3=this.value" placeholder="Integrante 3" value="'+(A.inp.ct_m3||'')+'">'+
+        '<input class="inp mb12" id="ct_m4" oninput="A.inp.ct_m4=this.value" placeholder="Integrante 4" value="'+(A.inp.ct_m4||'')+'">'+
         '<button class="btn btn-p btn-w" id="btnCreateTeam">✨ Crear equipo →</button>'+
       '</div>'+
 
@@ -2008,13 +2009,16 @@ function doCreateTeam(){
   if(teams.find(function(t){return t.name.toLowerCase()===name.toLowerCase();})){msg('Ya existe un equipo con ese nombre.','err');return;}
   // Collect teammate names
   var mates=[];
-  ['ct_m1','ct_m2','ct_m3'].forEach(function(k){
-    var v=(A.inp[k]||'').trim();if(v)mates.push(v);
+  ['ct_m1','ct_m2','ct_m3','ct_m4'].forEach(function(k){
+    var el=document.getElementById(k);
+    var v=(A.inp[k]||(el&&el.value)||'').trim();
+    if(v)mates.push(v);
   });
-  var allNames=[A.user.name].concat(mates);
+  if(!mates.length){msg('Escribe al menos el nombre de un integrante.','warn');return;}
+  var allNames=mates; // Use exactly the names entered (not login name)
   var desc='';
   if(getUserTeam(A.user.id)){msg('Ya perteneces a un equipo.','warn');return;}
-  const t={id:uid(),name:name,desc:desc||'',leaderId:A.user.id,members:[A.user.id],memberNames:allNames,requests:[],companyId:null,maxMembers:max||4,status:'open',rolesConfirmed:false,createdAt:Date.now()};
+  const t={id:uid(),name:name,desc:desc||'',leaderId:A.user.id,members:[A.user.id],memberNames:allNames,requests:[],companyId:null,maxMembers:max||4,status:'open',rolesConfirmed:true,createdAt:Date.now()};
   teams.push(t);DB.saveTeams(teams);SYNC.pushTeam(t);ss({screen:'lobby',inp:{},tsv:'members'});}
 
 
@@ -4602,7 +4606,7 @@ function rStudent(){
   const co=getC(team.companyId);const prog=teamProg(team.id);
   const myPending=team.leaderId===A.user.id?pendingReqs(team.id).length:0;
   const view=A.view||'home';
-  const views={home:rHome,stages:rStageDispatch,team:rMyTeam,coeval:rCoeval,ranking:rRanking,profile:rProfile,reports:rReports};
+  const views={home:rHome,stages:rStageDispatch,team:rMyTeam,ranking:rRanking,profile:rProfile,reports:rReports};
   const main=(views[view]||rHome)(team,co);
   const sLabels=['','Empresa','Est. Financieros','Razones Liq.','An. H y V','Pto. Equilibrio'];
   return '<div style="display:flex;min-height:100vh"><nav class="sidebar no-print"><div class="sbh"><div class="flex g10 mb8">'+av(A.user.name,A.user.id,'md')+'<div><div class="fw6 f12">'+A.user.name.split(' ')[0]+'</div><div class="t3 f11">'+team.name+'</div></div></div><div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--s3);border-radius:8px;border:1px solid var(--border)"><span style="font-size:15px">'+co.e+'</span><div class="fw6 f11" style="color:'+co.c+'">'+co.n+'</div></div><div class="prog mt8"><div class="prog-f" style="width:'+Math.round(prog/5*100)+'%"></div></div><div class="t3 f11 mt4">'+prog+'/5 etapas</div></div><div class="sbb">'+
