@@ -2873,44 +2873,76 @@ function doRetryPendingEvals(){
 async function doDiagnosticEvals(){
   var app=document.getElementById('app');
   var out='<div style="padding:20px;font-family:monospace;font-size:12px;background:#0a0a14;color:#e2e8f0;min-height:100vh">';
-  out+='<h2 style="color:#6c63ff">🔬 Diagnóstico de Coevaluaciones</h2>';
+  out+='<h2 style="color:#6c63ff">🔬 Diagnóstico Completo</h2>';
+  out+='<button onclick="A.teacherTab=\'coevs\';render()" style="background:#374151;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;margin-bottom:16px">← Volver</button>';
 
-  // 1. LocalStorage
-  var localEvs=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
-  var localPending=JSON.parse(localStorage.getItem('fa2_pending_evals')||'[]');
-  out+='<h3 style="color:#10b981">1. LocalStorage</h3>';
-  out+='<p>fa2_evals: <strong>'+localEvs.length+'</strong> registros</p>';
-  out+='<p>fa2_pending_evals: <strong>'+localPending.length+'</strong> pendientes</p>';
-  if(localEvs.length){
-    out+='<pre style="background:#111;padding:10px;border-radius:6px;overflow:auto;max-height:200px">'+
-      JSON.stringify(localEvs.slice(0,3),null,2)+'</pre>';
+  // 1. Estado de Supabase
+  out+='<h3 style="color:#10b981">1. Conexión Supabase</h3>';
+  out+='<p>SYNC.enabled: <strong style="color:'+(SYNC.enabled?'#10b981':'#ef4444')+'">'+(SYNC.enabled?'✅ Conectado':'❌ NO conectado')+'</strong></p>';
+  if(!SYNC.enabled){
+    out+='<p style="color:#ef4444;background:#1a0000;padding:10px;border-radius:6px">⚠️ Supabase no está inicializado. Revisa que el archivo HTML fue descargado y subido correctamente a GitHub.</p>';
   }
 
-  // 2. SYNC status
-  out+='<h3 style="color:#10b981">2. Supabase</h3>';
-  out+='<p>SYNC.enabled: <strong>'+(SYNC.enabled?'✅ Sí':'❌ No')+'</strong></p>';
-  out+='<p>SYNC.sb: <strong>'+(SYNC.sb?'✅ Conectado':'❌ null')+'</strong></p>';
+  // 2. LocalStorage del docente
+  var localEvs=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
+  var localUsers=JSON.parse(localStorage.getItem('fa2_users')||'[]');
+  var localTeams=JSON.parse(localStorage.getItem('fa2_teams')||'[]');
+  out+='<h3 style="color:#10b981">2. LocalStorage (este navegador)</h3>';
+  out+='<p>Usuarios: '+localUsers.length+' | Equipos: '+localTeams.length+' | Evaluaciones: <strong style="color:'+(localEvs.length?'#10b981':'#ef4444')+'">'+localEvs.length+'</strong></p>';
+  if(localEvs.length){
+    out+='<pre style="background:#111;padding:8px;border-radius:4px;overflow:auto;max-height:150px">'+JSON.stringify(localEvs,null,2)+'</pre>';
+  }
 
+  // 3. Query directa a Supabase
+  out+='<h3 style="color:#10b981">3. Datos en Supabase</h3>';
   if(SYNC.sb){
     try{
-      var result=await SYNC.sb.from('fa_evals').select('*').limit(20);
-      out+='<p>Supabase fa_evals: <strong>'+(result.data?result.data.length:'error')+'</strong> registros</p>';
-      if(result.error)out+='<p style="color:#ef4444">Error: '+result.error.message+'</p>';
-      if(result.data&&result.data.length){
-        out+='<pre style="background:#111;padding:10px;border-radius:6px;overflow:auto;max-height:200px">'+
-          JSON.stringify(result.data.slice(0,2),null,2)+'</pre>';
+      var r1=await SYNC.sb.from('fa_evals').select('id,eval_name,team_id,stage,comment,created_at').limit(10);
+      var r2=await SYNC.sb.from('fa_users').select('id',{count:'exact'});
+      var r3=await SYNC.sb.from('fa_teams').select('id',{count:'exact'});
+      out+='<p>Usuarios en Supabase: '+(r2.count||0)+'</p>';
+      out+='<p>Equipos en Supabase: '+(r3.count||0)+'</p>';
+      out+='<p>Evaluaciones en Supabase: <strong style="color:'+(r1.data&&r1.data.length?'#10b981':'#ef4444')+'">'+(r1.data?r1.data.length:0)+'</strong></p>';
+      if(r1.error)out+='<p style="color:#ef4444">Error: '+JSON.stringify(r1.error)+'</p>';
+      if(r1.data&&r1.data.length){
+        out+='<pre style="background:#111;padding:8px;border-radius:4px;overflow:auto;max-height:150px">'+JSON.stringify(r1.data,null,2)+'</pre>';
       }
-    }catch(e){out+='<p style="color:#ef4444">Error consultando Supabase: '+e.message+'</p>';}
+    }catch(e){out+='<p style="color:#ef4444">Error al consultar: '+e.message+'</p>';}
+  } else {
+    out+='<p style="color:#ef4444">No hay conexión a Supabase para consultar.</p>';
   }
 
-  // 3. Force push ALL local evals
-  out+='<h3 style="color:#10b981">3. Acciones</h3>';
-  out+='<button onclick="doForceAllEvals()" style="background:#6c63ff;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin:4px">💾 Forzar subida de TODAS las evals locales a Supabase</button>';
-  out+='<button onclick="SYNC.pull().then(function(){render();alert(\'Sync completo\')})" style="background:#10b981;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin:4px">⬇️ Jalar Supabase → LocalStorage</button>';
-  out+='<button onclick="A.teacherTab=\'coevs\';render()" style="background:#374151;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin:4px">← Volver</button>';
+  // 4. Test directo: crear y verificar una eval
+  out+='<h3 style="color:#10b981">4. Prueba de escritura en Supabase</h3>';
+  out+='<button id="btnTestWrite" style="background:#6c63ff;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;margin:4px">▶️ Probar escritura en fa_evals</button>';
+  out+='<button onclick="doForceAllEvals()" style="background:#10b981;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;margin:4px">⬆️ Subir TODO localStorage → Supabase</button>';
+  out+='<button onclick="SYNC.pull().then(function(){doDiagnosticEvals()})" style="background:#374151;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;margin:4px">⬇️ Jalar Supabase y recargar diagnóstico</button>';
+  out+='<div id="testWriteResult" style="margin-top:8px"></div>';
   out+='</div>';
   if(app)app.innerHTML=out;
+
+  // Add test write handler
+  var btn=document.getElementById('btnTestWrite');
+  if(btn)btn.onclick=async function(){
+    var res=document.getElementById('testWriteResult');
+    if(res)res.innerHTML='Probando...';
+    if(!SYNC.sb){if(res)res.innerHTML='<span style="color:#ef4444">❌ Supabase no conectado</span>';return;}
+    try{
+      var testEv={id:'test_diag_'+Date.now(),eval_id:'test',eval_name:'Diagnóstico',
+        team_id:(DB.getTeams()[0]||{id:'test'}).id,stage:1,
+        rubric_scores:{},field_evals:{},scores:{},
+        comment:'Test de escritura diagnóstico',created_at:Date.now()};
+      var wr=await SYNC.sb.from('fa_evals').upsert(testEv,{onConflict:'id'});
+      if(wr.error)throw new Error(JSON.stringify(wr.error));
+      // Clean up
+      await SYNC.sb.from('fa_evals').delete().eq('id',testEv.id);
+      if(res)res.innerHTML='<span style="color:#10b981">✅ Escritura exitosa. Supabase funciona correctamente.</span>';
+    }catch(e){
+      if(res)res.innerHTML='<span style="color:#ef4444">❌ Error: '+e.message+'</span>';
+    }
+  };
 }
+
 
 async function doForceAllEvals(){
   var localEvs=JSON.parse(localStorage.getItem('fa2_evals')||'[]');
