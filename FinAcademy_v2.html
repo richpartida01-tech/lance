@@ -3176,6 +3176,46 @@ function showEvalConfirm(teamName,co,stage){
   document.body.appendChild(overlay);
   setTimeout(function(){if(overlay.parentNode)overlay.remove();},4000);}
 
+
+function rTeamDetail(tid){
+  var team=DB.getTeams().find(function(t){return t.id===tid;});
+  if(!team){A.teacherTeam=null;ss({teacherTab:'equipos'});return rTeacher();}
+  var co=getC(team.companyId);
+  var subs=DB.getSubs()[tid]||{};
+  var snames=['','Empresa y Canvas','Est. Financieros','Razones Liq.','H y V + EFE','P. Equilibrio'];
+  return'<div style="padding:1.5rem;max-width:900px">'+
+    '<div class="flex g8 mb14">'+
+      '<button class="btn btn-sm" onclick="A.teacherTeam=null;ss({teacherTab:\'equipos\'})">← Volver</button>'+
+      '<h2 class="f16 fw7">'+(co?co.e+' ':'')+team.name+' — '+(co?co.n:'Sin empresa')+'</h2>'+
+    '</div>'+
+    '<div class="g2 mb12">'+
+      '<div class="card"><div class="fw7 f12 mb8">Integrantes</div>'+
+        (team.memberNames||[team.name]).map(function(n){return'<div class="f12 mb4">👤 '+n+'</div>';}).join('')+
+      '</div>'+
+      '<div class="card"><div class="fw7 f12 mb8">Progreso</div>'+
+        '<div class="fbet mb4"><span class="f12">Etapas completadas</span><span class="badge bp">'+teamProg(tid)+'/5</span></div>'+
+        '<div class="fbet"><span class="f12">Calificación ponderada</span><span class="fw7" style="color:var(--yellow)">'+calcWeightedGrade(tid)+'</span></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="fw7 f13 mb10">Entregas por etapa</div>'+
+      [1,2,3,4,5].map(function(s){
+        var sub=subs[s];
+        return'<div class="card-s mb8">'+
+          '<div class="fbet mb6">'+
+            '<div><span class="fw7 f12">Etapa '+s+': '+snames[s]+'</span>'+
+            ' <span class="badge '+(s<=2?'bwarn':s<=4?'bp':'bok')+' f10">'+WEIGHTS[s]+'%</span></div>'+
+            (sub?'<span class="badge bok f11">'+sub.score+'% ✓</span>':'<span class="badge bmuted f11">Pendiente</span>')+
+          '</div>'+
+          (sub?
+            '<button class="btn btn-xs btn-ok" onclick="generateReport('+s+',DB.getTeams().find(function(t){return t.id===\''+tid+'\';}),getC(\''+co.id+'\'))">📄 Ver PDF</button>'+
+            ' <button class="btn btn-xs btn-p" onclick="A.teacherTab=\'evaluar\';A.inp={...A.inp,te_team:\''+tid+'\',te_stage:\''+s+'\'};A.teacherTeam=null;ss({teacherTab:\'evaluar\'})">✏️ Evaluar</button>'
+          :'')+
+        '</div>';
+      }).join('')+
+    '</div>'+
+  '</div>';}
+
 // ── EVENT HANDLER — at end of script for guaranteed registration ──────────
 (function registerHandlers(){
   function handleClick(e){
@@ -4890,8 +4930,7 @@ function rTeacher(){
       '<div class="tab'+(tab==='mover'?' active':'')+'" data-ttab="mover">&#x1F503; Mover Alumnos</div>'+
       '<div class="tab'+(tab==='empresas'?' active':'')+'" data-ttab="empresas">&#x1F3E2; Empresas</div>'+
       '<div class="tab'+(tab==='scores'?' active':'')+'" data-ttab="scores">&#x270F;&#xFE0F; Calificaciones</div>'+
-      '<div class="tab'+(tab==='coevs'?' active':'')+'" data-ttab="coevs">&#x2B50; Coevaluaciones</div>'+
-    '<div class="tab'+(tab==='testing'?' active':'')+'" data-ttab="testing" style="color:#f59e0b">&#x1F9EA; Testing</div>'+
+      '<div class="tab'+(tab==='testing'?' active':'')+'" data-ttab="testing" style="color:#f59e0b">&#x1F9EA; Testing</div>'+
     '<div class="tab'+(tab==='limpiar'?' active':'')+'" data-ttab="limpiar" style="color:var(--red)">&#x1F9F9; Limpiar</div>'+
       '<div class="tab'+(tab==='supabase'?' active':'')+'" data-ttab="supabase">&#x1F5C4;&#xFE0F; Supabase</div>'+
     '</div>'+
