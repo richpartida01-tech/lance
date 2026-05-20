@@ -951,6 +951,8 @@ function rCoeval(team,co){
   var myUid=A.user.id;
   var others=DB.getTeams().filter(function(t){return t.companyId&&t.id!==team.id;});
   var myEvs=DB.getEvals().filter(function(e){return e.evalId===myUid;});
+  // Auto-select first team if none selected
+  if(!A.evalTarget&&others[0])A.evalTarget=others[0].id;
   var tgt=A.evalTarget||(others[0]&&others[0].id)||null;
   var evalStage=parseInt(A.evalStage||1);
   var etm=tgt?DB.getTeams().find(function(t){return t.id===tgt;}):null;
@@ -968,13 +970,23 @@ function rCoeval(team,co){
     });
   }).length;
 
+  var totalSlots=others.reduce(function(s,t){return s+[1,2,3,4,5].filter(function(st){return!!getTeamSub(t.id,st);}).length;},0);
+  var pct=totalSlots?Math.round(myEvs.length/totalSlots*100):0;
   return'<div class="fadein" style="max-width:1000px;margin:0 auto;padding:1rem">'+
-    '<div class="fbet mb12">'+
-      '<div>'+
-        '<h2 class="f18 mb2">⭐ Coevaluación</h2>'+
-        '<p class="t2 f12">Es <strong>obligatorio</strong> evaluar a todos los equipos para poder avanzar de etapa.</p>'+
+    '<div class="mb14">'+
+      '<h2 class="f18 mb4">⭐ Coevaluación entre equipos</h2>'+
+      '<div class="alert ai f12 mb10">'+
+        '<span>&#x1F4CB;</span>'+
+        '<div>Tu equipo evalúa el trabajo de los otros equipos. Selecciona un equipo, elige la etapa entregada y llena la rúbrica. '+
+        'Necesitas evaluar <strong>mínimo 2 equipos por etapa</strong> para poder entregar la etapa siguiente.</div>'+
       '</div>'+
-      (pendingCount>0?'<span class="badge bwarn f11">'+pendingCount+' equipo(s) pendiente(s)</span>':'<span class="badge bok f11">✅ Al día</span>')+
+      '<div class="fbet mb4">'+
+        '<span class="f12">Progreso: <strong>'+myEvs.length+'/'+totalSlots+'</strong> evaluaciones</span>'+
+        (pendingCount>0?'<span class="badge bwarn f11">'+pendingCount+' equipos pendientes</span>':'<span class="badge bok f11">✅ Todos evaluados</span>')+
+      '</div>'+
+      '<div style="height:6px;background:var(--s3);border-radius:3px">'+
+        '<div style="height:100%;width:'+pct+'%;background:var(--p);border-radius:3px"></div>'+
+      '</div>'+
     '</div>'+
     '<div class="g2">'+
     // LEFT: team list
@@ -1063,7 +1075,7 @@ function rCoeval(team,co){
               (cur?'<div style="font-size:11px;color:var(--yellow);font-style:italic">'+c.lvl[cur]+'</div>':'')+
             '</div>';
           }).join('')+
-          '<div class="lbl mt10">Comentario general (mín. 20 caracteres)</div>'+
+          '<div class="lbl mt10 fbet"><span>Comentario general</span><span class="t3 f10">(mín. 5 caracteres)</span></div>'+
           '<textarea class="inp mb12" id="ev_comment_'+tgt+'_'+evalStage+'" rows="3" '+
             'oninput="A.inp[\'ev_comment_'+tgt+'_'+evalStage+'\']=this.value" '+
             'placeholder="El equipo demostró... Sin embargo debería mejorar en...">'+(A.inp['ev_comment_'+tgt+'_'+evalStage]||sessionStorage.getItem('ev_comment_'+tgt+'_'+evalStage)||''+(myEvs.find(function(e){return e.teamId===tgt&&e.stage===evalStage;})||{}).comment||'')+'</textarea>'+
@@ -1094,7 +1106,7 @@ function doEval(){
   });
   if(!allScored){msg('Califica todos los criterios de la rúbrica antes de enviar.','warn');return;}
   var comment=(document.getElementById('ev_comment_'+tid+'_'+stage)?.value||A.inp['ev_comment_'+tid+'_'+stage]||'').trim();
-  if(comment.length<20){msg('Escribe un comentario de al menos 20 caracteres.','warn');return;}
+  if(comment.length<5){msg('Escribe un comentario (mínimo 5 caracteres).','warn');return;}
   var evs=DB.getEvals();
   // One eval per evaluator per team per stage
   var idx=evs.findIndex(function(e){return e.evalId===A.user.id&&e.teamId===tid&&e.stage===stage;});
@@ -1556,7 +1568,6 @@ function rDemo(){
           '<p class="t2 f12">Acceso completo a todas las etapas sin restricciones.</p>'+
         '</div>'+
         '<div class="flex g8">'+
-          '<button class="btn btn-acc btn-sm" data-toteacher="1">&#x1F4CA; Panel Docente</button>'+
           '<button class="btn btn-sm" id="btnLogout">&#x1F6AA; Salir</button>'+
         '</div>'+
       '</div>'+
@@ -1597,7 +1608,7 @@ function rDemo(){
           '</div>';}).join('')+
       '</div>'+
       '<div class="sbf">'+
-        '<div class="ni" data-toteacher="1"><span>&#x1F4CA;</span><span class="f12">Panel Docente</span></div>'+
+        
         '<div class="ni" id="btnLogout"><span>&#x1F6AA;</span><span class="f12">Salir</span></div>'+
       '</div>'+
     '</nav>'+
@@ -2995,7 +3006,7 @@ async function doTestEval(){
     createdAt:Date.now()};
   var evs=DB.getEvals();evs.push(ev);DB.saveEvals(evs);
   SYNC.pushEval(ev).then(function(){
-    msg('\u2705 Coevaluacion de prueba creada y subida a Supabase. Ve a Coevaluaciones para verla.','ok');
+    msg('✅ Coevaluacion de prueba creada y subida a Supabase. Ve a Coevaluaciones para verla.','ok');
     ss({teacherTab:'coevs'});
   }).catch(function(e){msg('\u26A0\uFE0F Local OK. Error Supabase: '+e.message,'warn');ss({teacherTab:'coevs'});});}
 
@@ -3119,6 +3130,8 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     if(jointeam){doJoinRequest(jointeam.dataset.jointeam);return;}
     var ainp=el.closest&&el.closest('[data-ainp]');if(ainp){var parts=ainp.dataset.ainp.split('=');A.inp[parts[0]]=parts[1];render();return;}
     if(el.dataset&&el.dataset.golobby){A.screen='lobby';render();return;}
+    var etEl=el.closest&&el.closest('[data-et]');
+    if(etEl){A.evalTarget=etEl.dataset.et;A.evalStage=1;render();return;}
     if(id==='btnPullSupa'||id==='btnPullSupa2'){SYNC.pull().then(function(){render();msg('✅ Descargado de Supabase','ok');});return;}
     if(id==='btnGoSelectCo'){
       var myT=getUserTeam(A.user.id);
