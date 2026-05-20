@@ -1442,11 +1442,14 @@ const SYNC={
         pullTimer=setTimeout(function(){
           self.pull().then(function(){
             // Don't re-render if user is actively filling a form
+            // Don't re-render if user is actively in an input field
+            var activeTag=document.activeElement&&document.activeElement.tagName;
+            var isTyping=activeTag==='INPUT'||activeTag==='TEXTAREA';
             var hasFormData=Object.keys(A.inp).some(function(k){
               return k.startsWith('ev_')||k.startsWith('s1')||k.startsWith('s2')||
                      k.startsWith('s3')||k.startsWith('s4')||k.startsWith('s5');
             });
-            if(!hasFormData){render();}
+            if(!isTyping&&!hasFormData){render();}
             else{console.log('[SYNC] Datos actualizados en background (sin re-render, formulario activo)');}
           });
         },10000);
@@ -3022,8 +3025,8 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     var el=e.target;
     if(!el.id)return;
     A.inp[el.id]=el.value;
-    if(el.id==='lEmail'||el.id==='lCode'){render();}
-    if(el.id==='memberCount')render();
+    // Save to sessionStorage for persistence (no render - avoids cursor jump)
+    if(el.id&&el.id.startsWith('ev_'))sessionStorage.setItem(el.id,el.value);
   });
   document.addEventListener('keydown',function(e){
     if(e.key==='Enter'){
