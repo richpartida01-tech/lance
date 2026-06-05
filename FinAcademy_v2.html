@@ -1097,7 +1097,7 @@ function doEval(){
     rubricScores[c.id]=v;
   });
   if(!allScored){msg('Califica todos los criterios de la rúbrica antes de enviar.','warn');return;}
-  var comment=(document.getElementById('ev_comment_'+tid+'_'+stage)?.value||A.inp['ev_comment_'+tid+'_'+stage]||'').trim();
+  var comment=((document.getElementById('ev_comment_'+tid+'_'+stage)||{}).value||A.inp['ev_comment_'+tid+'_'+stage]||'').trim();
   if(comment.length<5){msg('Escribe un comentario (mínimo 5 caracteres).','warn');return;}
   var evs=DB.getEvals();
   // One eval per evaluator per team per stage
@@ -1688,7 +1688,7 @@ function rLoginTeacher(){
   '</div></div>';}
 
 function doLoginTeacher(){
-  var pin=A.inp.lPin||document.getElementById('lPin')?.value||'';
+  var pin=A.inp.lPin||(document.getElementById('lPin')||{}).value||'';
   if(pin.toString()==='2024'){
     var tu={id:'teacher',name:'Docente',email:'profe@ebc.mx',role:'teacher'};
     DB.saveSession(tu);ss({user:tu,screen:'teacher'});
@@ -1733,8 +1733,8 @@ function doLogin(){
     var du={id:'demo',name:'Demo Admin',email:'demo@ebc.mx',role:'admin'};
     DB.saveSession(du);ss({user:du,screen:'demo'});return;
   }
-  var email=(A.inp.lEmail||document.getElementById('lEmail')?.value||'').trim().toLowerCase();
-  var code=(A.inp.lCode||document.getElementById('lCode')?.value||'').trim().replace(/[^0-9]/g,'');
+  var email=(A.inp.lEmail||(document.getElementById('lEmail')||{}).value||'').trim().toLowerCase();
+  var code=(A.inp.lCode||(document.getElementById('lCode')||{}).value||'').trim().replace(/[^0-9]/g,'');
   if(!email){msg('Ingresa tu correo institucional.','warn');return;}
   if(!email.includes('@')){msg('Correo inválido. Ej: nombre@ebc.edu.mx','warn');return;}
   if(!code||code.length<5){msg('Ingresa tu clave (los números después de la M).','warn');return;}
@@ -2013,7 +2013,7 @@ function doCancelJoinRequest(tid){
 
 
 function doCreateTeam(){
-  var name=(A.inp.ct_name||document.getElementById('ct_name')?.value||'').trim();
+  var name=(A.inp.ct_name||(document.getElementById('ct_name')||{}).value||'').trim();
   var max=4;
   if(!name){msg('El nombre del equipo es obligatorio.','warn');return;}
   var teams=DB.getTeams();
@@ -2241,7 +2241,7 @@ function doSaveTeacherEval(){
   var tEvs=DB.getTeacherEvals();
   var idx=tEvs.findIndex(function(e){return e.teamId===teamId&&e.stage===stage;});
   var ev={id:uid(),teamId:teamId,stage:stage,scores:scores,grade:grade,
-          feedback:document.getElementById('te_feedback')?.value||A.inp.te_feedback||'',createdAt:Date.now()};
+          feedback:(document.getElementById('te_feedback')||{}).value||A.inp.te_feedback||'',createdAt:Date.now()};
   if(idx>=0)tEvs[idx]=ev;else tEvs.push(ev);
   DB.saveTeacherEvals(tEvs);SYNC.pushTeacherEval(ev);
   msg('Evaluacion docente guardada.','ok');ss({teacherTab:'evaluar'});}
@@ -3280,12 +3280,12 @@ function doEditUser(){
     var evalstage=el.closest&&el.closest('[data-evalstage]');if(evalstage)return ss({evalStage:parseInt(evalstage.dataset.evalstage)});
     var cortereport=el.closest&&el.closest('[data-cortereport]');if(cortereport){var _t=getUserTeam(A.user.id);if(_t)generateCorteReport(parseInt(cortereport.dataset.cortereport),_t,getC(_t.companyId));return;}
     var jt=el.closest&&el.closest('[data-jointeam]');if(jt)return doJoinRequest(jt.dataset.jointeam);
-    if(id==='btnCancelReq'){var tid=el.dataset.tid||el.closest&&el.closest('[data-tid]')?.dataset.tid;return doCancelReq(tid);}
+    if(id==='btnCancelReq'){var tid=el.dataset.tid||el.closest&&(el.closest('[data-tid]')||{dataset:{}}).dataset.tid;return doCancelReq(tid);}
     var tsv=el.closest&&el.closest('[data-tsv]');if(tsv)return ss({tsv:tsv.dataset.tsv});
     var approveEl=el.closest&&el.closest('[data-approve]');if(approveEl)return doApproveReq(approveEl.dataset.tid,approveEl.dataset.approve);
     var rejectEl=el.closest&&el.closest('[data-reject]');if(rejectEl)return doRejectReq(rejectEl.dataset.tid,rejectEl.dataset.reject);
     var kickEl=el.closest&&el.closest('[data-kick]');if(kickEl)return doKick(kickEl.dataset.tid,kickEl.dataset.kick);
-    if(id==='btnLeaveTeam'||el.closest&&el.closest('#btnLeaveTeam')){var tid2=el.dataset.tid||el.closest&&el.closest('[data-tid]')?.dataset.tid;return doLeaveTeam(tid2);}
+    if(id==='btnLeaveTeam'||el.closest&&el.closest('#btnLeaveTeam')){var tid2=el.dataset.tid||el.closest&&(el.closest('[data-tid]')||{dataset:{}}).dataset.tid;return doLeaveTeam(tid2);}
     var selco=el.closest&&el.closest('[data-selco]');if(selco)return doSelectCo(selco.dataset.tid,selco.dataset.selco);
     var ns=el.closest&&el.closest('[data-ns]');if(ns){var n=parseInt(ns.dataset.ns);return ss({view:'stages',stage:n});}
     var nv=el.closest&&el.closest('[data-nv]');if(nv)return ss({view:nv.dataset.nv,tsv:'members'});
@@ -3296,7 +3296,7 @@ function doEditUser(){
     var sv=el.closest&&el.closest('[data-sv]');if(sv){A.inp['ev_'+sv.dataset.sid]=parseInt(sv.dataset.sv);render();return;}
     var rpt=el.closest&&el.closest('[data-rpt]');if(rpt){var team3=getUserTeam(A.user.id);if(team3)generateReport(parseInt(rpt.dataset.rpt),team3,getC(team3.companyId));return;}
     if(id==='btnExport')return doExport();
-    if(id==='btnImport')return document.getElementById('importFile')?.click();
+    if(id==='btnImport')return var _ifi=document.getElementById('importFile');if(_ifi)_ifi.click();;
     if(id==='btnSBConnect'||el.closest&&el.closest('#btnSBConnect'))return doSBConnect();
     if(id==='btnSyncNow'||el.closest&&el.closest('#btnSyncNow')){
       msg('Sincronizando...','ok');
@@ -3329,7 +3329,7 @@ var coevalpdf=el.closest&&el.closest('[data-coevalpdf]');
     var canceljoin=el.closest&&el.closest('[data-canceljoin]');
     if(canceljoin){doCancelJoinRequest(canceljoin.dataset.canceljoin);return;}
     if(id==='btnCancelReq'){
-      var tid=el.dataset.tid||el.closest('[data-tid]')?.dataset.tid;
+      var tid=el.dataset.tid||(el.closest('[data-tid]')||{dataset:{}}).dataset.tid;
       if(tid)doCancelJoinRequest(tid);return;}
     if(id==='btnRefreshLobby'){SYNC.pull().then(function(){render();});return;}
     var unlockco=el.closest&&el.closest('[data-unlockco]');if(unlockco){if(confirm('¿Liberar esta empresa? El equipo queda en lobby.'))doUnlockCompany(unlockco.dataset.unlockco);return;}
@@ -3446,7 +3446,7 @@ function doPEProgress(nextPhase){
 
 function doSubmit(stage){
   document.querySelectorAll('textarea,input[type=text],input[type=email],input[type=number]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
-  const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
+  const team=getUserTeam(A.user.id);const co=getC(team&&team.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
   var score=stage===1?100:calcScore(stage,team.id,A.inp);
   const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
