@@ -3448,7 +3448,7 @@ function doSubmit(stage){
   document.querySelectorAll('textarea,input[type=text],input[type=email],input[type=number]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
   var team=getUserTeam(A.user.id);var co=getC(team&&team.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
-  var score=stage===1?100:calcScore(stage,team.id,A.inp);
+  var score=100;
   var subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
   subs[team.id][stage]={data:{},score:score,submittedBy:A.user.id,submittedAt:Date.now()};
   Object.keys(A.inp).forEach(function(k){subs[team.id][stage].data[k]=A.inp[k];});
