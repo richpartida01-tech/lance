@@ -481,7 +481,6 @@ const BMC={
 };
 
 function rS1(team,co){
-  loadDraft(1);
   const sub=getTeamSub(team.id,1);const done=!!sub;const d=sub?sub.data:{};
   const ctx=BMC[co.id]||{};
   var TAQ={'socios':'Netflix: Productoras Hollywood (Disney, Universal, Sony) para licencias, Amazon AWS para infraestructura cloud, fabricantes Smart TV (Samsung/LG) y consolas (Sony/MS), teleoperadoras para bundles (AT&T, Telcel), creadores de contenido independiente.','actividades':'Netflix: Produccion de contenido original ($17B+/anio como Squid Game/Stranger Things), mejora continua del algoritmo de recomendacion, gestion de infraestructura cloud global, negociacion de licencias de terceros, marketing de lanzamientos masivos.','recursos':'Netflix: Catalogo de +15,000 titulos con exclusivos propios, algoritmo de recomendacion entrenado con datos de 260M usuarios, infraestructura AWS en 3 continentes, marca global con 90%+ de reconocimiento, datos de preferencias unicos.','propuesta':'Netflix: Acceso ilimitado a series y peliculas SIN anuncios, en CUALQUIER dispositivo, con recomendaciones ultra-personalizadas, contenido EXCLUSIVO que no existe en otra plataforma, sin contrato (cancela cuando quieras), descarga offline.','relaciones':'Netflix: Suscripcion mensual recurrente sin contrato, algoritmo que aprende tus gustos con cada hora vista, notificaciones push de nuevas temporadas, perfiles separados por miembro (hasta 5), soporte chat 24/7, encuestas integradas.','canales':'Netflix: App iOS/Android/Smart TV/PlayStation/Xbox/PC, preinstalado en Samsung TVs, bundles con Telcel y Movistar, App Store y Google Play, publicidad en YouTube e Instagram para adquisicion de suscriptores.','segmentos':'Netflix: Hogares clase media-alta con internet (masivo), jovenes 18-34 que abandonan TV tradicional, familias con hijos (Kids fuerte), cineofilos y fans de series, mercados emergentes con planes economicos (plan con anuncios $2/mes).','costos':'Netflix: Produccion/adquisicion de contenido ($17B+ anuales = MAYOR COSTO), infraestructura tecnologica AWS ($1B+/anio), marketing global, nómina de 13,000 ingenieros y creativos, impuestos en 190 paises de operacion.','ingresos':'Netflix: Suscripciones en 3 niveles: Basico con anuncios ~$2/mes, Estandar ~$15/mes, Premium 4K ~$22/mes (USA). Licenciamiento de contenido original a terceros. Revenue share con teleoperadoras en bundles.'};
@@ -551,21 +550,18 @@ function bk(key,icon,title,rows){
 
 
 function rS2(team,co){
-  loadDraft(2);
   const sub=getTeamSub(team.id,2);const t=A.tab||'y1';const yi=t==='y2'?1:0;const yr=co.y[yi];const a=co.ans[t];
   function bl(id,ans,w){const v=A.inp[id];const cl=v!=null&&v!==''?(close(parseFloat(v),ans)?'ok':'err'):'';return '<input type="number" class="blank'+(cl?' '+cl:'')+'" id="'+id+'" value="'+(v!=null?v:'')+'" placeholder="?" data-a="'+ans+'" style="width:'+(w||96)+'px" step="0.01">';}
   const bg=a.bg,er=a.er;
   return '<div class="fadein">'+sHdr(2,'Estados Financieros','Completa los campos amarillos. Validación automática en tiempo real.',!!sub)+rGuide(2,co)+'<div class="alert aw mb12">⚠️ Cifras en <strong>miles de pesos MXN</strong>. Campos en amarillo = debes calcularlos.</div><div class="tabs"><div class="tab'+(t==='y1'?' active':'')+'" data-tab="y1">Año '+co.y[0]+'</div><div class="tab'+(t==='y2'?' active':'')+'" data-tab="y2">Año '+co.y[1]+'</div></div><div class="g2"><div class="card"><div class="fw7 f12 mb10">📋 Balance General — '+yr+'</div><div class="ox"><table class="ft"><tr class="sec"><td colspan="2">ACTIVO CIRCULANTE</td></tr><tr><td class="ind">Efectivo y equivalentes</td><td class="r">'+fmt(bg.ef)+'</td></tr><tr><td class="ind">Cuentas por cobrar</td><td class="r">'+fmt(bg.cxc)+'</td></tr><tr><td class="ind">Inventarios</td><td class="r">'+fmt(bg.inv)+'</td></tr><tr><td class="ind">Otros activos circ.</td><td class="r">'+fmt(bg.oc)+'</td></tr><tr class="sub"><td><strong>Total Activo Circulante</strong></td><td class="r">'+bl('s2ac'+t,bg.ac)+'</td></tr><tr class="sec"><td colspan="2">ACTIVO NO CIRCULANTE</td></tr><tr><td class="ind">Equipos / Activos fijos</td><td class="r">'+fmt(bg.eq)+'</td></tr><tr><td class="ind">(-) Dep. acumulada</td><td class="r">('+fmt(Math.abs(bg.dep))+')</td></tr><tr><td class="ind">Otros activos NC</td><td class="r">'+fmt(bg.onc)+'</td></tr><tr class="sub"><td><strong>Total Activo No Circ.</strong></td><td class="r">'+bl('s2anc'+t,bg.anc)+'</td></tr><tr class="tot"><td><strong>TOTAL ACTIVO</strong></td><td class="r">'+bl('s2ta'+t,bg.ta)+'</td></tr><tr class="sec"><td colspan="2">PASIVO CIRCULANTE</td></tr><tr><td class="ind">Cuentas por pagar</td><td class="r">'+fmt(bg.cxp)+'</td></tr><tr><td class="ind">Deuda a corto plazo</td><td class="r">'+fmt(bg.dcp)+'</td></tr><tr><td class="ind">Impuestos por pagar</td><td class="r">'+fmt(bg.imp)+'</td></tr><tr class="sub"><td><strong>Total Pasivo Circulante</strong></td><td class="r">'+bl('s2pc'+t,bg.pc)+'</td></tr><tr><td class="ind">Deuda a largo plazo</td><td class="r">'+fmt(bg.pnc)+'</td></tr><tr class="sub"><td><strong>Total Pasivo</strong></td><td class="r">'+bl('s2tp'+t,bg.tp)+'</td></tr><tr class="sec"><td colspan="2">CAPITAL CONTABLE</td></tr><tr><td class="ind">Capital social</td><td class="r">'+fmt(bg.cs)+'</td></tr><tr><td class="ind">Utilidades retenidas</td><td class="r">'+bl('s2ur'+t,bg.ur)+'</td></tr><tr class="sub"><td><strong>Total Capital</strong></td><td class="r">'+bl('s2cap'+t,bg.cap)+'</td></tr><tr class="tot"><td><strong>TOTAL PASIVO + CAPITAL</strong></td><td class="r">'+bl('s2tpc'+t,bg.ta)+'</td></tr></table></div></div><div class="card"><div class="fw7 f12 mb10">📊 Estado de Resultados — '+yr+'</div><div class="ox"><table class="ft"><tr><td><strong>Ventas netas</strong></td><td class="r">'+fmt(er.v)+'</td></tr><tr><td class="ind">(-) Costo de ventas</td><td class="r">('+fmt(er.cv)+')</td></tr><tr class="sub"><td><strong>Utilidad Bruta</strong></td><td class="r">'+bl('s2ub'+t,er.ub)+'</td></tr><tr class="sec"><td colspan="2">GASTOS OPERATIVOS</td></tr><tr><td class="ind">Gastos de administración</td><td class="r">'+fmt(er.ga)+'</td></tr><tr><td class="ind">Gastos de ventas</td><td class="r">'+fmt(er.gv)+'</td></tr><tr><td class="ind">Depreciación</td><td class="r">'+fmt(er.dep)+'</td></tr><tr class="sub"><td><strong>Total Gastos Operativos</strong></td><td class="r">'+bl('s2tgo'+t,er.tgo)+'</td></tr><tr class="sub"><td><strong>Utilidad Operativa (UAFIR)</strong></td><td class="r">'+bl('s2uo'+t,er.uo)+'</td></tr><tr><td class="ind">(+) Otros ingresos</td><td class="r">'+fmt(er.oi)+'</td></tr><tr><td class="ind">(-) Gastos financieros</td><td class="r">('+fmt(er.gf_)+')</td></tr><tr class="sub"><td><strong>Util. Antes de Impuestos</strong></td><td class="r">'+bl('s2uai'+t,er.uai)+'</td></tr><tr><td class="ind">(-) ISR ('+er.t*100+'%)</td><td class="r">'+bl('s2isr'+t,er.isr)+'</td></tr><tr class="tot"><td><strong>UTILIDAD NETA</strong></td><td class="r">'+bl('s2un'+t,er.un)+'</td></tr></table></div></div></div><div class="mt12">'+(sub?'<div class="flex g8"><div class="alert aok" style="flex:1;margin:0">✅ Etapa 2 entregada.</div><button class="btn btn-ok btn-sm" data-rpt="2">📥 PDF</button></div>':'<div class="flex g8"><button class="btn btn-ok" id="btnSave2">💾 Guardar borrador</button><button class="btn btn-p" id="btnS2">Entregar Etapa 2 →</button></div>')+'</div></div>';}
 
 function rS3(team,co){
-  loadDraft(3);
   const sub=getTeamSub(team.id,3);const a=co.ans;
   const rats=[{id:'ctn',l:'Capital de Trabajo Neto',f:'AC − PC',u:'miles $'},{id:'rc',l:'Razón Corriente',f:'AC / PC',u:'veces'},{id:'pa',l:'Prueba Ácida',f:'(AC−Inv)/PC',u:'veces'},{id:'re',l:'Razón de Efectivo',f:'Efvo/PC',u:'veces'},{id:'rte',l:'Razón de Tesorería',f:'(Efvo+CxC)/PC',u:'veces'}];
   function bl(id,ans){const v=A.inp[id];const cl=v!=null&&v!==''?(close(parseFloat(v),ans,.015)?'ok':'err'):'';return '<input type="number" class="blank'+(cl?' '+cl:'')+'" id="'+id+'" value="'+(v!=null?v:'')+'" placeholder="?" data-a="'+ans+'" step="0.001" style="width:84px">';}
   return '<div class="fadein">'+sHdr(3,'Razones de Liquidez','Calcula las 5 razones de liquidez para ambos períodos fiscales.',!!sub)+rGuide(3,co)+'<div class="alert ai mb12">ℹ️ CTN en miles MXN; las demás razones en veces. Usa los datos del Balance General (Etapa 2).</div><div class="card mb12"><div class="ox"><table class="ft" style="min-width:500px"><tr><th style="width:32%">Razón Financiera</th><th>Fórmula</th><th style="text-align:right">'+co.y[0]+'</th><th style="text-align:right">'+co.y[1]+'</th><th>Unidad</th></tr>'+rats.map(r=>'<tr><td class="fw6">'+r.l+'</td><td class="t2 f11" style="font-style:italic">'+r.f+'</td><td class="r">'+bl('s3'+r.id+'y1',a.y1.rat[r.id])+'</td><td class="r">'+bl('s3'+r.id+'y2',a.y2.rat[r.id])+'</td><td class="t2 f11">'+r.u+'</td></tr>').join('')+'</table></div></div><div class="card"><div class="lbl">Interpretación de la posición de liquidez de '+co.n+'</div><textarea class="inp" id="s3i" rows="4" placeholder="Las razones de liquidez muestran que..."></textarea><div class="sep">'+(sub?'<div class="flex g8"><div class="alert aok" style="flex:1;margin:0">✅ Etapa 3 entregada.</div><button class="btn btn-ok btn-sm" data-rpt="3">📥 PDF</button></div>':'<div class="flex g8"><button class="btn btn-ok" id="btnSave3">💾 Guardar borrador</button><button class="btn btn-p" id="btnS3">Entregar Etapa 3 →</button></div>')+'</div></div></div>';}
 
 function rS4(team,co){
-  loadDraft(4);
   var sub=getTeamSub(team.id,4);var a=co.ans;
   var items=[{k:'b_ef',l:'Efectivo'},{k:'b_ac',l:'Total AC'},{k:'b_ta',l:'Total Activo'},{k:'b_pc',l:'Total PC'},{k:'b_tp',l:'Total Pasivo'},{k:'b_cap',l:'Total Capital'},{k:'e_v',l:'Ventas Netas'},{k:'e_cv',l:'Costo Ventas'},{k:'e_ub',l:'Util. Bruta'},{k:'e_uo',l:'Util. Operativa'},{k:'e_un',l:'Util. Neta'}];
   function getV(k,yr){return a[yr][k.startsWith('b_')?'bg':'er'][k.slice(2)];}
@@ -666,7 +662,6 @@ function pePhaseCard(num,color,rgb,emoji,title,body,phase,isDone){
   '</div>';}
 
 function rS5(team,co){
-  loadDraft(5);
   var sub=getTeamSub(team.id,5);var done=!!sub;
   var phase=A.pePhase||1;
   var be=co.ans.be;
@@ -1575,7 +1570,7 @@ function getUserTeam(uid){return DB.getTeams().find(t=>t.members&&t.members.incl
 function getPendingReq(uid){return DB.getTeams().find(function(t){return(t.requests||[]).some(function(r){return(r.userId||r.uid)===uid&&r.status==='pending';});});}
 function getTeamSub(tid,s){const subs=DB.getSubs();return subs[tid]&&subs[tid][s];}
 function teamProg(tid){let d=0;for(let s=1;s<=5;s++)if(getTeamSub(tid,s))d++;return d;}
-function stageOk(s,tid){if(s===1)return true;return!!getTeamSub(tid,s-1);}
+function stageOk(s,tid){return true;}
 function teamMembers(tid){const t=DB.getTeams().find(t=>t.id===tid);if(!t)return[];const u=DB.getUsers();return(t.members||[]).map(id=>u.find(x=>x.id===id)).filter(Boolean);}
 function pendingReqs(tid){const t=DB.getTeams().find(t=>t.id===tid);if(!t)return[];const u=DB.getUsers();return(t.requests||[]).filter(r=>r.status==='pending').map(r=>({...r,user:u.find(x=>x.id===r.userId)})).filter(r=>r.user);}
 function calcTeamScore(tid){const t=DB.getTeams().find(t=>t.id===tid);if(!t||!t.companyId)return 0;let tot=0,earn=0;for(let s=1;s<=5;s++){const sub=getTeamSub(tid,s);if(!sub)continue;tot+=100;earn+=(sub.score||0);}return tot?Math.round(earn/tot*100):0;}
@@ -1655,7 +1650,31 @@ function rDemo(){
 
 
 function render(){var app=document.getElementById('app');if(!app)return;console.log('[FA] render() → screen:',A.screen);try{const map={login:rLogin,register:rRegister,lobby:rLobby,student:rStudent,teacher:rTeacher,demo:rDemo};app.innerHTML=(map[A.screen]||rLogin)();postRender();}catch(e){console.error('[FA Render Error]',e);app.innerHTML='<div style="padding:40px;color:#ef4444;font-family:monospace;background:#07080f;min-height:100vh"><h2 style=color:#ef4444>Error en render:</h2><pre style=color:#f87171>'+e.message+'\n\n'+(e.stack||'')+'</pre></div>';}}
-function postRender(){document.querySelectorAll('.blank').forEach(el=>{if(A.inp[el.id]!=null&&A.inp[el.id]!==''){el.value=A.inp[el.id];const v=parseFloat(A.inp[el.id]),ans=parseFloat(el.dataset.a);el.classList.add(close(v,ans)?'ok':'err');}});document.querySelectorAll('textarea').forEach(el=>{if(el.id&&A.inp[el.id]!=null)el.value=A.inp[el.id];});const fi=document.getElementById('importFile');if(fi)fi.addEventListener('change',e=>{if(e.target.files[0])doImport(e.target.files[0]);});}
+function postRender(){
+  // Restaurar .blank inputs
+  document.querySelectorAll('.blank').forEach(el=>{if(A.inp[el.id]!=null&&A.inp[el.id]!==''){el.value=A.inp[el.id];const v=parseFloat(A.inp[el.id]),ans=parseFloat(el.dataset.a);el.classList.add(close(v,ans)?'ok':'err');}});
+  // Restaurar textareas
+  document.querySelectorAll('textarea').forEach(el=>{if(el.id&&A.inp[el.id]!=null)el.value=A.inp[el.id];});
+  // Cargar borrador si estamos en una etapa
+  if(A.screen==='student'&&A.view==='stages'&&A.stage){
+    var team=getUserTeam(A.user&&A.user.id);
+    if(team&&!getTeamSub(team.id,A.stage)){
+      var drafts=JSON.parse(localStorage.getItem('fa_drafts')||'{}');
+      var d=drafts[team.id]&&drafts[team.id][A.stage];
+      if(d){
+        Object.keys(d.data).forEach(function(k){
+          A.inp[k]=d.data[k];
+          var el=document.getElementById(k);
+          if(el){el.value=d.data[k];
+            if(el.classList.contains('blank')&&d.data[k]!=''){
+              var v=parseFloat(d.data[k]),ans=parseFloat(el.dataset.a);
+              el.classList.remove('ok','err');el.classList.add(close(v,ans)?'ok':'err');
+            }
+          }
+        });
+      }
+    }
+  }const fi=document.getElementById('importFile');if(fi)fi.addEventListener('change',e=>{if(e.target.files[0])doImport(e.target.files[0]);});}
 
 // ================================================================
 // AUTH SCREENS
@@ -3289,7 +3308,7 @@ function doEditUser(){
     var kickEl=el.closest&&el.closest('[data-kick]');if(kickEl)return doKick(kickEl.dataset.tid,kickEl.dataset.kick);
     if(id==='btnLeaveTeam'||el.closest&&el.closest('#btnLeaveTeam')){var tid2=el.dataset.tid||el.closest&&el.closest('[data-tid]')?.dataset.tid;return doLeaveTeam(tid2);}
     var selco=el.closest&&el.closest('[data-selco]');if(selco)return doSelectCo(selco.dataset.tid,selco.dataset.selco);
-    var ns=el.closest&&el.closest('[data-ns]');if(ns){var n=parseInt(ns.dataset.ns);var team2=getUserTeam(A.user.id);if(team2&&!stageOk(n,team2.id)){var prevStage=n-1;var sNames=['','Empresa y Canvas','Estados Financieros','Razones de Liquidez','Análisis H y V','Punto de Equilibrio'];var prevName=sNames[prevStage]||('Etapa '+prevStage);msg('🔒 Etapa '+n+' bloqueada — primero debes entregar la Etapa '+prevStage+': '+prevName+'. Búscala en el menú lateral y presiona el botón Entregar.','warn');return;}return ss({view:'stages',stage:n});}
+    var ns=el.closest&&el.closest('[data-ns]');if(ns){var n=parseInt(ns.dataset.ns);return ss({view:'stages',stage:n});}
     var nv=el.closest&&el.closest('[data-nv]');if(nv)return ss({view:nv.dataset.nv,tsv:'members'});
     var tab=el.closest&&el.closest('[data-tab]');if(tab)return ss({tab:tab.dataset.tab});
     var et=el.closest&&el.closest('[data-et]');if(et)return ss({evalTarget:et.dataset.et});
@@ -3490,11 +3509,15 @@ function doSaveDraft(stage){
 
 function loadDraft(stage){
   var team=getUserTeam(A.user.id);if(!team)return;
-  var sub=getTeamSub(team.id,stage);if(sub)return; // ya entregada, no pisar
+  var sub=getTeamSub(team.id,stage);if(sub)return;
   var drafts=JSON.parse(localStorage.getItem('fa_drafts')||'{}');
   var d=drafts[team.id]&&drafts[team.id][stage];
   if(!d)return;
-  Object.keys(d.data).forEach(function(k){A.inp[k]=d.data[k];});
+  Object.keys(d.data).forEach(function(k){
+    A.inp[k]=d.data[k];
+    var el=document.getElementById(k);
+    if(el)el.value=d.data[k];
+  });
 }
 
 
