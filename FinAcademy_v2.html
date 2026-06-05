@@ -3614,6 +3614,9 @@ function generateReport(stage,team,co){
     g2.forEach(function(k,i){body+=ans(g2labels[i],d[k]);});
     body+='</div>';
 
+    // Helper: usa lo que el alumno capturó, si no '—'
+    function alumno(id){var v=d[id];return(v!==undefined&&v!=='')?'$'+fmtN(parseFloat(v)):'—';}
+
     ['y1','y2'].forEach(function(yr,yi){
       var y=co.y[yi],bg=a[yr].bg,er=a[yr].er;
       body+='<div class="section">'+sec('BALANCE GENERAL — '+y+' (Miles de Pesos MXN)')+
@@ -3621,26 +3624,28 @@ function generateReport(stage,team,co){
         '<tr><td>Efectivo y equivalentes</td><td class="r">$'+fmtN(bg.ef)+'</td><td>Cuentas por pagar</td><td class="r">$'+fmtN(bg.cxp)+'</td></tr>'+
         '<tr><td>Cuentas por cobrar</td><td class="r">$'+fmtN(bg.cxc)+'</td><td>Deuda a corto plazo</td><td class="r">$'+fmtN(bg.dcp)+'</td></tr>'+
         '<tr><td>Inventarios</td><td class="r">$'+fmtN(bg.inv)+'</td><td>Impuestos por pagar</td><td class="r">$'+fmtN(bg.imp)+'</td></tr>'+
-        '<tr class="subtotal"><td>Total Activo Circulante</td><td class="r">$'+fmtN(bg.ac)+'</td><td>Total Pasivo Circ.</td><td class="r">$'+fmtN(bg.pc)+'</td></tr>'+
+        '<tr class="subtotal"><td>Total Activo Circulante</td><td class="r">'+alumno('s2ac'+yr)+'</td><td>Total Pasivo Circ.</td><td class="r">'+alumno('s2pc'+yr)+'</td></tr>'+
         '<tr><td>Equipos brutos</td><td class="r">$'+fmtN(bg.eq)+'</td><td>Deuda a largo plazo</td><td class="r">$'+fmtN(bg.pnc)+'</td></tr>'+
-        '<tr><td>(-) Dep. acumulada</td><td class="r">('+fmtN(Math.abs(bg.dep))+')</td><td>Total Pasivo</td><td class="r">$'+fmtN(bg.tp)+'</td></tr>'+
+        '<tr><td>(-) Dep. acumulada</td><td class="r">('+fmtN(Math.abs(bg.dep))+')</td><td>Total Pasivo</td><td class="r">'+alumno('s2tp'+yr)+'</td></tr>'+
         '<tr><td>Otros activos NC</td><td class="r">$'+fmtN(bg.onc)+'</td><td>Capital social</td><td class="r">$'+fmtN(bg.cs)+'</td></tr>'+
-        '<tr class="subtotal"><td>Total Activo No Circ.</td><td class="r">$'+fmtN(bg.anc)+'</td><td>Utilidades retenidas</td><td class="r">$'+fmtN(bg.ur)+'</td></tr>'+
-        '<tr class="total"><td>TOTAL ACTIVO</td><td class="r">$'+fmtN(bg.ta)+'</td><td>TOTAL PASIVO + CAPITAL</td><td class="r">$'+fmtN(bg.ta)+'</td></tr>'+
+        '<tr class="subtotal"><td>Total Activo No Circ.</td><td class="r">'+alumno('s2anc'+yr)+'</td><td>Utilidades retenidas</td><td class="r">'+alumno('s2ur'+yr)+'</td></tr>'+
+        '<tr class="total"><td>TOTAL ACTIVO</td><td class="r">'+alumno('s2ta'+yr)+'</td><td>TOTAL PASIVO + CAPITAL</td><td class="r">'+alumno('s2tpc'+yr)+'</td></tr>'+
         '</table></div>';
       body+='<div class="section">'+sec('ESTADO DE RESULTADOS — '+y+' (Miles de Pesos MXN)')+
-        '<table><tr><th>Concepto</th><th class="r">Importe</th><th class="r">% Ventas</th></tr>'+
-        '<tr><td>Ventas Netas</td><td class="r">$'+fmtN(er.v)+'</td><td class="r">100.0%</td></tr>'+
-        '<tr><td>(-) Costo de Ventas</td><td class="r">($'+fmtN(er.cv)+')</td><td class="r">'+(Math.round(er.cv/er.v*1000)/10)+'%</td></tr>'+
-        '<tr class="subtotal"><td>Utilidad Bruta</td><td class="r">$'+fmtN(er.ub)+'</td><td class="r">'+(Math.round(er.ub/er.v*1000)/10)+'%</td></tr>'+
-        '<tr><td>(-) Gastos Administración</td><td class="r">($'+fmtN(er.ga)+')</td><td class="r"></td></tr>'+
-        '<tr><td>(-) Gastos Ventas</td><td class="r">($'+fmtN(er.gv)+')</td><td class="r"></td></tr>'+
-        '<tr><td>(-) Depreciación</td><td class="r">($'+fmtN(er.dep)+')</td><td class="r"></td></tr>'+
-        '<tr class="subtotal"><td>Utilidad Operativa (UAFIR)</td><td class="r">$'+fmtN(er.uo)+'</td><td class="r">'+(Math.round(er.uo/er.v*1000)/10)+'%</td></tr>'+
-        '<tr><td>(+) Otros ingresos / (-) Gastos financieros</td><td class="r">$'+fmtN(er.oi-er.gf_)+'</td><td class="r"></td></tr>'+
-        '<tr class="subtotal"><td>Utilidad Antes de Impuestos (UAI)</td><td class="r">$'+fmtN(er.uai)+'</td><td class="r">'+(Math.round(er.uai/er.v*1000)/10)+'%</td></tr>'+
-        '<tr><td>(-) ISR ('+er.t*100+'%)</td><td class="r">($'+fmtN(er.isr)+')</td><td class="r"></td></tr>'+
-        '<tr class="total"><td>UTILIDAD NETA</td><td class="r">$'+fmtN(er.un)+'</td><td class="r">'+(Math.round(er.un/er.v*1000)/10)+'%</td></tr>'+
+        '<table><tr><th>Concepto</th><th class="r">Importe</th></tr>'+
+        '<tr><td>Ventas Netas</td><td class="r">$'+fmtN(er.v)+'</td></tr>'+
+        '<tr><td>(-) Costo de Ventas</td><td class="r">($'+fmtN(er.cv)+')</td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Bruta</td><td class="r">'+alumno('s2ub'+yr)+'</td></tr>'+
+        '<tr><td>(-) Gastos Administración</td><td class="r">($'+fmtN(er.ga)+')</td></tr>'+
+        '<tr><td>(-) Gastos Ventas</td><td class="r">($'+fmtN(er.gv)+')</td></tr>'+
+        '<tr><td>(-) Depreciación</td><td class="r">($'+fmtN(er.dep)+')</td></tr>'+
+        '<tr class="subtotal"><td>Total Gastos Operativos</td><td class="r">'+alumno('s2tgo'+yr)+'</td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Operativa (UAFIR)</td><td class="r">'+alumno('s2uo'+yr)+'</td></tr>'+
+        '<tr><td>(+) Otros ingresos</td><td class="r">$'+fmtN(er.oi)+'</td></tr>'+
+        '<tr><td>(-) Gastos financieros</td><td class="r">($'+fmtN(er.gf_)+')</td></tr>'+
+        '<tr class="subtotal"><td>Utilidad Antes de Impuestos (UAI)</td><td class="r">'+alumno('s2uai'+yr)+'</td></tr>'+
+        '<tr><td>(-) ISR ('+er.t*100+'%)</td><td class="r">'+alumno('s2isr'+yr)+'</td></tr>'+
+        '<tr class="total"><td>UTILIDAD NETA</td><td class="r">'+alumno('s2un'+yr)+'</td></tr>'+
         '</table></div>';
     });
   }
@@ -3651,13 +3656,14 @@ function generateReport(stage,team,co){
     ['s3g1','s3g2','s3g3'].forEach(function(k,i){body+=ans(['Liquidez óptima del sector','Rol estratégico del inventario','Ciclo de cobro y pago'][i],d[k]);});
     body+='</div>';
 
+    function rat(id){var v=d[id];return(v!==undefined&&v!=='')?fmtN(parseFloat(v),3):'—';}
     body+='<div class="section">'+sec('RAZONES DE LIQUIDEZ (ambos períodos)')+
-      '<table><tr><th>Razón Financiera</th><th>Fórmula</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th><th>Interpretación</th></tr>'+
-      '<tr><td>Capital de Trabajo Neto</td><td>AC − PC</td><td class="r">$'+fmtN(a.y1.rat.ctn)+'K</td><td class="r">$'+fmtN(a.y2.rat.ctn)+'K</td><td>'+( a.y2.rat.ctn>0?'Positivo: puede pagar deudas a CP':'Negativo: riesgo de iliquidez')+'</td></tr>'+
-      '<tr><td>Razón Corriente</td><td>AC ÷ PC</td><td class="r">'+fmtN(a.y1.rat.rc,3)+'x</td><td class="r">'+fmtN(a.y2.rat.rc,3)+'x</td><td>'+( a.y2.rat.rc>=1.5?'Saludable':'Revisar liquidez')+'</td></tr>'+
-      '<tr><td>Prueba Ácida</td><td>(AC−Inv) ÷ PC</td><td class="r">'+fmtN(a.y1.rat.pa,3)+'x</td><td class="r">'+fmtN(a.y2.rat.pa,3)+'x</td><td></td></tr>'+
-      '<tr><td>Razón de Efectivo</td><td>Efvo ÷ PC</td><td class="r">'+fmtN(a.y1.rat.re,3)+'x</td><td class="r">'+fmtN(a.y2.rat.re,3)+'x</td><td></td></tr>'+
-      '<tr><td>Razón de Tesorería</td><td>(Efvo+CxC) ÷ PC</td><td class="r">'+fmtN(a.y1.rat.rte,3)+'x</td><td class="r">'+fmtN(a.y2.rat.rte,3)+'x</td><td></td></tr>'+
+      '<table><tr><th>Razón Financiera</th><th>Fórmula</th><th class="r">'+co.y[0]+'</th><th class="r">'+co.y[1]+'</th></tr>'+
+      '<tr><td>Capital de Trabajo Neto</td><td>AC − PC</td><td class="r">'+rat('s3ctny1')+'</td><td class="r">'+rat('s3ctny2')+'</td></tr>'+
+      '<tr><td>Razón Corriente</td><td>AC ÷ PC</td><td class="r">'+rat('s3rcy1')+'</td><td class="r">'+rat('s3rcy2')+'</td></tr>'+
+      '<tr><td>Prueba Ácida</td><td>(AC−Inv) ÷ PC</td><td class="r">'+rat('s3pay1')+'</td><td class="r">'+rat('s3pay2')+'</td></tr>'+
+      '<tr><td>Razón de Efectivo</td><td>Efvo ÷ PC</td><td class="r">'+rat('s3rey1')+'</td><td class="r">'+rat('s3rey2')+'</td></tr>'+
+      '<tr><td>Razón de Tesorería</td><td>(Efvo+CxC) ÷ PC</td><td class="r">'+rat('s3rtey1')+'</td><td class="r">'+rat('s3rtey2')+'</td></tr>'+
       '</table></div>';
 
     body+='<div class="section">'+sec('RAZONES OPERATIVAS Y CICLOS')+
