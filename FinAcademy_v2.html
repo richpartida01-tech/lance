@@ -3296,7 +3296,7 @@ function doEditUser(){
     var sv=el.closest&&el.closest('[data-sv]');if(sv){A.inp['ev_'+sv.dataset.sid]=parseInt(sv.dataset.sv);render();return;}
     var rpt=el.closest&&el.closest('[data-rpt]');if(rpt){var team3=getUserTeam(A.user.id);if(team3)generateReport(parseInt(rpt.dataset.rpt),team3,getC(team3.companyId));return;}
     if(id==='btnExport')return doExport();
-    if(id==='btnImport')return var _ifi=document.getElementById('importFile');if(_ifi)_ifi.click();;
+    if(id==='btnImport'){var _ifi=document.getElementById('importFile');if(_ifi)_ifi.click();return;}
     if(id==='btnSBConnect'||el.closest&&el.closest('#btnSBConnect'))return doSBConnect();
     if(id==='btnSyncNow'||el.closest&&el.closest('#btnSyncNow')){
       msg('Sincronizando...','ok');
