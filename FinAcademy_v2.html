@@ -920,29 +920,8 @@ function rS5(team,co){
   '</div>';}
 
 function doPEProgress(nextPhase){
-  var prev=nextPhase-1;var errs={};
-  var checks={
-    1:[{id:'ej_cm',ans:27},{id:'ej_pe1',ans:371}],
-    2:[{id:'ej_num2',ans:12000},{id:'ej_pe2',ans:445}],
-    3:[{id:'ej_num3',ans:8400},{id:'ej_pe3',ans:312}],
-    4:[{id:'ej_num4',ans:14400},{id:'ej_pe4',ans:534}],
-    5:[{id:'ej5_mc0',ans:27},{id:'ej5_mc1',ans:15},{id:'ej5_mc2',ans:30},
-       {id:'ej5_mcp0',ans:16.2},{id:'ej5_mcp1',ans:4.5},{id:'ej5_mcp2',ans:3.0},
-       {id:'ej5_mcpt',ans:23.7},{id:'ej5_pe',ans:608}],
-  };
-  var thisChecks=checks[prev]||[];
-  var wrong=0;
-  thisChecks.forEach(function(c){
-    var v=parseFloat(A.inp[c.id]||'');
-    if(isNaN(v)||!close(v,c.ans,.04)){errs[c.id]=true;wrong++;}
-  });
-  if(wrong>0){
-    errs['_p'+prev]=true;
-    ss({peErr:errs});
-    msg('Hay '+(wrong===1?'1 valor incorrecto':wrong+' valores incorrectos')+'. Revísalos o usa el botón de ayuda.','warn');
-  } else {
-    ss({pePhase:nextPhase,peErr:{}});
-  }}
+  ss({pePhase:nextPhase,peErr:{}});
+}
 
 
 
@@ -3461,33 +3440,12 @@ function calcParticipation(teamId){
 
 
 function doPEProgress(nextPhase){
-  var prev=nextPhase-1;var errs={};
-  var checks={
-    1:[{id:'ej_cm',ans:27},{id:'ej_pe1',ans:371}],
-    2:[{id:'ej_num2',ans:12000},{id:'ej_pe2',ans:445}],
-    3:[{id:'ej_num3',ans:8400},{id:'ej_pe3',ans:312}],
-    4:[{id:'ej_num4',ans:14400},{id:'ej_pe4',ans:534}],
-    5:[{id:'ej5_mc0',ans:27},{id:'ej5_mc1',ans:15},{id:'ej5_mc2',ans:30},
-       {id:'ej5_mcp0',ans:16.2},{id:'ej5_mcp1',ans:4.5},{id:'ej5_mcp2',ans:3.0},
-       {id:'ej5_mcpt',ans:23.7},{id:'ej5_pe',ans:608}],
-  };
-  var thisChecks=checks[prev]||[];
-  var wrong=0;
-  thisChecks.forEach(function(c){
-    var v=parseFloat(A.inp[c.id]||'');
-    if(isNaN(v)||!close(v,c.ans,.04)){errs[c.id]=true;wrong++;}
-  });
-  if(wrong>0){
-    errs['_p'+prev]=true;
-    ss({peErr:errs});
-    msg('Hay '+(wrong===1?'1 valor incorrecto':wrong+' valores incorrectos')+'. Revísalos o usa el botón de ayuda.','warn');
-  } else {
-    ss({pePhase:nextPhase,peErr:{}});
-  }}
+  ss({pePhase:nextPhase,peErr:{}});
+}
 
 
 function doSubmit(stage){
-  document.querySelectorAll('textarea,input[type=text],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
+  document.querySelectorAll('textarea,input[type=text],input[type=email],input[type=number]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
   const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
   var score=stage===1?100:calcScore(stage,team.id,A.inp);
