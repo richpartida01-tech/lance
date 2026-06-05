@@ -3446,13 +3446,20 @@ function doPEProgress(nextPhase){
 
 function doSubmit(stage){
   document.querySelectorAll('textarea,input[type=text],input[type=email],input[type=number]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
-  const team=getUserTeam(A.user.id);const co=getC(team&&team.companyId);
+  var team=getUserTeam(A.user.id);var co=getC(team&&team.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
   var score=stage===1?100:calcScore(stage,team.id,A.inp);
-  const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
-  subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);SYNC.pushSub(team.id,stage,subs[team.id][stage]);
-  if(stage<5)ss({view:'stages',stage:stage+1});else ss({view:'home'});
-  msg('✅ Etapa '+stage+' entregada. Score: '+score+'%','ok');}
+  var subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
+  subs[team.id][stage]={data:{},score:score,submittedBy:A.user.id,submittedAt:Date.now()};
+  Object.keys(A.inp).forEach(function(k){subs[team.id][stage].data[k]=A.inp[k];});
+  DB.saveSubs(subs);
+  try{SYNC.pushSub(team.id,stage,subs[team.id][stage]);}catch(e){console.warn('Sync error',e);}
+  msg('✅ Etapa '+stage+' entregada.','ok');
+  // Abrir PDF inmediatamente
+  try{generateReport(stage,team,co);}catch(e){console.warn('PDF error',e);}
+  // Avanzar vista
+  if(stage<5){ss({view:'stages',stage:stage+1});}else{ss({view:'home'});}
+}
 
 function doSaveDraft(stage){
   document.querySelectorAll('textarea,input[type=text],input[type=number],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
