@@ -1310,7 +1310,7 @@ var out='<div class="guide-section">';
 out+='<div class="guide-hdr flex g8">';
 out+='<span style="font-size:20px">&#x1F4DA;</span>';
 out+='<div><div class="fw7 f14">Análisis Guiado — Contexto previo al cálculo</div>';
-out+='<div class="t2 f11">Responde estas preguntas ANTES de completar los datos numéricos. Se requieren al menos 2 respuestas de 30+ caracteres para poder entregar.</div></div></div>';
+out+='<div class="t2 f11">Responde estas preguntas ANTES de completar los datos numéricos. Se requieren al menos 2 respuestas de 10+ caracteres para poder entregar.</div></div></div>';
 for(var i=0;i<qs.length;i++){
 var q=qs[i];
 out+='<div class="guide-q">';
@@ -3466,10 +3466,10 @@ function doSubmit(stage){
   document.querySelectorAll('textarea,input[type=text],input[type=email]').forEach(el=>{if(el.id)A.inp[el.id]=el.value;});
   const team=getUserTeam(A.user.id);const co=getC(team?.companyId);
   if(!team||!co){msg('Error: sin equipo o empresa.','err');return;}
-  if(stage>=2&&(!A.user||A.user.role!=='admin')){var gqs=getGuide(stage,co);var gAnswered=gqs.filter(function(q){return(A.inp[q.id]||'').trim().length>=30;});if(gAnswered.length<2){msg('Responde al menos 2 preguntas del Análisis Guiado (30+ caracteres c/u) antes de entregar.','warn');return;}}
+  if(stage>=2&&(!A.user||A.user.role!=='admin')){var gqs=getGuide(stage,co);var gAnswered=gqs.filter(function(q){return(A.inp[q.id]||'').trim().length>=10;});if(gAnswered.length<2){msg('Responde al menos 2 preguntas del Análisis Guiado (10+ caracteres c/u) antes de entregar.','warn');return;}}
 if(stage===1){const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};subs[team.id][1]={data:{...A.inp},score:100,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);ss({view:'stages',stage:2});msg('✅ Etapa 1 entregada.','ok');return;}
   const score=calcScore(stage,team.id,A.inp);
-  if(score<25){msg('Score de '+score+'%. Revisa tus cálculos (mínimo 25%).','warn');return;}
+  if(score<5){msg('Score de '+score+'%. Revisa tus cálculos (mínimo 5%).','warn');return;}
   const subs=DB.getSubs();if(!subs[team.id])subs[team.id]={};
   subs[team.id][stage]={data:{...A.inp},score,submittedBy:A.user.id,submittedAt:Date.now()};DB.saveSubs(subs);SYNC.pushSub(team.id,stage,subs[team.id][stage]);
   if(stage<5)ss({view:'stages',stage:stage+1});else ss({view:'home'});
